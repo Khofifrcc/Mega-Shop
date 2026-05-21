@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 
-class ProductCreate(BaseModel):
-    name: str
-    price: int
-    description: str
+class PostCreate(BaseModel):
+    user_id: str
+    caption: str
     image: str

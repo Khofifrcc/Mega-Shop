@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from app.schemas.post_schema import PostCreate
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -9,10 +10,10 @@ def get_posts():
     return posts
 
 @router.post("/")
-def create_post(post: dict):
+def create_post(post: PostCreate):
     new_post = {
         "id": len(posts) + 1,
-        **post
+        **post.dict()
     }
     posts.append(new_post)
     return new_post

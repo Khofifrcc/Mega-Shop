@@ -1,0 +1,9 @@
+cat > requirements.txt <<'EOF'
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+passlib
+bcrypt
+python-multipart
+EOF

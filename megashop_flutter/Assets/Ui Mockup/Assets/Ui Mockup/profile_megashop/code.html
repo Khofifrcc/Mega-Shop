@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>MegaShop - Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#653e00",
+                        "on-surface-variant": "#4a4455",
+                        "primary-fixed": "#eaddff",
+                        "tertiary-container": "#a15100",
+                        "surface-container": "#e9edff",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "surface-container-high": "#e1e8fd",
+                        "surface-tint": "#732ee4",
+                        "on-surface": "#141b2b",
+                        "surface-variant": "#dce2f7",
+                        "on-background": "#141b2b",
+                        "secondary-fixed": "#ffddb8",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface": "#f9f9ff",
+                        "surface-container-low": "#f1f3ff",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#dce2f7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#25005a",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#edf0ff",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f9f9ff",
+                        "secondary": "#855300",
+                        "primary-container": "#7c3aed",
+                        "tertiary": "#7d3d00",
+                        "surface-dim": "#d3daef",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-tertiary-fixed": "#301400",
+                        "outline": "#7b7487",
+                        "inverse-surface": "#293040",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#684000",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-secondary-fixed": "#2a1700",
+                        "secondary-container": "#fea619",
+                        "inverse-primary": "#d2bbff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#ede0ff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb95f",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#ccc3d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "safe-area-bottom": "34px",
+                        "safe-area-top": "59px",
+                        "edge-margin": "16px",
+                        "gutter": "12px",
+                        "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "label-bold": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "price-lg": ["20px", { "lineHeight": "24px", "fontWeight": "800" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hide scrollbar for a cleaner mobile feel */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased w-full max-w-[390px] mx-auto h-[844px] relative overflow-hidden shadow-2xl ring-1 ring-outline-variant/20">
+<!-- TopAppBar Shared Component -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-edge-margin pt-safe-area-top h-[123px] bg-surface dark:bg-surface-dim">
+<button class="text-primary dark:text-primary-fixed hover:bg-surface-container-low dark:hover:bg-surface-container-highest rounded-full transition-colors w-10 h-10 flex items-center justify-center active:opacity-80">
+<span class="material-symbols-outlined" data-icon="location_on">location_on</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">MegaShop</h1>
+<button class="text-primary dark:text-primary-fixed hover:bg-surface-container-low dark:hover:bg-surface-container-highest rounded-full transition-colors w-10 h-10 flex items-center justify-center active:opacity-80">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+</header>
+<!-- Main Scrollable Content -->
+<main class="h-full overflow-y-auto pt-[123px] pb-[90px]">
+<!-- Cover & Avatar Section -->
+<div class="relative">
+<div class="h-[160px] w-full bg-surface-variant relative overflow-hidden">
+<img alt="Cover photo" class="w-full h-full object-cover" data-alt="A wide, high-fashion editorial photograph of a minimalist, modern living space bathed in warm, natural sunlight. The scene features sleek, contemporary furniture with clean lines, accented by subtle vibrant pops of amber and deep purple decor. The lighting creates soft, ambient shadows on the crisp white walls, perfectly capturing the premium, trend-conscious aesthetic of a high-end lifestyle brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAU59bFRCpW6OpwOxh8yIFByHICKNe1wFmkl2-okF1Lw8GOAf5_DcHO-nOsFHkHAiUvxl_qzICqr8MGSRCLdYpEvfzDgQ5OASC0B8vrIYNI4VcrMbAN4DkIS8wTLbe7OGus80L3fW40N_M3dwmYQzwA3kNIQ7nmC9-Sya-mSYiSFi4YNQVGy_g9ogvRlMRRnGe38AvJhiXk9iQTH25yZqP6Eiq6ryn3ntkga8sYFNu6TTWUSvlvk_RAxlbO9zU1iGkmT_uGJwqkOXpt"/>
+</div>
+<div class="px-edge-margin flex justify-between items-end -mt-[40px] relative z-10">
+<div class="relative">
+<img alt="User avatar" class="w-[88px] h-[88px] rounded-full border-4 border-surface object-cover shadow-sm ring-2 ring-primary/20" data-alt="A close-up portrait of a stylish, modern young professional with an energetic and confident expression. They are wearing a chic, minimalist outfit in neutral tones. The background is a clean, softly blurred urban setting in bright daylight, emphasizing a high-end, highly social, and approachable brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDe-sQRG135PCALg-giu9FiJHJV_xDAmPYBikhVwgx1y6GOCDuzdt1E9dVNQkONMQRvN2fEhHWwHIDvedYi5Ts5WJvQy4lxS95nt3yG0RjsYuLquDYbhdpV3weJKsv7lsp4zhBewFaXfp1tK5nq1Wlix5-6pQRsRnIt0EcgsX9hxyAETwGc7FoE-2w31mraViSaVM-V0zK5LPCjJo5ckKHQatzCmIIvO0W9PdFnoK3R7ma6MiCkCXUR1GFbYlgA5vyFsErlLBXTWj_o"/>
+<div class="absolute bottom-1 right-1 w-4 h-4 bg-secondary-container border-2 border-surface rounded-full"></div>
+</div>
+<div class="flex gap-2 mb-2">
+<button class="h-9 px-4 rounded-full border border-outline/40 font-label-bold text-label-bold text-on-surface flex items-center justify-center hover:bg-surface-container-low transition-colors">
+                        Edit Profile
+                    </button>
+<button class="h-9 w-9 rounded-full bg-surface-container-low text-on-surface flex items-center justify-center hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bio & Stats Section -->
+<div class="px-edge-margin mt-stack-sm flex flex-col gap-stack-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Elena Rodriguez</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Curating the effortless aesthetic. Fashion | Lifestyle | Design ✦ NYC</p>
+</div>
+<!-- Stats Row -->
+<div class="flex justify-between items-center py-stack-md border-t border-b border-surface-variant mt-2">
+<div class="flex flex-col items-center">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-none">12.4k</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-[12px]">Followers</span>
+</div>
+<div class="h-8 w-px bg-surface-variant"></div>
+<div class="flex flex-col items-center">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-none">842</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-[12px]">Following</span>
+</div>
+<div class="h-8 w-px bg-surface-variant"></div>
+<div class="flex flex-col items-center">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-none">340</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-[12px]">Posts</span>
+</div>
+<div class="h-8 w-px bg-surface-variant"></div>
+<div class="flex flex-col items-center">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-none">56</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-[12px]">Products</span>
+</div>
+</div>
+</div>
+<!-- Tab Bar -->
+<div class="flex w-full mt-2 border-b border-surface-variant">
+<button class="flex-1 py-3 flex items-center justify-center gap-2 border-b-2 border-primary text-primary font-label-bold text-label-bold transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="grid_on">grid_on</span>
+                Feed
+            </button>
+<button class="flex-1 py-3 flex items-center justify-center gap-2 text-on-surface-variant font-label-bold text-label-bold hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="sell">sell</span>
+                Products
+            </button>
+</div>
+<!-- Grid Layout (3 Columns) -->
+<div class="grid grid-cols-3 gap-[2px] mt-[2px]">
+<div class="aspect-square bg-surface-variant relative group cursor-pointer">
+<img alt="Fashion post" class="w-full h-full object-cover" data-alt="A striking, high-contrast fashion photograph of a minimalist outfit featuring a structured blazer. The image is bathed in bright, soft white lighting typical of modern light-mode aesthetics. A sophisticated palette of crisp whites and subtle deep blacks dominates the scene, creating a clean, editorial look suited for a premium social feed." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPnIBfHTb3FXUwwxVhzFPudhFt1dUahAWv5Q7B0p9CpZNAJLEBN0B6VeSoxwIxMo12r5djEG753suBb6R7c4_d2Pdb9MFbJk6D62g3NUKbp5yrD4gLNPmJnS6orcDr-xTctY6BMejI1cADKd7z6ykwV8BL5V_9bh7CH7RmSat5PMygmR7LBK2l8zgJ1gu4c0IJWd30DCAmqDGiMX6cEyD-7zaPppUx0XVe0XXH4bTkGPZAK0xa5xnfGmMzejl94YHUxgN5J7Ofysdp"/>
+</div>
+<div class="aspect-square bg-surface-variant relative group cursor-pointer">
+<img alt="Sneaker post" class="w-full h-full object-cover" data-alt="A clean, minimalist product shot of a premium white sneaker resting on a pristine, light grey surface. The lighting is high-key and diffused, casting soft ambient shadows that emphasize the shoe's sleek design. The overall mood is sophisticated, modern, and perfectly aligned with a high-end e-commerce editorial style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAW9A8zB_VBKmUifMx4AT__v5Fq8v3yW2uovdzOkZnuFxbpT6wfH-QWbCIiiGYeyM9TiIvihgX_x_RtZrfBJyR-5ZsYjwr1HbFkCGKLhM8lSlgkojRrCUBuvW9CHq5mU_m4Wf9DeigJuWQD1MvNXUxph_VFROPsFsD2_JliBb9ioIXDtOi4nLDlA7tqyPXTVbjoAX4q76hhrQXebIRxVfdBcXOpy1hl0P_N-QdnQ_UAyF8uKPL0ET6Clpybbk0iDWQxUSclAO_5OA8c"/>
+<div class="absolute top-2 right-2 opacity-80">
+<span class="material-symbols-outlined text-white drop-shadow-md text-[18px]" data-icon="sell" style="font-variation-settings: 'FILL' 1;">sell</span>
+</div>
+</div>
+<div class="aspect-square bg-surface-variant relative group cursor-pointer">
+<img alt="Product highlight" class="w-full h-full object-cover" data-alt="A dynamic, high-quality editorial shot of a sleek athletic shoe against a minimalist, bright background. The lighting is crisp and energetic, creating sharp but subtle shadows. Vibrant red accents pop against the predominantly bright, light-mode palette, conveying a sense of modern speed and premium trend-conscious design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiLMjCyseWadGSprvscIj4Mi2Car_go33XfLHk5sz80sFg7Tk30gu20CcTfIq2vmd6-Fxg_6iuPFyvWSV1r6SxSlQVgeop-ElZYT07K_nD_zYg_cZq6DxQokaDGp0ZSP0sSd6NNx7KlVdhPMufH2aeTqtKLlnxPcEGARGyj941ebbJ71xffoSqw9nEf9jQI3-Zs3ZcmEakYS0GpQzPeM276Q23koAicLoGdtugIjk7RUsSGWLeZPGftLfD7O2H_3dvBbwCmXsCAbOM"/>
+</div>
+<div class="aspect-square bg-surface-variant relative group cursor-pointer">
+<img alt="Accessory post" class="w-full h-full object-cover" data-alt="A meticulously styled flat lay featuring high-end minimalist accessories—a sleek watch and sunglasses—arranged on a perfectly white surface. Soft, natural light cascades across the items, producing gentle tonal shadows. The aesthetic is incredibly clean and sophisticated, designed to evoke effortless discovery and luxury." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkKvKCvGnPSyFRtRRR4mzbY8mmmoJ72MvZFZBFE9UMWSZle5Xs6kbBPDKOVeMyixmGN1KMrzt7dvudvanrxZ8rc1U-4W2lzJ3-F0bFw6pUY-4g0FBYEP7L2q87aoTcXbibCH8An-ha2A0GCv_O16iTkip5QefN3d7-lkIX8jAXqkDKKHWOVmkV_b0LAmBvoyWob_-s1AxG38402ma9wVXNAiFaNJFqNyCSqDy1sZchmgYZsqHvv9eOuAmiVeOf9jN0tqzBbnMqvvB-"/>
+</div>
+<div class="aspect-square bg-surface-variant relative group cursor-pointer">
+<img alt="Lifestyle post" class="w-full h-full object-cover" data-alt="A modern lifestyle photograph showing a minimalist workspace with a sleek laptop and a stylized coffee cup. The scene is illuminated by bright, airy daylight filtering through an unseen window. The color palette focuses on whites, soft greys, and warm natural tones, perfectly capturing a high-end, contemporary social media aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbvCU2UX2st2o-8hpm4khMegDrHzOcEkd_oI3RN6HU-ZUmHxMKXK6_hYwEUhCkEpccHs6OrQnt0kF2q3O9sIzkSaYiO-9y9vCXjK14xfI6dU12LhZdADzay71rfZZ9y0ZYozevFpepxAWBgkkBlECeUHo_vGnll93rwVh2dvfL-W2CTt-_qvgRYeNo4giEd345Bw5Tgdn5RvleQ_LvsOe1LVb8XwbhswNq1FlOM3v81GA7ftze9cYcAYmHy68wSPf6BoXUs-3zGEnG"/>
+</div>
+<div class="aspect-square bg-surface-variant relative group cursor-pointer flex items-center justify-center bg-surface-container-low hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[32px] text-on-surface-variant" data-icon="add_photo_alternate">add_photo_alternate</span>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Shared Component -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-edge-margin pb-safe-area-bottom pt-2 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-lg shadow-[0_-4px_20px_rgba(0,0,0,0.05)] docked full-width rounded-t-xl">
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-14 h-12 rounded-lg active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-bold text-label-bold mt-1 text-[10px]">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-14 h-12 rounded-lg active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="movie">movie</span>
+<span class="font-label-bold text-label-bold mt-1 text-[10px]">Reels</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-14 h-12 rounded-lg active:scale-95 duration-150 relative">
+<div class="absolute -top-3 bg-primary text-white rounded-full p-2 shadow-lg">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+</div>
+<span class="font-label-bold text-label-bold mt-5 text-[10px] opacity-0">Post</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-14 h-12 rounded-lg active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-label-bold text-label-bold mt-1 text-[10px]">Cart</span>
+</button>
+<!-- Active Nav Item -->
+<button class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed font-bold hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-14 h-12 rounded-lg active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-bold text-label-bold mt-1 text-[10px]">Profile</span>
+</button>
+</nav>
+</body></html>

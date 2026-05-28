@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>MegaShop Login / Register</title>
+<!-- Google Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-fixed-variant": "#653e00",
+              "on-surface-variant": "#4a4455",
+              "primary-fixed": "#eaddff",
+              "tertiary-container": "#a15100",
+              "surface-container": "#e9edff",
+              "surface-bright": "#f9f9ff",
+              "primary": "#630ed4",
+              "surface-container-high": "#e1e8fd",
+              "surface-tint": "#732ee4",
+              "on-surface": "#141b2b",
+              "surface-variant": "#dce2f7",
+              "on-background": "#141b2b",
+              "secondary-fixed": "#ffddb8",
+              "on-primary-fixed-variant": "#5a00c6",
+              "surface": "#f9f9ff",
+              "surface-container-low": "#f1f3ff",
+              "primary-fixed-dim": "#d2bbff",
+              "on-tertiary": "#ffffff",
+              "surface-container-highest": "#dce2f7",
+              "on-secondary": "#ffffff",
+              "on-primary-fixed": "#25005a",
+              "on-error": "#ffffff",
+              "inverse-on-surface": "#edf0ff",
+              "surface-container-lowest": "#ffffff",
+              "background": "#f9f9ff",
+              "secondary": "#855300",
+              "primary-container": "#7c3aed",
+              "tertiary": "#7d3d00",
+              "surface-dim": "#d3daef",
+              "tertiary-fixed-dim": "#ffb784",
+              "tertiary-fixed": "#ffdcc6",
+              "on-tertiary-fixed": "#301400",
+              "outline": "#7b7487",
+              "inverse-surface": "#293040",
+              "error": "#ba1a1a",
+              "on-secondary-container": "#684000",
+              "on-tertiary-container": "#ffe0cd",
+              "on-secondary-fixed": "#2a1700",
+              "secondary-container": "#fea619",
+              "inverse-primary": "#d2bbff",
+              "on-primary": "#ffffff",
+              "on-primary-container": "#ede0ff",
+              "on-error-container": "#93000a",
+              "secondary-fixed-dim": "#ffb95f",
+              "on-tertiary-fixed-variant": "#713700",
+              "error-container": "#ffdad6",
+              "outline-variant": "#ccc3d8",
+              "amber-brand": "#F59E0B"
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              "2xl": "1rem",
+              full: "9999px"
+            },
+            spacing: {
+              "stack-sm": "8px",
+              "stack-md": "16px",
+              "safe-area-bottom": "34px",
+              "safe-area-top": "59px",
+              "edge-margin": "16px",
+              "gutter": "12px",
+              "stack-lg": "24px"
+            },
+            fontFamily: {
+              "headline-sm": ["Plus Jakarta Sans"],
+              "headline-md": ["Plus Jakarta Sans"],
+              "body-md": ["Plus Jakarta Sans"],
+              "display-lg-mobile": ["Plus Jakarta Sans"],
+              "body-lg": ["Plus Jakarta Sans"],
+              "price-lg": ["Plus Jakarta Sans"],
+              "display-lg": ["Plus Jakarta Sans"],
+              "label-bold": ["Plus Jakarta Sans"]
+            },
+            fontSize: {
+              "headline-sm-mobile": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+              "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "700" }],
+              "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+              "display-lg-mobile": ["28px", { lineHeight: "36px", fontWeight: "700" }],
+              "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+              "price-lg": ["20px", { lineHeight: "24px", fontWeight: "800" }],
+              "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+              "label-bold": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "700" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Custom Abstract Background Setup */
+        .bg-abstract {
+            background-image: radial-gradient(circle at 10% 20%, rgba(99, 14, 212, 0.05) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(99, 14, 212, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="w-[390px] h-[844px] mx-auto relative overflow-hidden bg-abstract flex flex-col font-sans">
+<!-- Background Decorative Elements -->
+<div class="absolute top-[-100px] right-[-50px] w-[300px] h-[300px] bg-primary-fixed rounded-full mix-blend-multiply filter blur-3xl opacity-40 z-0"></div>
+<div class="absolute bottom-[-150px] left-[-100px] w-[400px] h-[400px] bg-surface-variant rounded-full mix-blend-multiply filter blur-3xl opacity-50 z-0"></div>
+<!-- Main Container - Respecting Safe Areas & Grid -->
+<div class="flex-1 flex flex-col w-full px-edge-margin pt-safe-area-top pb-safe-area-bottom relative z-10 overflow-y-auto">
+<!-- Header Section -->
+<header class="flex items-center justify-between w-full h-[64px] mb-stack-lg">
+<!-- Close Action (Implies Focus/Transactional) -->
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-highest transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">close</span>
+</button>
+<div class="font-headline-md text-headline-md text-primary font-bold">
+                MegaShop
+            </div>
+<div class="w-10 h-10"></div> <!-- Spacer for centering -->
+</header>
+<!-- Tab Navigation -->
+<div class="flex w-full bg-surface-container-low rounded-full p-1 mb-stack-lg shadow-sm">
+<!-- Inactive Tab -->
+<button class="flex-1 py-3 text-center rounded-full font-headline-sm-mobile text-headline-sm-mobile text-on-surface-variant hover:bg-surface-container-high transition-colors" onclick="switchTab('login')">
+                Login
+            </button>
+<!-- Active Tab -->
+<button class="flex-1 py-3 text-center rounded-full bg-surface shadow-sm font-headline-sm-mobile text-headline-sm-mobile text-primary font-bold transition-transform active:scale-95" onclick="switchTab('register')">
+                Register
+            </button>
+</div>
+<!-- Form Area (Glass Panel for premium feel) -->
+<div class="glass-panel rounded-2xl p-stack-md shadow-[0px_4px_20px_rgba(0,0,0,0.05)] flex flex-col gap-stack-md mb-stack-lg">
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface text-center mb-stack-sm">
+                Create Account
+            </h1>
+<p class="font-body-md text-body-md text-on-surface-variant text-center mb-stack-sm">
+                Join the ultimate shopping experience today.
+            </p>
+<!-- Input Group -->
+<div class="flex flex-col gap-stack-sm">
+<!-- Email / Phone Input -->
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">mail</span>
+<input class="w-full h-12 pl-12 pr-4 bg-[#F3F4F6] border-none rounded-xl font-body-lg text-body-lg text-on-surface placeholder-outline-variant focus:ring-1.5 focus:ring-primary focus:bg-surface transition-all" placeholder="Email or Phone Number" type="text"/>
+</div>
+<!-- Password Input -->
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">lock</span>
+<input class="w-full h-12 pl-12 pr-12 bg-[#F3F4F6] border-none rounded-xl font-body-lg text-body-lg text-on-surface placeholder-outline-variant focus:ring-1.5 focus:ring-primary focus:bg-surface transition-all" placeholder="Password" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">visibility_off</span>
+</button>
+</div>
+<!-- Helper / Terms -->
+<p class="font-body-md text-body-md text-on-surface-variant text-[12px] text-center mt-2">
+                    By registering, you agree to our <a class="text-primary font-bold underline" href="#">Terms</a> &amp; <a class="text-primary font-bold underline" href="#">Privacy Policy</a>
+</p>
+</div>
+<!-- Primary CTA -->
+<button class="w-full h-14 bg-amber-brand text-on-primary font-headline-md text-headline-sm-mobile font-bold rounded-xl mt-stack-sm shadow-md active:scale-95 transition-all duration-150 flex items-center justify-center gap-2">
+                Daftar Sekarang
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<!-- Divider -->
+<div class="flex items-center gap-4 w-full mb-stack-lg">
+<div class="h-px bg-outline-variant flex-1"></div>
+<span class="font-body-md text-body-md text-outline">or continue with</span>
+<div class="h-px bg-outline-variant flex-1"></div>
+</div>
+<!-- Social Login Actions -->
+<div class="flex gap-stack-sm w-full">
+<!-- Google Button (Ghost with outline) -->
+<button class="flex-1 h-12 flex items-center justify-center gap-2 border border-outline-variant rounded-xl bg-surface hover:bg-surface-container-lowest active:scale-95 transition-all">
+<svg fill="none" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.36 10H12V14.26H17.92C17.67 15.63 16.89 16.81 15.72 17.59V20.35H19.28C21.36 18.43 22.56 15.61 22.56 12.25Z" fill="#4285F4"></path>
+<path d="M12 23C14.97 23 17.46 22.02 19.28 20.35L15.72 17.59C14.74 18.25 13.48 18.66 12 18.66C9.13 18.66 6.7 16.72 5.82 14.12H2.15V16.97C3.96 20.57 7.7 23 12 23Z" fill="#34A853"></path>
+<path d="M5.82 14.12C5.59 13.46 5.46 12.75 5.46 12C5.46 11.25 5.59 10.54 5.82 9.88V7.03H2.15C1.41 8.5 1 10.19 1 12C1 13.81 1.41 15.5 2.15 16.97L5.82 14.12Z" fill="#FBBC05"></path>
+<path d="M12 5.34C13.62 5.34 15.07 5.9 16.21 6.99L19.36 3.84C17.45 2.06 14.96 1 12 1C7.7 1 3.96 3.43 2.15 7.03L5.82 9.88C6.7 7.28 9.13 5.34 12 5.34Z" fill="#EA4335"></path>
+</svg>
+<span class="font-headline-sm-mobile text-body-md font-semibold text-on-surface">Google</span>
+</button>
+<!-- Apple Button (Ghost with outline) -->
+<button class="flex-1 h-12 flex items-center justify-center gap-2 border border-outline-variant rounded-xl bg-surface hover:bg-surface-container-lowest active:scale-95 transition-all">
+<svg fill="none" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M16.3653 10.0215C16.3385 7.62534 18.3072 6.45265 18.4013 6.39511C17.2917 4.77332 15.5132 4.51268 14.8966 4.436C13.4243 4.28821 11.979 5.30456 11.2268 5.30456C10.4746 5.30456 9.2965 4.46083 8.07724 4.48384C6.51867 4.50858 5.06013 5.39057 4.2612 6.78201C2.62886 9.61081 3.8465 13.7828 5.43734 16.0858C6.21319 17.2096 7.12933 18.4716 8.35417 18.4239C9.5332 18.3761 9.98818 17.6599 11.4116 17.6599C12.8349 17.6599 13.2435 18.4239 14.4712 18.4013C15.7449 18.3761 16.5375 17.2573 17.3005 16.1318C18.1885 14.8345 18.5541 13.5678 18.5721 13.5042C18.5447 13.4914 16.3926 12.6738 16.3653 10.0215Z" fill="black"></path>
+<path d="M13.7144 3.16799C14.3644 2.3824 14.7981 1.2828 14.6787 0.198242C13.7388 0.236166 12.5694 0.824294 11.8953 1.60455C11.2891 2.29801 10.7681 3.41407 10.9123 4.48383C11.9619 4.56515 13.0645 3.95359 13.7144 3.16799Z" fill="black"></path>
+</svg>
+<span class="font-headline-sm-mobile text-body-md font-semibold text-on-surface">Apple</span>
+</button>
+</div>
+</div>
+<!-- Script for Tab Switching Example -->
+<script>
+        function switchTab(tab) {
+            // Simple visual feedback for demonstration
+            console.log("Switched to:", tab);
+            // In a real app, this would toggle form visibility and update tab styles.
+        }
+    </script>
+</body></html>

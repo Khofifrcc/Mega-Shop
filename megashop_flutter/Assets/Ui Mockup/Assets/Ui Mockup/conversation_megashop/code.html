@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MegaShop - Conversation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-secondary-fixed-variant": "#653e00",
+                        "on-surface-variant": "#4a4455",
+                        "primary-fixed": "#eaddff",
+                        "tertiary-container": "#a15100",
+                        "surface-container": "#e9edff",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "surface-container-high": "#e1e8fd",
+                        "surface-tint": "#732ee4",
+                        "on-surface": "#141b2b",
+                        "surface-variant": "#dce2f7",
+                        "on-background": "#141b2b",
+                        "secondary-fixed": "#ffddb8",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface": "#f9f9ff",
+                        "surface-container-low": "#f1f3ff",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#dce2f7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#25005a",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#edf0ff",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f9f9ff",
+                        "secondary": "#855300",
+                        "primary-container": "#7c3aed",
+                        "tertiary": "#7d3d00",
+                        "surface-dim": "#d3daef",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-tertiary-fixed": "#301400",
+                        "outline": "#7b7487",
+                        "inverse-surface": "#293040",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#684000",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-secondary-fixed": "#2a1700",
+                        "secondary-container": "#fea619",
+                        "inverse-primary": "#d2bbff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#ede0ff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb95f",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#ccc3d8"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "safe-area-bottom": "34px",
+                        "safe-area-top": "59px",
+                        "edge-margin": "16px",
+                        "gutter": "12px",
+                        "stack-lg": "24px"
+                    },
+                    fontFamily: {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "label-bold": ["Plus Jakarta Sans"]
+                    },
+                    fontSize: {
+                        "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "700" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "display-lg-mobile": ["28px", { lineHeight: "36px", fontWeight: "700" }],
+                        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "price-lg": ["20px", { lineHeight: "24px", fontWeight: "800" }],
+                        "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "label-bold": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Custom scrollbar for message area */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #dce2f7; border-radius: 4px; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased h-screen w-full flex flex-col mx-auto relative max-w-[430px] shadow-2xl overflow-hidden">
+<!-- Chat Header (Custom TopAppBar for Task Screen) -->
+<header class="flex justify-between items-center w-full px-edge-margin pt-safe-area-top h-[110px] bg-surface z-50 shrink-0">
+<div class="flex items-center gap-stack-sm">
+<button class="p-2 -ml-2 rounded-full hover:bg-surface-container-low transition-colors text-primary flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back_ios_new</span>
+</button>
+<div class="flex items-center gap-3">
+<div class="relative">
+<img alt="Seller Avatar" class="w-10 h-10 rounded-full object-cover border border-surface-variant" data-alt="A professional, high-quality headshot of a stylish customer service representative in a modern studio setting. The lighting is bright and high-key, casting soft highlights that fit seamlessly into a premium, light-mode user interface. The color palette incorporates subtle warm tones and crisp whites, emphasizing approachability and premium fashion retail branding." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJOzO1bRKJloctKqcnJqZWT40HjleK7qEKuLY1LFwPJ8IqPp2r-FHu6ZacJEc88e4kuVrv3R5qGkLJoYIjMWQ7qJkS6E80DhgiDDCqid8Bf2y0v1Kw3epNOSiMAVZR_iM3Gry5TKKTGhm3Xa7p65Ybd9QwR2KcQfETl3h8vbn5ZiStx5u3uJ7KpEpwLHJqMVnClpeO3ZTSH4_9NepfLvJYd-O0-UMZU3r1v7jswLifeisBWkhejBNawzKbuepWeJYy7F_6JVZcGBYd"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 bg-secondary-container border-2 border-surface rounded-full"></span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-tight">MegaShop Luxe</span>
+<span class="font-label-bold text-label-bold text-on-surface-variant/80">Typically replies in 5m</span>
+</div>
+</div>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">more_vert</span>
+</button>
+</header>
+<!-- Chat Canvas -->
+<main class="flex-1 overflow-y-auto px-edge-margin py-stack-lg flex flex-col gap-stack-lg bg-surface-bright pb-[120px]">
+<!-- Timestamp -->
+<div class="flex justify-center w-full">
+<span class="font-label-bold text-label-bold text-outline-variant bg-surface px-3 py-1 rounded-full text-[10px]">TODAY, 10:42 AM</span>
+</div>
+<!-- Seller Message -->
+<div class="flex flex-col gap-1 w-full max-w-[85%] self-start">
+<div class="bg-surface-container-high text-on-surface p-stack-md rounded-2xl rounded-tl-sm shadow-sm">
+<p>Hi there! 👋 Welcome to MegaShop Luxe. How can I assist you with your wardrobe today?</p>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex flex-col gap-1 w-full max-w-[85%] self-end items-end">
+<div class="bg-primary text-on-primary p-stack-md rounded-2xl rounded-tr-sm shadow-md">
+<p>I'm looking at the "Aero Glide Sneakers" in size 10. Are they true to size, or should I size up?</p>
+</div>
+<span class="font-label-bold text-[10px] text-outline px-1">10:44 AM</span>
+</div>
+<!-- Seller Message with Embedded Product Card (High-end pattern) -->
+<div class="flex flex-col gap-2 w-full max-w-[85%] self-start">
+<div class="bg-surface-container-high text-on-surface p-stack-md rounded-2xl rounded-tl-sm shadow-sm flex flex-col gap-3">
+<p>Great choice! The Aero Glides run perfectly true to size for a snug, athletic fit.</p>
+<!-- Mini Product Bento Card inside Chat -->
+<div class="bg-surface rounded-xl p-2 flex gap-3 items-center border border-surface-variant">
+<img alt="Aero Glide Sneaker" class="w-16 h-16 rounded-lg object-cover bg-surface-container-low" data-alt="A sleek, high-end athletic sneaker showcased against a pristine white studio background. The shoe features modern geometric paneling in vibrant neon accents against deep blacks and crisp whites. Studio lighting casts soft, ambient shadows, creating an ultra-premium, editorial product photography aesthetic perfect for a modern e-commerce mobile application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSoaSFDucWOkaR-EyljqDI3BOtrsOiFOvaSVQ_EzFJV3WKAvSlqY0eGcN-pLA9NQinG5v3AJAy7kTC2uKuycFNb_cnjDTuv1ou1yrgnT2i_-B8dTDU5rGOJqDbv4PcD9VN8JP227fyn5GNXkexudydDaUQ_ALgEsxvpHkNI3p1GiabG4oNQs_STHqJHOvucGZ9lkFiy3jsKCftwxwSsBiXllDpuvB2pnTJELejhlMdJXZQghCnUvCcCcSQE7_fOcI6iVd6umnulcqo"/>
+<div class="flex flex-col flex-1">
+<span class="font-headline-sm text-[14px] text-on-surface leading-tight">Aero Glide Sneaker</span>
+<span class="font-price-lg text-[14px] text-primary mt-1">$145.00</span>
+</div>
+</div>
+<p>If you prefer a roomier feel or wear thick socks, going up a half size is a good idea. Would you like me to check stock for size 10.5 as well?</p>
+</div>
+<span class="font-label-bold text-[10px] text-outline px-1">10:46 AM</span>
+</div>
+</main>
+<!-- Bottom Input Bar -->
+<footer class="absolute bottom-0 w-full bg-surface/90 backdrop-blur-xl border-t border-surface-variant z-50">
+<div class="px-edge-margin pt-stack-sm pb-safe-area-bottom flex items-end gap-stack-sm min-h-[72px]">
+<!-- Attachment Action -->
+<button class="p-2 mb-1 rounded-full text-primary bg-surface-container-low hover:bg-surface-container transition-colors shrink-0 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">add</span>
+</button>
+<!-- Input Field -->
+<div class="flex-1 bg-surface-container-low rounded-[20px] min-h-[44px] mb-1 flex items-end p-1 border border-transparent focus-within:border-primary transition-colors">
+<textarea class="w-full bg-transparent border-none focus:ring-0 resize-none font-body-md text-on-surface py-2 px-3 max-h-[100px] outline-none placeholder:text-on-surface-variant/50 self-center leading-relaxed" placeholder="Message MegaShop..." rows="1"></textarea>
+</div>
+<!-- Send Action -->
+<button class="w-11 h-11 mb-1 rounded-full bg-primary text-on-primary hover:bg-surface-tint shadow-lg transition-all shrink-0 flex items-center justify-center active:scale-95">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1, 'wght' 600; font-size: 20px;">send</span>
+</button>
+</div>
+</footer>
+<script>
+        // Auto-resize textarea logic for micro-interaction
+        const textarea = document.querySelector('textarea');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if(this.value === '') {
+                this.style.height = 'auto';
+            }
+        });
+    </script>
+</body></html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MegaShop - Messages</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#653e00",
+                        "on-surface-variant": "#4a4455",
+                        "primary-fixed": "#eaddff",
+                        "tertiary-container": "#a15100",
+                        "surface-container": "#e9edff",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "surface-container-high": "#e1e8fd",
+                        "surface-tint": "#732ee4",
+                        "on-surface": "#141b2b",
+                        "surface-variant": "#dce2f7",
+                        "on-background": "#141b2b",
+                        "secondary-fixed": "#ffddb8",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface": "#f9f9ff",
+                        "surface-container-low": "#f1f3ff",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#dce2f7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#25005a",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#edf0ff",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f9f9ff",
+                        "secondary": "#855300",
+                        "primary-container": "#7c3aed",
+                        "tertiary": "#7d3d00",
+                        "surface-dim": "#d3daef",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-tertiary-fixed": "#301400",
+                        "outline": "#7b7487",
+                        "inverse-surface": "#293040",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#684000",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-secondary-fixed": "#2a1700",
+                        "secondary-container": "#fea619",
+                        "inverse-primary": "#d2bbff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#ede0ff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb95f",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#ccc3d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "safe-area-bottom": "34px",
+                        "safe-area-top": "59px",
+                        "edge-margin": "16px",
+                        "gutter": "12px",
+                        "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "label-bold": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "price-lg": ["20px", { "lineHeight": "24px", "fontWeight": "800" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background flex justify-center items-center min-h-screen">
+<!-- Mobile Device Simulator -->
+<div class="w-[390px] h-[844px] bg-surface relative overflow-hidden flex flex-col shadow-2xl rounded-[40px] border-[8px] border-black">
+<!-- Header Section -->
+<div class="px-edge-margin pt-safe-area-top pb-stack-sm bg-surface z-10 sticky top-0">
+<div class="flex items-center justify-between mb-stack-md">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-on-surface" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-on-surface">Messages</h1>
+<div class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high relative">
+<span class="material-symbols-outlined text-primary" data-icon="edit_square">edit_square</span>
+<span class="absolute top-0 right-0 w-3 h-3 bg-error rounded-full border-2 border-surface"></span>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/70" data-icon="search">search</span>
+<input class="w-full h-12 bg-surface-container-low text-on-surface rounded-xl pl-12 pr-4 focus:outline-none focus:ring-1.5 focus:ring-primary font-body-md text-body-md placeholder:text-on-surface-variant/50 border-none" placeholder="Search messages or creators..." type="text"/>
+</div>
+</div>
+<!-- Active Now Highlights (Horizontal Scroll) -->
+<div class="px-edge-margin py-stack-sm overflow-x-auto hide-scrollbar flex gap-4 border-b border-surface-variant/40">
+<!-- Active Profile 1 -->
+<div class="flex flex-col items-center gap-1 min-w-[64px]">
+<div class="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-primary to-secondary-container">
+<div class="w-full h-full rounded-full border-2 border-surface overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="A portrait of a young woman with a clear complexion, wearing subtle makeup, set against a soft, bright studio background. The lighting is high-key and flattering, emphasizing a modern, premium aesthetic. She has a relaxed, confident expression suitable for a high-end fashion or beauty profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9q_cQrdTGhWGIALJTQDd8VIrp4iGpgE8vBjQRT5x8JzvlBpsH76EprkJ2b94ZmfsvUYHlAxrti3qt5S9y5BljzfFjsdJgwQEtOPIR2m5FFqZvJdGnLF8uQyBHw0Bn2LJjWI78vT25XTvndXI3nw-2QX58WX66ELIvTttMjt6TSpthIhvenK9kthVV_umrxuz_iwbfYTBPAILsjDJs1flGWlK-85ghny2vDstgXEzOBZXaQTUPCnDLNYqlOaFXM89WS5PJyhURMdW4"/>
+<div class="absolute bottom-0 right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-surface"></div>
+</div>
+</div>
+<span class="font-label-bold text-label-bold text-on-surface truncate w-full text-center">Your Story</span>
+</div>
+<!-- Active Profile 2 -->
+<div class="flex flex-col items-center gap-1 min-w-[64px]">
+<div class="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-primary to-secondary-container">
+<div class="w-full h-full rounded-full border-2 border-surface overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="A close-up portrait of a young man with a slight beard, looking off-camera. The lighting is natural and soft, creating a casual yet stylish mood. The background is slightly blurred to keep the focus on his face, fitting for a modern social media avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxT0SPp4fptjDbjx-_8y-WLCd8DYvMXKalhwpvgspaO-ATlZnN7CSyZK0k6Joh6s7ClmuWiLjW92UgoUkLdSSDuAjjgd_938pCBeDO0-4LLpOcLLUmp3zdnLCSfvBc6ZkdUoy3NNjFEsqn-kmb6tvljWu-u2IjPrs8lix-DNSGLtXArVhDMIpBnJNn5WbVxgcJVv-xMGQrF_AXSgBWkp3Fs0kI9c1Ux5UI14lltWEvWQJqrtsdk9-fnfq-4nyTCv8qE7xYffvIqu2i"/>
+<div class="absolute bottom-0 right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-surface"></div>
+</div>
+</div>
+<span class="font-label-bold text-label-bold text-on-surface truncate w-full text-center">Leo</span>
+</div>
+</div>
+<!-- Chat List -->
+<div class="flex-1 overflow-y-auto px-edge-margin pb-[120px] hide-scrollbar flex flex-col pt-2">
+<!-- Chat Item 1 (Unread) -->
+<div class="flex items-center gap-4 py-4 cursor-pointer hover:bg-surface-container-low/50 rounded-xl transition-colors -mx-2 px-2">
+<div class="relative">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A portrait of a confident female model with curly hair, wearing vibrant, trendy clothing. The setting is bright and fashion-forward, with soft, diffused lighting that highlights her features. The overall vibe is energetic and premium, aligning with a modern lifestyle brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEAhtlxS7va7I-NZWiBy4WZjYkU0QKs8-yqgI7FoToZPNkkDkkyeOqlZxM2QjqhqRNqsoGm4FdWqhpONbH8aElDkEeVu7sU5uI4CAgchiqNZPgQUZubnyb7fLhnUFZptlN1oFjvQvzW0n9fRlNoJEvYTHVBq9sD2k71gtV-_XQb5XSssq3RQFCVKrttzwxb3Af75BBLYxGq_pA2Fly-dfiVi7rYzobQV2rcEHkmrVh3CfYHEysHuEuFz0KacsxoOwD2FodDNa04QY7"/>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h3 class="font-body-lg text-body-lg font-bold text-on-surface truncate">Aria Montgomery</h3>
+<span class="font-label-bold text-[11px] text-primary">2m ago</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="font-body-md text-body-md font-semibold text-on-surface truncate pr-2">Are those new sneakers still in stock?</p>
+<div class="w-5 h-5 bg-primary rounded-full flex items-center justify-center font-label-bold text-[10px] text-on-primary shrink-0">2</div>
+</div>
+</div>
+</div>
+<!-- Chat Item 2 (Read) -->
+<div class="flex items-center gap-4 py-4 cursor-pointer hover:bg-surface-container-low/50 rounded-xl transition-colors -mx-2 px-2">
+<div class="relative">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A candid portrait of a stylish young man in an urban setting, wearing a minimalist jacket. The lighting is moody yet bright enough to show texture, reflecting a contemporary streetwear aesthetic. The background is a soft, out-of-focus city scene." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPUy6Q7S_9w0vsmO349nUEv95yV4qjky-pdxPhdrRGa9RAF501mkwiDpnnV7QbpXtJHT3VRWy_HDVRmvaQ3gPHnBffJrzcJDXwR7D4hnGsebwY11cC91urKLK4fdqF0EMfZGdnVF_ONRmvZ_cflDfuyA97uSO74KiYhRbFBBiwjWwwwYOR9wkRN13HmSkL6pAhn9rAnVqoHNDzOyjIwQA3mcY4NYKMz6T_w6vhTRGtqK2e9Qz313UXW6gjHaijdtjzKNQf6qt5Ehml"/>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h3 class="font-body-lg text-body-lg font-bold text-on-surface truncate">Julian Rossi</h3>
+<span class="font-label-bold text-[11px] text-on-surface-variant">1h ago</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="font-body-md text-body-md text-on-surface-variant truncate pr-2">Thanks! The jacket fits perfectly. 🔥</p>
+</div>
+</div>
+</div>
+<!-- Chat Item 3 (Typing) -->
+<div class="flex items-center gap-4 py-4 cursor-pointer hover:bg-surface-container-low/50 rounded-xl transition-colors -mx-2 px-2">
+<div class="relative">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A portrait of a young woman looking directly at the camera with a warm smile. She is in a naturally lit, bright room, wearing a simple, elegant top. The mood is friendly and approachable, suitable for a highly social e-commerce platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_dEifgSJFBsJ7FnhWRoDInJ8AwFlhxIYIcalsUjjSoDWDz4I5A2OCRBWLUCT5-7mnJxIHRIbM4iBfqpUHDPl46yBFU6ZI7EQwbnIW7GfQGSmPRj0aWV04Cp9r_r-c3pjZmsINUQK8dMDMXSD7svPN9SxUO-XAcSj6LRU_FN6yqc7aANcpwVJDQGX8KcmSz3dwWCOr1xpTxP0_UdKtpD15_bwqOT-5NIAoCSSQhJs9wXl3nPro0wnVe6oE8iQb6J3r9_322LWkEoUs"/>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h3 class="font-body-lg text-body-lg font-bold text-on-surface truncate">Elena Vance</h3>
+<span class="font-label-bold text-[11px] text-on-surface-variant">Yesterday</span>
+</div>
+<div class="flex items-center text-primary">
+<p class="font-body-md text-body-md italic text-primary truncate">Elena is typing...</p>
+</div>
+</div>
+</div>
+<!-- System Notification Item -->
+<div class="flex items-center gap-4 py-4 cursor-pointer hover:bg-surface-container-low/50 rounded-xl transition-colors -mx-2 px-2">
+<div class="relative">
+<div class="w-14 h-14 rounded-full overflow-hidden bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="local_mall">local_mall</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<h3 class="font-body-lg text-body-lg font-bold text-on-surface truncate">MegaShop Orders</h3>
+<span class="font-label-bold text-[11px] text-on-surface-variant">Mon</span>
+</div>
+<div class="flex justify-between items-center">
+<p class="font-body-md text-body-md text-on-surface-variant truncate pr-2">Your order #MS-0922 has shipped!</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation Bar Shell -->
+<div class="fixed bottom-0 w-full z-50 flex justify-around items-center px-edge-margin pb-safe-area-bottom pt-2 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-lg shadow-lg docked full-width bottom-0 rounded-t-xl absolute">
+<!-- Nav Item 1: Home -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-1 rounded-xl cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="home">home</span>
+<span class="font-label-bold text-[10px] mt-1">Home</span>
+</div>
+<!-- Nav Item 2: Reels -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-1 rounded-xl cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="movie">movie</span>
+<span class="font-label-bold text-[10px] mt-1">Reels</span>
+</div>
+<!-- Nav Item 3: Post (FAB-like styling) -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-1 rounded-xl cursor-pointer">
+<span class="material-symbols-outlined text-[28px] text-primary" data-icon="add_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+<span class="font-label-bold text-[10px] mt-1">Post</span>
+</div>
+<!-- Nav Item 4: Cart -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-1 rounded-xl cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-label-bold text-[10px] mt-1">Cart</span>
+</div>
+<!-- Nav Item 5: Profile (Active) -->
+<div class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed font-bold hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-1 rounded-xl cursor-pointer scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined text-[24px]" data-icon="person" data-weight="fill" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-bold text-[10px] mt-1">Profile</span>
+</div>
+</div>
+</div>
+</body></html>

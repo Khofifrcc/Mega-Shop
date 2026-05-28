@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MegaShop - Product Detail</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#653e00",
+                        "on-surface-variant": "#4a4455",
+                        "primary-fixed": "#eaddff",
+                        "tertiary-container": "#a15100",
+                        "surface-container": "#e9edff",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "surface-container-high": "#e1e8fd",
+                        "surface-tint": "#732ee4",
+                        "on-surface": "#141b2b",
+                        "surface-variant": "#dce2f7",
+                        "on-background": "#141b2b",
+                        "secondary-fixed": "#ffddb8",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface": "#f9f9ff",
+                        "surface-container-low": "#f1f3ff",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#dce2f7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#25005a",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#edf0ff",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f9f9ff",
+                        "secondary": "#855300",
+                        "primary-container": "#7c3aed",
+                        "tertiary": "#7d3d00",
+                        "surface-dim": "#d3daef",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-tertiary-fixed": "#301400",
+                        "outline": "#7b7487",
+                        "inverse-surface": "#293040",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#684000",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-secondary-fixed": "#2a1700",
+                        "secondary-container": "#fea619",
+                        "inverse-primary": "#d2bbff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#ede0ff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb95f",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#ccc3d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "1rem"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "safe-area-bottom": "34px",
+                        "safe-area-top": "59px",
+                        "edge-margin": "16px",
+                        "gutter": "12px",
+                        "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "label-bold": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "price-lg": ["20px", { "lineHeight": "24px", "fontWeight": "800" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-highest flex justify-center min-h-screen">
+<!-- Mobile Device Container (390x844) -->
+<div class="w-full max-w-[390px] bg-background relative overflow-y-auto overflow-x-hidden hide-scrollbar shadow-2xl pb-[100px]">
+<!-- Custom PDP Top Nav (Overlaid) -->
+<header class="absolute top-0 w-full z-50 flex justify-between items-center px-edge-margin pt-safe-area-top pb-4 bg-gradient-to-b from-black/40 to-transparent">
+<button class="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-md flex items-center justify-center text-on-primary hover:bg-surface/30 transition-colors">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="flex gap-3">
+<button class="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-md flex items-center justify-center text-on-primary hover:bg-surface/30 transition-colors">
+<span class="material-symbols-outlined text-[24px]">share</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-surface/20 backdrop-blur-md flex items-center justify-center text-on-primary hover:bg-surface/30 transition-colors">
+<span class="material-symbols-outlined text-[24px]">favorite_border</span>
+</button>
+</div>
+</header>
+<!-- Hero Image Carousel -->
+<div class="relative w-full h-[450px] bg-surface-variant flex snap-x snap-mandatory overflow-x-auto hide-scrollbar">
+<!-- Slide 1 -->
+<div class="min-w-full h-full snap-center relative">
+<div class="w-full h-full bg-center bg-cover" data-alt="A high-end studio photograph of a sleek, minimalist smartwatch with a matte black titanium band. The product is resting on a smooth, reflective white marble surface. Lighting is dramatic and directional, highlighting the metallic textures and creating soft, diffused shadows. The background is a pure, bright studio white to emphasize the premium, modern aesthetic of the tech wearable." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAZjj3JYbB6JIZqJikhqMGDpvmEFz26MdLb2OqIg_4QgbrVDUA05HzrCh9-C0DizLs62O1nJiQSJyg1slEdv0EtEOxTxXZ3xH3Af2tW7uDDgbjI7GfpAM41fNGEWXO452LvvAvBQz-cC5OGv5abS2oSXvpA7D_y6IMIghJW4qEEMpNXjD0F_aHmR_k-pFy_gx27cNIh3_GtZy9eG8ovQqcbqNqdIGF2rYOcvS8Ktz7JmGra8djNUDX90_EKg5hYMInkAU6zw-rNISKF');">
+</div>
+</div>
+<!-- Dots Indicator Overlay -->
+<div class="absolute bottom-10 left-0 w-full flex justify-center gap-2 z-20">
+<div class="w-2 h-2 rounded-full bg-on-primary"></div>
+<div class="w-2 h-2 rounded-full bg-on-primary/40"></div>
+<div class="w-2 h-2 rounded-full bg-on-primary/40"></div>
+</div>
+</div>
+<!-- Main Content Canvas (Glassmorphism overlap) -->
+<main class="relative z-30 -mt-6 rounded-t-[24px] bg-background px-edge-margin pt-stack-lg flex flex-col gap-stack-lg shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+<!-- Header Section: Title & Price -->
+<div class="flex flex-col gap-stack-sm">
+<div class="flex justify-between items-start gap-4">
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-on-background leading-tight">
+                        Aura Titanium Smartwatch Series X
+                    </h1>
+</div>
+<div class="flex items-center gap-3 mt-1">
+<span class="font-price-lg text-price-lg text-secondary-container">
+                        $299.00
+                    </span>
+<span class="px-2 py-1 bg-surface-container-high rounded-full font-label-bold text-label-bold text-on-surface-variant">
+                        Free Shipping
+                    </span>
+</div>
+</div>
+<!-- Divider -->
+<div class="w-full h-[1px] bg-outline-variant/30"></div>
+<!-- Seller Info Row -->
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-lowest shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-outline-variant/20">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-cover bg-center ring-2 ring-primary-fixed" data-alt="A professional headshot of a stylish young seller in a brightly lit studio. They are smiling warmly, wearing a casual but trendy outfit. The lighting is soft and flattering, creating a modern, approachable vibe. The background is a subtle, solid light gray." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCOFK4tSGBQPgFsKcuuBmnW5xQLxncDcx-WJgKSAP1zDGmJPaUlBnTWQrAIxG-26ZrxhGd9VpwdtboTsZhHhjaOYs0SHZbflGwLmZ6uqNpVyHZLifUIkjBmCe3fzjrXyMWSJZGJKVISZCn4t0Yb3BakGWKB5K3wncPZf7udfq8GYtqv5EXH6nImh9-DS92C8MTcIvfKt3uGOIuqjvx4s-FEyvbsbFCpptcc1SgwQLreM6Vy7ULRrfK3dP3TVDbkz6gcDjSYwS3gAeS5');">
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-background">TechHaven Official</span>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1; color: #fea619;">star</span>
+<span class="font-body-md text-body-md">4.9 (1.2k reviews)</span>
+</div>
+</div>
+</div>
+<button class="px-4 py-2 rounded-full bg-primary-fixed text-on-primary-fixed font-label-bold text-label-bold transition-transform active:scale-95">
+                    Follow
+                </button>
+</div>
+<!-- Description Section -->
+<div class="flex flex-col gap-stack-sm mb-4">
+<h2 class="font-headline-sm text-headline-sm text-on-background">Product Details</h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                    Experience the future on your wrist with the Aura Titanium Series X. Forged from aerospace-grade titanium, it offers unparalleled durability without compromising on its feather-light feel. Features advanced biometric tracking, 14-day battery life, and an edge-to-edge sapphire crystal display.
+                </p>
+<button class="text-left font-label-bold text-label-bold text-primary mt-1">
+                    Read more
+                </button>
+</div>
+<!-- Extra Spacing for scroll -->
+<div class="h-8"></div>
+</main>
+<!-- Fixed Bottom Action Bar -->
+<div class="fixed bottom-0 w-full max-w-[390px] bg-surface/90 backdrop-blur-xl pb-safe-area-bottom pt-4 px-edge-margin shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-50 flex items-center gap-3">
+<button class="flex-1 h-[52px] rounded-xl border-2 border-outline-variant text-on-surface font-headline-sm text-headline-sm flex items-center justify-center gap-2 transition-colors active:bg-surface-variant">
+<span class="material-symbols-outlined">shopping_cart</span>
+                Add to Cart
+            </button>
+<button class="flex-1 h-[52px] rounded-xl bg-secondary-container text-on-secondary-container font-headline-sm text-headline-sm flex items-center justify-center shadow-lg transition-transform active:scale-95">
+                Buy Now
+            </button>
+</div>
+</div>
+</body></html>

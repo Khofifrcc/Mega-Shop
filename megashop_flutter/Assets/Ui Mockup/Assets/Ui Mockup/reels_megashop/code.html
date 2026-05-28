@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MegaShop - Reels</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#653e00",
+                        "on-surface-variant": "#4a4455",
+                        "primary-fixed": "#eaddff",
+                        "tertiary-container": "#a15100",
+                        "surface-container": "#e9edff",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "surface-container-high": "#e1e8fd",
+                        "surface-tint": "#732ee4",
+                        "on-surface": "#141b2b",
+                        "surface-variant": "#dce2f7",
+                        "on-background": "#141b2b",
+                        "secondary-fixed": "#ffddb8",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface": "#f9f9ff",
+                        "surface-container-low": "#f1f3ff",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#dce2f7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#25005a",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#edf0ff",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f9f9ff",
+                        "secondary": "#855300",
+                        "primary-container": "#7c3aed",
+                        "tertiary": "#7d3d00",
+                        "surface-dim": "#d3daef",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-tertiary-fixed": "#301400",
+                        "outline": "#7b7487",
+                        "inverse-surface": "#293040",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#684000",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-secondary-fixed": "#2a1700",
+                        "secondary-container": "#fea619",
+                        "inverse-primary": "#d2bbff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#ede0ff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb95f",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#ccc3d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "safe-area-bottom": "34px",
+                        "safe-area-top": "59px",
+                        "edge-margin": "16px",
+                        "gutter": "12px",
+                        "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "label-bold": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "price-lg": ["20px", { "lineHeight": "24px", "fontWeight": "800" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black text-on-background font-body-md h-screen w-full flex flex-col overflow-hidden relative">
+<!-- Immersive Video Canvas -->
+<div class="absolute inset-0 w-full h-full z-0">
+<!-- Video Placeholder Image -->
+<img alt="Video background" class="w-full h-full object-cover" data-alt="A dynamic, high-energy fashion video frame featuring a stylish model walking in a bright, modern urban setting. The model is wearing a vibrant, flowing summer outfit. The lighting is sunny and cinematic, casting soft shadows. The overall aesthetic is premium, trend-conscious, and fits a high-end social commerce platform with a bright, airy mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArqwIxx9atCcmbQXC8qE5J_qEdzuGVefzI_9inZrA46Id_aUZj4fQ8--8BV_l3aET-kBSTdi4zxptGcdRTyki-tHqDbuPhPC7d2ly9ZbyJA_F6-jKk2uHIWa6wVDdH4vD47YIuxQIGOiJoVj_QSIRtJCXyKV5dpj2Lu2VPQhTgiUmpz1T4pQ2A--C6aobCOut4ENhA2lT0q7avXsp72_lO7Ofzc2bhL5DpaLTagsdrmZHSmmbY6ClVFr2Wcm9kwq49-dsHY1uJQcX_"/>
+<!-- Gradient Overlays for Text Legibility -->
+<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent pointer-events-none"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
+</div>
+<!-- Top Overlay (Subtle) -->
+<div class="absolute top-0 w-full pt-safe-area-top px-edge-margin flex justify-between items-center z-10">
+<span class="font-headline-md text-headline-md text-white drop-shadow-md">Reels</span>
+<button class="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+<!-- Right Interaction Sidebar -->
+<div class="absolute right-edge-margin bottom-[130px] flex flex-col gap-6 items-center z-10">
+<!-- Like -->
+<div class="flex flex-col items-center gap-1 cursor-pointer hover:scale-110 transition-transform">
+<div class="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined fill text-white text-[28px]">favorite</span>
+</div>
+<span class="text-white font-label-bold text-label-bold drop-shadow-md">12.4K</span>
+</div>
+<!-- Comment -->
+<div class="flex flex-col items-center gap-1 cursor-pointer hover:scale-110 transition-transform">
+<div class="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-white text-[28px]">chat_bubble</span>
+</div>
+<span class="text-white font-label-bold text-label-bold drop-shadow-md">842</span>
+</div>
+<!-- Share -->
+<div class="flex flex-col items-center gap-1 cursor-pointer hover:scale-110 transition-transform">
+<div class="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-white text-[28px]">send</span>
+</div>
+<span class="text-white font-label-bold text-label-bold drop-shadow-md">Share</span>
+</div>
+<!-- Add to Cart (Quick Action) -->
+<div class="flex flex-col items-center gap-1 cursor-pointer hover:scale-110 transition-transform mt-2">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center shadow-[0_0_15px_rgba(254,166,25,0.4)]">
+<span class="material-symbols-outlined text-on-secondary-container text-[24px]">shopping_cart</span>
+</div>
+</div>
+</div>
+<!-- Bottom Information Overlay -->
+<div class="absolute bottom-[110px] left-edge-margin right-[80px] z-10 flex flex-col gap-stack-sm">
+<!-- Seller Info -->
+<div class="flex items-center gap-3">
+<img alt="Seller Avatar" class="w-10 h-10 rounded-full border-2 border-primary-fixed" data-alt="A close-up portrait of a stylish young woman, used as a profile picture avatar. She has a confident expression. The lighting is soft and flattering, suitable for a fashion influencer's profile on a modern e-commerce app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMUUuwcNCwiXgxHuM5YIw9UO4UjPz0xU4julLyPtIWN_Wk_FycBBnRxtRt23Be4-Ugq0jopNh07L4BvuJ4zFo39OWI8RTh8QnZhA0YiqTHVsPGp31RBQpgZXtU3hohMjX0RNDAp6mQnuBUaxKorUffG-_gtBm2zWjN9Cz-t91_0Lopa3W-3DmMBITojZk_vaTex1mhIGiYhdViv0LkdBL1e7VAe6hBayeZSG-W47DxzpF8f8NOLOrFPLddix8WM_JnyBdzzptY1xAv"/>
+<span class="font-headline-sm-mobile text-headline-sm-mobile text-white drop-shadow-md">@style_guru</span>
+<button class="bg-primary/80 backdrop-blur-sm text-white font-label-bold text-label-bold px-3 py-1 rounded-full ml-2">Follow</button>
+</div>
+<!-- Product Details -->
+<div class="mt-2">
+<h2 class="font-headline-sm text-headline-sm text-white drop-shadow-md line-clamp-1">Vibrant Summer Flow Dress</h2>
+<div class="flex items-center gap-3 mt-1">
+<span class="font-price-lg text-price-lg text-secondary-fixed drop-shadow-md">$89.99</span>
+<span class="font-body-md text-body-md text-white/80 line-through drop-shadow-sm">$120.00</span>
+</div>
+</div>
+<!-- Glassmorphism Action Button -->
+<button class="mt-2 w-max px-6 py-2.5 rounded-xl bg-white/20 backdrop-blur-md border border-white/40 flex items-center gap-2 hover:bg-white/30 transition-colors">
+<span class="material-symbols-outlined text-white text-[20px]">shopping_bag</span>
+<span class="font-headline-sm-mobile text-headline-sm-mobile text-white">Lihat Cart</span>
+</button>
+</div>
+<!-- Thin Progress Bar -->
+<div class="absolute bottom-[90px] left-0 w-full h-[2px] bg-white/30 z-20">
+<div class="h-full bg-white w-1/3 rounded-r-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"></div>
+</div>
+<!-- Shared Component: BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-edge-margin pb-safe-area-bottom pt-2 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-lg docked full-width rounded-t-xl shadow-lg border-t border-white/10 md:hidden">
+<!-- Home -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:bg-primary/10 transition-colors rounded-lg p-2 cursor-pointer">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="font-label-bold text-label-bold mt-1">Home</span>
+</div>
+<!-- Reels (Active) -->
+<div class="flex flex-col items-center justify-center text-primary font-bold hover:bg-primary/10 transition-colors rounded-lg p-2 cursor-pointer scale-95 duration-150 relative">
+<!-- Active indicator glow -->
+<div class="absolute -top-1 w-8 h-1 bg-primary rounded-full blur-[2px]"></div>
+<span class="material-symbols-outlined fill text-[24px]">movie</span>
+<span class="font-label-bold text-label-bold mt-1">Reels</span>
+</div>
+<!-- Post -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:bg-primary/10 transition-colors rounded-lg p-2 cursor-pointer">
+<span class="material-symbols-outlined text-[24px]">add_circle</span>
+<span class="font-label-bold text-label-bold mt-1">Post</span>
+</div>
+<!-- Cart -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:bg-primary/10 transition-colors rounded-lg p-2 cursor-pointer relative">
+<div class="absolute top-1 right-2 w-2 h-2 bg-error rounded-full"></div>
+<span class="material-symbols-outlined text-[24px]">shopping_cart</span>
+<span class="font-label-bold text-label-bold mt-1">Cart</span>
+</div>
+<!-- Profile -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:bg-primary/10 transition-colors rounded-lg p-2 cursor-pointer">
+<span class="material-symbols-outlined text-[24px]">person</span>
+<span class="font-label-bold text-label-bold mt-1">Profile</span>
+</div>
+</nav>
+</body></html>

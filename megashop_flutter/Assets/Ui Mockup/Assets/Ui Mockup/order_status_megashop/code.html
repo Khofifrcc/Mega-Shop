@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MegaShop - Status States</title>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#653e00",
+                        "on-surface-variant": "#4a4455",
+                        "primary-fixed": "#eaddff",
+                        "tertiary-container": "#a15100",
+                        "surface-container": "#e9edff",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "surface-container-high": "#e1e8fd",
+                        "surface-tint": "#732ee4",
+                        "on-surface": "#141b2b",
+                        "surface-variant": "#dce2f7",
+                        "on-background": "#141b2b",
+                        "secondary-fixed": "#ffddb8",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface": "#f9f9ff",
+                        "surface-container-low": "#f1f3ff",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#dce2f7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#25005a",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#edf0ff",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f9f9ff",
+                        "secondary": "#855300",
+                        "primary-container": "#7c3aed",
+                        "tertiary": "#7d3d00",
+                        "surface-dim": "#d3daef",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-tertiary-fixed": "#301400",
+                        "outline": "#7b7487",
+                        "inverse-surface": "#293040",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#684000",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-secondary-fixed": "#2a1700",
+                        "secondary-container": "#fea619",
+                        "inverse-primary": "#d2bbff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#ede0ff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb95f",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#ccc3d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "safe-area-bottom": "34px",
+                        "safe-area-top": "59px",
+                        "edge-margin": "16px",
+                        "gutter": "12px",
+                        "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "label-bold": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "price-lg": ["20px", { "lineHeight": "24px", "fontWeight": "800" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-variant text-on-surface antialiased flex flex-col items-center gap-8 py-8">
+<!-- Container for Presentation (Simulating Mobile Screens) -->
+<div class="flex flex-col md:flex-row gap-8 w-full max-w-4xl justify-center items-center">
+<!-- SUCCESS STATE -->
+<main class="w-full max-w-[390px] h-[844px] bg-surface relative overflow-hidden flex flex-col justify-between shadow-2xl rounded-[32px] border-[8px] border-surface-container-highest">
+<!-- Top App Bar (Minimal for Transactional Splash) -->
+<header class="flex justify-between items-center w-full px-edge-margin pt-safe-area-top h-[64px] bg-surface z-10">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<!-- Main Content -->
+<div class="flex-1 flex flex-col items-center justify-center px-edge-margin text-center pb-20">
+<!-- Illustration Placeholder -->
+<div class="w-64 h-64 mb-stack-lg rounded-full bg-surface-container flex items-center justify-center relative overflow-hidden">
+<!-- Ambient Glow -->
+<div class="absolute inset-0 bg-primary/10 rounded-full blur-2xl"></div>
+<img alt="Success Illustration" class="w-48 h-48 object-cover rounded-full mix-blend-multiply opacity-90 z-10" data-alt="A sleek, modern 3D illustration of a stylized shopping bag with a vibrant, glowing checkmark emerging from it, set against a pristine, soft-white background. The lighting is studio-quality, casting subtle, diffused shadows that emphasize a high-end, minimalist aesthetic. The color palette features pristine whites, deep blacks, and a pop of vivid, energetic purple to signify success in a premium digital environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWyD3A3IL2bA2mvJzVfwgsnUBmkfCbOWVcyP7N8LH2VMAix_QIxP6PynBUFoDVueMbxvYIWZrpLhuyOHbIwDKBZ8vv2eAoAVfoGGbUUN7hu0wNGM_LbtOwJ9K-6-R1i7kKlOWFuy62alF1rZne7rFZRN1CR1qtRp0Tck1-TnKMYscaXVBw0KxyMF-IsGIjCDSQZthC1xrkK6Lz2BZVeQP0E-o1C4usTujD9RH5Qms6xMdGTV_tFWyjfaB-UeRJ5OupX1X6akAyjcZ7"/>
+</div>
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-stack-sm">Order Berhasil!</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-md">Terima kasih telah berbelanja di MegaShop.</p>
+<!-- Order Details Card -->
+<div class="bg-surface-container-low w-full rounded-xl p-stack-md flex justify-between items-center border border-outline-variant/30">
+<span class="font-body-md text-body-md text-on-surface-variant">Nomor Pesanan</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">#ORD-9824XQ</span>
+</div>
+</div>
+<!-- Bottom Action Area -->
+<div class="px-edge-margin pb-safe-area-bottom pt-stack-md bg-surface border-t border-outline-variant/10">
+<button class="w-full bg-primary text-on-primary font-label-bold text-label-bold py-4 rounded-xl shadow-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 mb-stack-sm">
+                    Lihat Pesanan
+                    <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
+</button>
+<button class="w-full bg-transparent text-primary font-label-bold text-label-bold py-4 rounded-xl hover:bg-primary/5 transition-colors">
+                    Kembali ke Beranda
+                </button>
+</div>
+</main>
+<!-- ERROR STATE -->
+<main class="w-full max-w-[390px] h-[844px] bg-surface relative overflow-hidden flex flex-col justify-between shadow-2xl rounded-[32px] border-[8px] border-surface-container-highest">
+<!-- Top App Bar -->
+<header class="flex justify-between items-center w-full px-edge-margin pt-safe-area-top h-[64px] bg-surface z-10">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<!-- Main Content -->
+<div class="flex-1 flex flex-col items-center justify-center px-edge-margin text-center pb-20">
+<!-- Error Icon Area -->
+<div class="w-32 h-32 mb-stack-lg rounded-full bg-error-container flex items-center justify-center relative">
+<!-- Pulse effect rings -->
+<div class="absolute inset-0 rounded-full border border-error/20 animate-ping" style="animation-duration: 2s;"></div>
+<div class="absolute -inset-4 rounded-full border border-error/10 animate-ping" style="animation-duration: 3s;"></div>
+<span class="material-symbols-outlined text-error" style="font-size: 64px; font-variation-settings: 'FILL' 1;">
+                        error
+                    </span>
+</div>
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-stack-sm">Gagal</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-stack-lg max-w-[280px]">
+                    Maaf, terjadi kesalahan saat memproses pesanan Anda. Silakan periksa koneksi atau metode pembayaran.
+                </p>
+<!-- Support Link -->
+<a class="font-label-bold text-label-bold text-outline hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined" style="font-size: 16px;">help</span>
+                    Hubungi Customer Service
+                </a>
+</div>
+<!-- Bottom Action Area -->
+<div class="px-edge-margin pb-safe-area-bottom pt-stack-md bg-surface">
+<button class="w-full bg-error text-on-error font-label-bold text-label-bold py-4 rounded-xl shadow-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">refresh</span>
+                    Coba Lagi
+                </button>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>MegaShop - Search</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#653e00",
+                        "on-surface-variant": "#4a4455",
+                        "primary-fixed": "#eaddff",
+                        "tertiary-container": "#a15100",
+                        "surface-container": "#e9edff",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#630ed4",
+                        "surface-container-high": "#e1e8fd",
+                        "surface-tint": "#732ee4",
+                        "on-surface": "#141b2b",
+                        "surface-variant": "#dce2f7",
+                        "on-background": "#141b2b",
+                        "secondary-fixed": "#ffddb8",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "surface": "#f9f9ff",
+                        "surface-container-low": "#f1f3ff",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#dce2f7",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#25005a",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#edf0ff",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f9f9ff",
+                        "secondary": "#855300",
+                        "primary-container": "#7c3aed",
+                        "tertiary": "#7d3d00",
+                        "surface-dim": "#d3daef",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "tertiary-fixed": "#ffdcc6",
+                        "on-tertiary-fixed": "#301400",
+                        "outline": "#7b7487",
+                        "inverse-surface": "#293040",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#684000",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-secondary-fixed": "#2a1700",
+                        "secondary-container": "#fea619",
+                        "inverse-primary": "#d2bbff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#ede0ff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#ffb95f",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#ccc3d8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "safe-area-bottom": "34px",
+                        "safe-area-top": "59px",
+                        "edge-margin": "16px",
+                        "gutter": "12px",
+                        "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "price-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "label-bold": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "price-lg": ["20px", { "lineHeight": "24px", "fontWeight": "800" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background h-full w-full flex flex-col antialiased">
+<!-- Top Navigation (Search Focus) -->
+<header class="w-full pt-safe-area-top px-edge-margin pb-stack-sm flex items-center justify-between bg-surface/90 backdrop-blur-md sticky top-0 z-40">
+<button class="h-10 w-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-on-surface">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="flex-1 mx-stack-sm relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[20px]">search</span>
+<input autofocus="" class="w-full bg-[#F3F4F6] border-none rounded-xl py-2.5 pl-10 pr-10 text-body-md font-body-md text-on-surface focus:ring-1.5 focus:ring-[#7c3aed] focus:outline-none transition-shadow" placeholder="Search for trendy jackets..." type="text" value="Jacket"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">cancel</span>
+</button>
+</div>
+<button class="h-10 w-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-on-surface">
+<span class="material-symbols-outlined text-[24px]">tune</span>
+</button>
+</header>
+<main class="flex-1 overflow-y-auto px-edge-margin pb-[calc(env(safe-area-inset-bottom,34px)+80px)]">
+<!-- Recent Searches Chips -->
+<section class="mt-stack-md mb-stack-lg">
+<div class="flex items-center justify-between mb-stack-sm">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Recent Searches</h2>
+<button class="text-primary font-label-bold text-label-bold uppercase">Clear</button>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 bg-surface-container-low rounded-full font-body-md text-body-md text-on-surface hover:bg-primary-container hover:text-on-primary transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">history</span>
+                    Streetwear
+                </button>
+<button class="px-4 py-2 bg-surface-container-low rounded-full font-body-md text-body-md text-on-surface hover:bg-primary-container hover:text-on-primary transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">history</span>
+                    Sneakers 2024
+                </button>
+<button class="px-4 py-2 bg-surface-container-low rounded-full font-body-md text-body-md text-on-surface hover:bg-primary-container hover:text-on-primary transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">history</span>
+                    Oversized Hoodie
+                </button>
+</div>
+</section>
+<!-- Search Results Grid -->
+<section>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-stack-md">Hasil Cari</h2>
+<div class="grid grid-cols-2 gap-gutter">
+<!-- Product Card 1 -->
+<div class="bg-surface rounded-xl overflow-hidden shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-[#F3F4F6] flex flex-col group cursor-pointer">
+<div class="relative w-full aspect-[4/5] bg-surface-variant overflow-hidden">
+<img alt="Product Image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A modern, high-fashion editorial shot of a trendy oversized leather jacket on a clean, light studio background. The lighting is bright and soft, highlighting the premium texture of the leather. The overall aesthetic is minimalist, chic, and sophisticated, fitting a high-end streetwear e-commerce platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnnnskkK95I9DK3O8z0gc4bH-xiKgg5JQeacpwieFOqRGwg7tPW7t3TLv43OWNK_Bdu0Hj0FndCd6U9mz8aexLpVSCZsJYoGH90EOK6UM8tzSDu0cSR8Q8-0s_fpAmixqQB2ByrexuqHcvF602MWf6SvSjHrlueN_qULrbHrrt8w7wbqhJK6xln-k_8XjE56B1LUGL1hFGD7XCziaYtPk_o9rUF4RzYr8E1M3I1d_u2_C-ruyLAV1U2hJjAs4ZjHI70U0R99mA3Jrw"/>
+<div class="absolute top-2 left-2 bg-[#F59E0B] text-white px-2 py-1 rounded-[8px] font-label-bold text-label-bold uppercase">Sale</div>
+<button class="absolute top-2 right-2 h-8 w-8 bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center text-on-surface hover:text-[#ba1a1a] transition-colors">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3 flex flex-col flex-1 justify-between">
+<div>
+<h3 class="font-body-md text-body-md text-on-surface font-semibold line-clamp-1">Urban Leather Jacket</h3>
+<p class="font-body-md text-body-md text-on-surface-variant/70 text-xs mt-0.5">Brand X</p>
+</div>
+<div class="mt-2 flex items-center justify-between">
+<span class="font-price-lg text-price-lg text-on-surface">$129</span>
+<button class="h-8 w-8 bg-[#F59E0B] text-white rounded-lg flex items-center justify-center shadow-md hover:bg-[#d97706] transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="bg-surface rounded-xl overflow-hidden shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-[#F3F4F6] flex flex-col group cursor-pointer">
+<div class="relative w-full aspect-[4/5] bg-surface-variant overflow-hidden">
+<img alt="Product Image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A sleek, lightweight windbreaker jacket presented on a neutral gray background with subtle studio lighting. The image focuses on the modern, technical fabric and minimalist design. The style is clean, energetic, and perfectly suited for a premium modern fashion app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6541PKEPhawDplOV33oYiWeBiMLIryRXluk3cYfis49tg9jpz77JHbYOlW-Nh9TdcMM4eljVFzjNxm1D3XKmulBVB_GHvxPQV9MRpYSOoLRBW91zBk5AxhvENYJEqvWqEz4_FCknljyNMeTl0Y8J5sjRfiUEZLHh75VOLMcUcj5_mNjEJHbpS4FwMXTNVw1COLy210lmhqnpaMt_ggU4Ep5aXmyE73wGFXMPSZCbHVH55CPLHD3kpVJ6Ygw1_YbU8OcoBcaujGDy2"/>
+<button class="absolute top-2 right-2 h-8 w-8 bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center text-on-surface hover:text-[#ba1a1a] transition-colors">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3 flex flex-col flex-1 justify-between">
+<div>
+<h3 class="font-body-md text-body-md text-on-surface font-semibold line-clamp-1">Tech Windbreaker</h3>
+<p class="font-body-md text-body-md text-on-surface-variant/70 text-xs mt-0.5">Aero Wear</p>
+</div>
+<div class="mt-2 flex items-center justify-between">
+<span class="font-price-lg text-price-lg text-on-surface">$89</span>
+<button class="h-8 w-8 bg-[#F59E0B] text-white rounded-lg flex items-center justify-center shadow-md hover:bg-[#d97706] transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="bg-surface rounded-xl overflow-hidden shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-[#F3F4F6] flex flex-col group cursor-pointer">
+<div class="relative w-full aspect-[4/5] bg-surface-variant overflow-hidden">
+<img alt="Product Image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A high-quality close-up of a classic denim jacket hanging on a minimalist rack against a bright, airy background. The lighting emphasizes the texture of the denim and the metallic buttons. The aesthetic is casual yet premium, appealing to trend-conscious shoppers." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjjrN0wE9C6AY5vXO03oxCc2bk2eL7ShU4FwmwpB4HSm-esYS79gu5WBuaI6pQyRPUPMiXrurWTeLX7_dRSRP5DVvAfahnF6TYT7NjX6oDmYhbRTXX7_ygW2NL1L1ztOJKyPuWW1cgF9awSMR9TRawqNnKJ7wyqzv9hDajcGr0ZBIkG6Wj89WL3CQymqEdQqfHrGiS_89tOByNwZk4zupEpuu9C9mo483zACJ-vHT0cdA0-G20HSEvsbsQRFQ4PFY6O_QUs_q3howJ"/>
+<div class="absolute top-2 left-2 bg-primary text-white px-2 py-1 rounded-[8px] font-label-bold text-label-bold uppercase">New</div>
+<button class="absolute top-2 right-2 h-8 w-8 bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center text-on-surface hover:text-[#ba1a1a] transition-colors">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3 flex flex-col flex-1 justify-between">
+<div>
+<h3 class="font-body-md text-body-md text-on-surface font-semibold line-clamp-1">Classic Denim</h3>
+<p class="font-body-md text-body-md text-on-surface-variant/70 text-xs mt-0.5">Vintage Co.</p>
+</div>
+<div class="mt-2 flex items-center justify-between">
+<span class="font-price-lg text-price-lg text-on-surface">$110</span>
+<button class="h-8 w-8 bg-[#F59E0B] text-white rounded-lg flex items-center justify-center shadow-md hover:bg-[#d97706] transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="bg-surface rounded-xl overflow-hidden shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-[#F3F4F6] flex flex-col group cursor-pointer">
+<div class="relative w-full aspect-[4/5] bg-surface-variant overflow-hidden">
+<img alt="Product Image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A stylish, vibrant yellow puffer jacket worn by an invisible model, presented against a stark white studio background. The bright yellow pops against the minimal setting, conveying energy and modern street fashion style. The lighting is crisp and even." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOud-3KYLyxOToeWgZT7gXh_PR3vNWZ_K1JnFwijCIF7rtou3WPqXA0T1kCo_0njc339ILoN42jz9l1zbhTSnSUlZGJkgOjxafSAXxBs4tCLyG2PQ2TmBTrUHveTvLOpqmcmm7Qt89EWKMJMhL624cCHJLf7_eOkoaC1nWq1KYEnSq4PcHxFpllJZ2ELZd6Zj65FYiRXrtC2fOi7j9vg-JE2NCGD5NHY6rxQbViCkpSWlJk5qUMdCTIDwQPU8ubxfj7ugxgu5ZF0DI"/>
+<button class="absolute top-2 right-2 h-8 w-8 bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center text-on-surface hover:text-[#ba1a1a] transition-colors">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3 flex flex-col flex-1 justify-between">
+<div>
+<h3 class="font-body-md text-body-md text-on-surface font-semibold line-clamp-1">Puffer Jacket V2</h3>
+<p class="font-body-md text-body-md text-on-surface-variant/70 text-xs mt-0.5">Alpine</p>
+</div>
+<div class="mt-2 flex items-center justify-between">
+<span class="font-price-lg text-price-lg text-on-surface">$145</span>
+<button class="h-8 w-8 bg-[#F59E0B] text-white rounded-lg flex items-center justify-center shadow-md hover:bg-[#d97706] transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-edge-margin pb-safe-area-bottom pt-2 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-lg shadow-lg docked full-width rounded-t-xl">
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 h-12 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="home">home</span>
+<span class="font-label-bold text-label-bold mt-1">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 h-12 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="movie">movie</span>
+<span class="font-label-bold text-label-bold mt-1">Reels</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 h-12 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="add_circle">add_circle</span>
+<span class="font-label-bold text-label-bold mt-1">Post</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 h-12 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-label-bold text-label-bold mt-1">Cart</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 h-12 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="person">person</span>
+<span class="font-label-bold text-label-bold mt-1">Profile</span>
+</div>
+</nav>
+</body></html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MegaShop - Home</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed-variant": "#653e00",
+                    "on-surface-variant": "#4a4455",
+                    "primary-fixed": "#eaddff",
+                    "tertiary-container": "#a15100",
+                    "surface-container": "#e9edff",
+                    "surface-bright": "#f9f9ff",
+                    "primary": "#630ed4",
+                    "surface-container-high": "#e1e8fd",
+                    "surface-tint": "#732ee4",
+                    "on-surface": "#141b2b",
+                    "surface-variant": "#dce2f7",
+                    "on-background": "#141b2b",
+                    "secondary-fixed": "#ffddb8",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "surface": "#f9f9ff",
+                    "surface-container-low": "#f1f3ff",
+                    "primary-fixed-dim": "#d2bbff",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-highest": "#dce2f7",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed": "#25005a",
+                    "on-error": "#ffffff",
+                    "inverse-on-surface": "#edf0ff",
+                    "surface-container-lowest": "#ffffff",
+                    "background": "#f9f9ff",
+                    "secondary": "#855300",
+                    "primary-container": "#7c3aed",
+                    "tertiary": "#7d3d00",
+                    "surface-dim": "#d3daef",
+                    "tertiary-fixed-dim": "#ffb784",
+                    "tertiary-fixed": "#ffdcc6",
+                    "on-tertiary-fixed": "#301400",
+                    "outline": "#7b7487",
+                    "inverse-surface": "#293040",
+                    "error": "#ba1a1a",
+                    "on-secondary-container": "#684000",
+                    "on-tertiary-container": "#ffe0cd",
+                    "on-secondary-fixed": "#2a1700",
+                    "secondary-container": "#fea619",
+                    "inverse-primary": "#d2bbff",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#ede0ff",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed-dim": "#ffb95f",
+                    "on-tertiary-fixed-variant": "#713700",
+                    "error-container": "#ffdad6",
+                    "outline-variant": "#ccc3d8"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "safe-area-bottom": "34px",
+                    "safe-area-top": "59px",
+                    "edge-margin": "16px",
+                    "gutter": "12px",
+                    "stack-lg": "24px"
+            },
+            "fontFamily": {
+                    "headline-sm": ["Plus Jakarta Sans"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "body-md": ["Plus Jakarta Sans"],
+                    "display-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-lg": ["Plus Jakarta Sans"],
+                    "price-lg": ["Plus Jakarta Sans"],
+                    "display-lg": ["Plus Jakarta Sans"],
+                    "label-bold": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "price-lg": ["20px", {"lineHeight": "24px", "fontWeight": "800"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-bold": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        /* Hide scrollbar for horizontal scroll areas */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Glassmorphism utilities */
+        .glass-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased pb-[100px] selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-edge-margin pt-safe-area-top h-[64px] bg-surface text-primary font-headline-sm-mobile text-headline-sm-mobile z-40 sticky top-0">
+<!-- Leading Icon -->
+<button class="p-2 -ml-2 rounded-full hover:bg-surface-container-low transition-colors flex items-center justify-center opacity-100 active:opacity-80">
+<span aria-hidden="true" class="material-symbols-outlined text-primary" data-icon="location_on">location_on</span>
+</button>
+<!-- Brand Headline -->
+<h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight">MegaShop</h1>
+<!-- Trailing Actions (Search from JSON + User requested icons) -->
+<div class="flex items-center gap-1 -mr-2">
+<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors flex items-center justify-center active:opacity-80">
+<span aria-hidden="true" class="material-symbols-outlined text-primary" data-icon="search">search</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors flex items-center justify-center active:opacity-80 relative">
+<span aria-hidden="true" class="material-symbols-outlined text-primary">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-secondary-container rounded-full border border-surface"></span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors flex items-center justify-center active:opacity-80">
+<span aria-hidden="true" class="material-symbols-outlined text-primary">shopping_cart</span>
+</button>
+</div>
+</header>
+<main>
+<!-- Floating Category Filters -->
+<section class="w-full overflow-x-auto no-scrollbar px-edge-margin py-stack-md">
+<div class="flex gap-stack-sm w-max">
+<button class="px-5 py-2 rounded-full bg-primary text-on-primary font-label-bold text-label-bold shadow-sm transition-transform active:scale-95">All</button>
+<button class="px-5 py-2 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors font-label-bold text-label-bold">Fashion</button>
+<button class="px-5 py-2 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors font-label-bold text-label-bold">Tech</button>
+<button class="px-5 py-2 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors font-label-bold text-label-bold">Home</button>
+<button class="px-5 py-2 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors font-label-bold text-label-bold">Beauty</button>
+</div>
+</section>
+<!-- Stories Row -->
+<section class="w-full overflow-x-auto no-scrollbar px-edge-margin pb-stack-lg">
+<div class="flex gap-stack-md w-max">
+<!-- Story 1 (Add Story) -->
+<div class="flex flex-col items-center gap-2 w-[72px]">
+<div class="w-16 h-16 rounded-full border-2 border-outline-variant p-[2px] relative flex-shrink-0 cursor-pointer">
+<div class="w-full h-full rounded-full bg-surface-variant flex items-center justify-center">
+<span aria-hidden="true" class="material-symbols-outlined text-primary">add</span>
+</div>
+</div>
+<span class="text-[11px] font-semibold text-on-surface-variant truncate w-full text-center">Your Story</span>
+</div>
+<!-- Story 2 -->
+<div class="flex flex-col items-center gap-2 w-[72px]">
+<div class="w-16 h-16 rounded-full bg-gradient-to-tr from-primary via-primary-container to-secondary-container p-[2px] flex-shrink-0 cursor-pointer transition-transform active:scale-95">
+<div class="w-full h-full rounded-full border-2 border-background overflow-hidden bg-surface-container">
+<div class="w-full h-full bg-cover bg-center" data-alt="A close-up portrait of a young fashion model with glowing skin and striking makeup. The lighting is high-key and studio-quality, emphasizing a modern, high-end editorial aesthetic. The background is a crisp, pure white that perfectly matches a light-mode UI. The mood is confident and sophisticated." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCf_ga9PrUPDAgHTVRhvfmfTWTyt2NxjIoy-i0rkO-JN5mlsmlTeGzn9Dm6IAWw78ht5UOlsUWx2JKh8b_S4QYjL2YN_nPvgSPbmLOBmsPa8TemWSvIqFScP0yl9Rc5XqHzXFMZYXnVDO4Dgyt7bsWQJCZeUTQSLDzpFUEul50h_zBjZvL0fEtzDgg0pi4YHT8rT7VOqJhxEP7-dkHHgNaJPp8zmhZWXMnb2LbVyAVppt7vJjE3Tgd9BU6pM_rsoSzbKKYx3zYcrSbI');"></div>
+</div>
+</div>
+<span class="text-[11px] font-semibold text-on-surface truncate w-full text-center">@diana_v</span>
+</div>
+<!-- Story 3 -->
+<div class="flex flex-col items-center gap-2 w-[72px]">
+<div class="w-16 h-16 rounded-full bg-gradient-to-tr from-primary via-primary-container to-secondary-container p-[2px] flex-shrink-0 cursor-pointer transition-transform active:scale-95">
+<div class="w-full h-full rounded-full border-2 border-background overflow-hidden bg-surface-container">
+<div class="w-full h-full bg-cover bg-center" data-alt="A stylized portrait of a trendy male influencer wearing minimalist streetwear. The shot is well-lit with soft, diffused daylight, highlighting a clean and modern vibe. The background is a subtle, light gray architectural element, maintaining a high-end, premium aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCP7GM97PKfx3GeCMLhZTV5WrGvHf5CCeT4yP_gfsQtgDgNKvxCu4QZ7FMIXjk4DgToSqtS5_138bPAcPjJMDyBuhoIrb4v5waZyIpRRgnRX8s1zjj5ifS3Vv72mcPz2fil2tAfT3Ieow6MBkdaHpUyhPrylrAR9b4-aJgE0ZPcwzTzLgY6ZjqH0ZQOBmZYmt0EZXuwWeHLC2Vb_MzL8A4fY0-3qywn1fatU5blI_4wXNxv0UfcS8toJGQ_6n7K0IiH-hD0VBCZTfce');"></div>
+</div>
+</div>
+<span class="text-[11px] font-semibold text-on-surface truncate w-full text-center">@marcus.t</span>
+</div>
+<!-- Story 4 -->
+<div class="flex flex-col items-center gap-2 w-[72px]">
+<div class="w-16 h-16 rounded-full bg-gradient-to-tr from-primary via-primary-container to-secondary-container p-[2px] flex-shrink-0 cursor-pointer transition-transform active:scale-95">
+<div class="w-full h-full rounded-full border-2 border-background overflow-hidden bg-surface-container">
+<div class="w-full h-full bg-cover bg-center" data-alt="An artistic shot of a woman with vibrant, styled hair in a brightly lit, modern environment. The color palette features pops of primary colors against a stark white background, fitting perfectly into a clean, energetic UI design. The mood is lively and fashion-forward." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAU1j0vV8M-Lq6BvqTpsgaZYGgZyzEJr53lucyr6mg4YEw6ujh2CNaNHZQHsMgrHACr2CTuhEhXBfj9HKwWMyumf8HPcAM_Em7Z0tfDIvuZNbmanpkz1jXy4dAjMCTxwkw1UDD7uWYIRX2bT40dv4oc0mw5laUy3zZ9W6nRbFpaJkJg9GcbFpEL5xwGG6idXxlVF1druRfN-79K_niOafsSdqsuopk9QS7Y2YxWuAZwZ5LkkT8KBLFG02StMLmAw0bYC6jONGROmOFP');"></div>
+</div>
+</div>
+<span class="text-[11px] font-semibold text-on-surface truncate w-full text-center">@chloe_style</span>
+</div>
+<!-- Story 5 -->
+<div class="flex flex-col items-center gap-2 w-[72px]">
+<div class="w-16 h-16 rounded-full bg-gradient-to-tr from-primary via-primary-container to-secondary-container p-[2px] flex-shrink-0 cursor-pointer transition-transform active:scale-95">
+<div class="w-full h-full rounded-full border-2 border-background overflow-hidden bg-surface-container">
+<div class="w-full h-full bg-cover bg-center" data-alt="A high-quality lifestyle shot of a fashion enthusiast looking away from the camera. The setting is bright and minimal, utilizing natural light to create soft shadows. The overall aesthetic is premium, curated, and highly editorial, suitable for a modern shopping app." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDoJPWa1tWHCMvxAmGONDefJ9jjFgnoQwE3MUWakJTxbg17dB36SIjCE18mtpwlhWvsqpTyXQ1U5jRIPlubsnTp3wFCTvmRheQx44XVwuEHGejMlyLDKOcvH3GF6of5Vx_iFGHZNpenZJvAVEqNq19-Ol7Uk3wcZgKAvjEf2J3uP33qTFnv_ixFmwA9mLxYTtsKNojbSxbFnST5QXqGBv6jJliyIpCO3mkvmYSGU_TlJivjDKQ-Nm70UeAVqauGGIoGvsTtLKeOpX8W');"></div>
+</div>
+</div>
+<span class="text-[11px] font-semibold text-on-surface truncate w-full text-center">@alex_fits</span>
+</div>
+</div>
+</section>
+<!-- Product Grid -->
+<section class="px-edge-margin pb-stack-lg">
+<h2 class="font-headline-sm text-headline-sm text-on-background mb-stack-md">Trending Now</h2>
+<div class="grid grid-cols-2 gap-gutter">
+<!-- Product Card 1 -->
+<article class="bg-surface-container-lowest rounded-[16px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-outline-variant/30 flex flex-col group">
+<div class="h-48 w-full bg-surface-variant relative overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="A sleek, minimalist smart watch displayed elegantly on a pristine white surface. Soft, highly diffused overhead lighting creates a high-end, commercial aesthetic with zero harsh shadows. The product stands out clearly against the bright background, embodying a modern tech and fashion lifestyle vibe." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDp0WyQ6lTRCd-hAtG9Jg9md_tNiimM4CUYFmyXT0a4mk192I6EhYujBBIC6TMIXiUSvWaQMCNHOKm8czyDWQnjfTdXyeQtxyA5Hgextfr8O-zT3IruWuGT-g6ssb7BxmnzVeKobFODfokR5_hwK1OSk2lXXFXeD-Vm_zlNRgy1jJtMVm87C2mQmOu1MgZ6sGbe6pCV_HQzRbU_TvQXNynaQ5n9NFeBsRk1Z0NR0FYIqpqptGjGBF7xkdoyqCNvQFxN1AYmEN2BQzk4');"></div>
+<button class="absolute top-2 right-2 p-1.5 bg-surface/80 backdrop-blur-md rounded-full text-on-surface hover:text-primary transition-colors">
+<span aria-hidden="true" class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3 flex flex-col flex-grow">
+<div class="flex items-center gap-1.5 mb-1.5">
+<div class="w-4 h-4 rounded-full bg-cover bg-center" data-alt="A small circular avatar placeholder showing a clear, well-lit face against a simple background." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC5cxxJ7JBB4ncYtrXIB2s06hZmb-3_Mf4AjQ_UU6fTuKGjaq8BpsSxbMZC7lGXY-DdEboqmKxbuceptZrpI8Tp4AX08QWbQThEHnVD_L9iZYhRnsOThky0m6eGMCaP1Q06QRVmefOjvzMYYFd15cqfyt8UGVF1ELNcKDeLottzhZzaPiHlAIU9rXXW2XF9QFatbI6uME-yxm2SamXPGO6lLSD7NAdJEXuMnoTe6O-d3zdEb3eRWi1cqNbn27BJ5_FjlPYxh7S6mGjv');"></div>
+<span class="text-[10px] font-semibold text-on-surface-variant truncate">TechHaven</span>
+</div>
+<h3 class="font-body-md text-body-md font-medium text-on-surface line-clamp-2 leading-tight mb-2">Minimalist Chrono Smart Watch Pro</h3>
+<div class="mt-auto">
+<span class="font-price-lg text-price-lg text-secondary-container block mb-3">$149.99</span>
+<div class="flex gap-2">
+<button class="flex-1 py-1.5 border border-primary text-primary rounded-[12px] font-label-bold text-[11px] flex items-center justify-center transition-colors hover:bg-primary/5 active:scale-95">Add to Cart</button>
+<button class="flex-1 py-1.5 bg-secondary-container text-on-secondary-container rounded-[12px] font-label-bold text-[11px] flex items-center justify-center shadow-sm transition-transform active:scale-95 hover:brightness-105">Buy Now</button>
+</div>
+</div>
+</div>
+</article>
+<!-- Product Card 2 -->
+<article class="bg-surface-container-lowest rounded-[16px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-outline-variant/30 flex flex-col group">
+<div class="h-48 w-full bg-surface-variant relative overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="A vibrant red, high-performance running shoe presented on a clean, light-colored background. The studio lighting is bright and crisp, highlighting the textures of the fabric and the dynamic design of the sole. The image feels energetic, athletic, and fits perfectly within a modern e-commerce visual style." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCBNQzvDrAL69ObvKMSthpH0Q1EhpDf7UBZY4v1rLFA6JoARtDPXoQJaN6fNMGLX0b1ZpYaR_MtJBpWtHoX2zgcpQpDKk2vRBXjX1FTyT-SovXTVeIVgmun8PZuI3eiCy1DV30VifSMtEstX-nlLxREbvhOuok5jYp-_UXrMip7bpIG8QN4YAEmJw0Ysjbu4A860SkXelFhKbEMZrTUSpu7tSFx1iar8uOOaPS3Y7qVqtLNcsNBJ59WT5m7BaBJ_D8CWLJjdFWkfoZw');"></div>
+<div class="absolute top-2 left-2 bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">New</div>
+<button class="absolute top-2 right-2 p-1.5 bg-surface/80 backdrop-blur-md rounded-full text-on-surface hover:text-primary transition-colors">
+<span aria-hidden="true" class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3 flex flex-col flex-grow">
+<div class="flex items-center gap-1.5 mb-1.5">
+<div class="w-4 h-4 rounded-full bg-cover bg-center" data-alt="A small circular avatar placeholder showing a clear, well-lit face against a simple background." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAJj0sgY2ngFp-SYRSSGDDLZFbySPj5F4Bn3aHxFNacOQcmvWCNkpT6sAvXnbaNV308RKSiZOsvd8IE7hTWhlUjKhwaFoOrvaRs7ipVYPevGNTQTDkD7JLntX6WV1ZI87-WubZXPa82nkGUL4-XKVDo1Z2aG8510d-LgWGxkT4-B3YWtjLK6cx0x2SsV37BzkAzxjNyzN3yAEyHvPjEPf18Wzn7I0ws_YWqoXOA9hOD3D-qk2gOUUJFgwu-w_b31hj8cEqP9KuVkmLh');"></div>
+<span class="text-[10px] font-semibold text-on-surface-variant truncate">Kicks &amp; Co</span>
+</div>
+<h3 class="font-body-md text-body-md font-medium text-on-surface line-clamp-2 leading-tight mb-2">Velocity Max Running Sneakers</h3>
+<div class="mt-auto">
+<span class="font-price-lg text-price-lg text-secondary-container block mb-3">$125.00</span>
+<div class="flex gap-2">
+<button class="flex-1 py-1.5 border border-primary text-primary rounded-[12px] font-label-bold text-[11px] flex items-center justify-center transition-colors hover:bg-primary/5 active:scale-95">Add to Cart</button>
+<button class="flex-1 py-1.5 bg-secondary-container text-on-secondary-container rounded-[12px] font-label-bold text-[11px] flex items-center justify-center shadow-sm transition-transform active:scale-95 hover:brightness-105">Buy Now</button>
+</div>
+</div>
+</div>
+</article>
+<!-- Product Card 3 -->
+<article class="bg-surface-container-lowest rounded-[16px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-outline-variant/30 flex flex-col group">
+<div class="h-48 w-full bg-surface-variant relative overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="A pair of stylish, minimalist white leather sneakers shot against a soft pastel background. The lighting is incredibly soft and bright, creating a serene and premium atmosphere. The composition is clean, emphasizing the smooth textures and elegant lines of the footwear in a high-fashion context." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCYAV3LbI2YQPxwpH1VBXeOxgaEH6EHGsd9y2QuonwZMvRsTzuW6pZSqzS4CCllyuSWHCQ8aYY1ShH8xVCL3QDdf_cOUCMRhzQgVr0tV1J35YMhFpy6s06A0SnwNvdAzvAH9IweHVbzdIasu3a3sEpRBxZUA8rVTUNk-VvKk6V4fWupmQCDPCYb6IK_s837W-3obaygd-rs_HdqMC7sOqC3uFaw-ywUCDxRWXuFVanPzr5prkg3e-_rgz4Vl8ea07RY07LhlKr6YBgu');"></div>
+<button class="absolute top-2 right-2 p-1.5 bg-surface/80 backdrop-blur-md rounded-full text-on-surface hover:text-primary transition-colors">
+<span aria-hidden="true" class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3 flex flex-col flex-grow">
+<div class="flex items-center gap-1.5 mb-1.5">
+<div class="w-4 h-4 rounded-full bg-cover bg-center" data-alt="A small circular avatar placeholder showing a clear, well-lit face against a simple background." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDcLZs8ZYgmwqhzznWSaTJVm4y8tjJZeNlv6C3-4knbk3z7xIL5DFDDZstp9CrcsxzB5QHojOdaN1NOVGkPTPdQytKENaT1-yYHEduxZYeKp0QyNgC1cEoq5F6B0Q4KIKpavhTjtz6go5YNs1hZNTTXoIoGNdbTM3V9d0luOrgeCjK-0RKghu7eB6rP8P3hqBReW1BKQjeackp3ffg0JhpqjzEnm_9ghMxTh8cIYkqhBili6CLYEWhLC49PqAwTgIrmgnRA9o6lv0HV');"></div>
+<span class="text-[10px] font-semibold text-on-surface-variant truncate">Boutique 9</span>
+</div>
+<h3 class="font-body-md text-body-md font-medium text-on-surface line-clamp-2 leading-tight mb-2">Classic White Leather Low-Tops</h3>
+<div class="mt-auto">
+<span class="font-price-lg text-price-lg text-secondary-container block mb-3">$89.00</span>
+<div class="flex gap-2">
+<button class="flex-1 py-1.5 border border-primary text-primary rounded-[12px] font-label-bold text-[11px] flex items-center justify-center transition-colors hover:bg-primary/5 active:scale-95">Add to Cart</button>
+<button class="flex-1 py-1.5 bg-secondary-container text-on-secondary-container rounded-[12px] font-label-bold text-[11px] flex items-center justify-center shadow-sm transition-transform active:scale-95 hover:brightness-105">Buy Now</button>
+</div>
+</div>
+</div>
+</article>
+<!-- Product Card 4 -->
+<article class="bg-surface-container-lowest rounded-[16px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-outline-variant/30 flex flex-col group">
+<div class="h-48 w-full bg-surface-variant relative overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="An elegant, modern ceramic vase with a matte finish, displayed on a minimalist wooden pedestal. The background is a bright, airy white room bathed in soft natural light. The aesthetic is extremely clean, sophisticated, and suited for a premium home goods catalog in a light-mode interface." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAJREt3XMqfZsOUadYDQh0PuU6vF6EHfHfbHQWEJQrnUbfwkspLWk15Ij4sWj-kBbQJw181xePSs0okeqZ71tSaivIhHr3afdmLVKds6TqQ71yYfXGLP020uClM_TdWoXynKvJE-lF0rlMMMTCvSPBK-PCTbCg8WHLptEkEJpHgaFBowV4-5QD5diduhEVuAO4HjV0ygsTeI2_AkOAnejuW0VfC1qX9yCsmq-xQ3RixnZlwQ04vPwD3dcSI-WpccjPaQKjU4aj5b9AF');"></div>
+<div class="absolute top-2 left-2 bg-error text-on-error text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Sale</div>
+<button class="absolute top-2 right-2 p-1.5 bg-surface/80 backdrop-blur-md rounded-full text-on-surface hover:text-primary transition-colors">
+<span aria-hidden="true" class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<div class="p-3 flex flex-col flex-grow">
+<div class="flex items-center gap-1.5 mb-1.5">
+<div class="w-4 h-4 rounded-full bg-cover bg-center" data-alt="A small circular avatar placeholder showing a clear, well-lit face against a simple background." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBwP8STnXNRDrxAFGDuazwmeFNiHVSJ-5iAwrzFlGo4axn8tDqj2jwVfkCZL3QETpGBUU4-9dXm5OYwvaChovpWTizGqKbxYPs6xaEw3PPGngSgIRFdThflXxG12k1FXe8EmXoXioezA1IBNj77H3j-i3DCkNkULfES3adJXFUihnkW6BtaG0kheM-P1TF20JU5lOL6OEmgiyhKy70IwqPsgPdxuY49EQWERqWSo_7-Rv4kxaPhz8ROoV1nGR5JbBRlVMD5ni1HIruK');"></div>
+<span class="text-[10px] font-semibold text-on-surface-variant truncate">Home Essentials</span>
+</div>
+<h3 class="font-body-md text-body-md font-medium text-on-surface line-clamp-2 leading-tight mb-2">Matte Ceramic Minimal Vase</h3>
+<div class="mt-auto">
+<div class="flex items-baseline gap-1.5 mb-3">
+<span class="font-price-lg text-price-lg text-secondary-container">$45.00</span>
+<span class="text-[12px] text-on-surface-variant line-through">$60.00</span>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-1.5 border border-primary text-primary rounded-[12px] font-label-bold text-[11px] flex items-center justify-center transition-colors hover:bg-primary/5 active:scale-95">Add to Cart</button>
+<button class="flex-1 py-1.5 bg-secondary-container text-on-secondary-container rounded-[12px] font-label-bold text-[11px] flex items-center justify-center shadow-sm transition-transform active:scale-95 hover:brightness-105">Buy Now</button>
+</div>
+</div>
+</div>
+</article>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-edge-margin pb-safe-area-bottom pt-2 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-lg shadow-lg docked full-width rounded-t-xl">
+<!-- Home (Active) -->
+<button class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed font-bold hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-2 rounded-xl active:scale-95 transition-transform duration-150">
+<span aria-hidden="true" class="material-symbols-outlined text-[24px]" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-bold text-label-bold mt-1">Home</span>
+</button>
+<!-- Reels (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-2 rounded-xl active:scale-95 transition-transform duration-150">
+<span aria-hidden="true" class="material-symbols-outlined text-[24px]" data-icon="movie">movie</span>
+<span class="font-label-bold text-label-bold mt-1">Reels</span>
+</button>
+<!-- Post (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-2 rounded-xl active:scale-95 transition-transform duration-150">
+<span aria-hidden="true" class="material-symbols-outlined text-[32px] text-primary" data-icon="add_circle">add_circle</span>
+<!-- Hidden label to match structural layout if needed, or omit for this specific central FAB style, but JSON says text is Post -->
+<span class="sr-only">Post</span>
+</button>
+<!-- Cart (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-2 rounded-xl active:scale-95 transition-transform duration-150 relative">
+<span aria-hidden="true" class="material-symbols-outlined text-[24px]" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-label-bold text-label-bold mt-1">Cart</span>
+<!-- Badge -->
+<span class="absolute top-1 right-3 w-4 h-4 bg-error text-on-error rounded-full text-[9px] font-bold flex items-center justify-center border-2 border-surface">2</span>
+</button>
+<!-- Profile (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-on-surface-variant/60 hover:bg-primary/10 dark:hover:bg-primary-fixed/10 transition-colors w-16 py-2 rounded-xl active:scale-95 transition-transform duration-150">
+<span aria-hidden="true" class="material-symbols-outlined text-[24px]" data-icon="person">person</span>
+<span class="font-label-bold text-label-bold mt-1">Profile</span>
+</button>
+</nav>
+</body></html>

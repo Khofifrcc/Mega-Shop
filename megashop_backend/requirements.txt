@@ -1,9 +1,6 @@
-cat > requirements.txt <<'EOF'
 fastapi
-uvicorn[standard]
+uvicorn
 sqlalchemy
+pymysql
 pydantic
-passlib
-bcrypt
-python-multipart
-EOF
+email-validator

@@ -2,7 +2,45 @@
 
 Frontend UI untuk aplikasi social commerce **Mega Shop** menggunakan Flutter.
 
+## Prerequisites (Wajib Install Dulu!)
+
+Sebelum menjalankan project ini, pastikan semua tools berikut sudah terinstall:
+
+### 1. Flutter SDK
+- Download di: https://docs.flutter.dev/get-started/install
+- **Versi minimum:** Flutter 3.38.x (Dart 3.4+)
+- Setelah install, jalankan `flutter doctor` untuk cek apakah sudah beres
+
+### 2. Android Studio / VS Code
+- **Android Studio:** https://developer.android.com/studio
+  - Install plugin **Flutter** dan **Dart** di Android Studio
+  - Buat Android Virtual Device (AVD) untuk emulator
+- **VS Code (alternatif):** https://code.visualstudio.com
+  - Install extension **Flutter** dari marketplace
+
+### 3. Java JDK 17
+- Download di: https://www.oracle.com/java/technologies/downloads/#java17
+- Atau pakai JDK bawaan Android Studio (sudah termasuk)
+
+### 4. Git
+- Download di: https://git-scm.com/downloads
+- Untuk pull project dari repository
+
+### Cek Instalasi
+Jalankan perintah ini, pastikan semua ✓ (centang hijau):
+```bash
+flutter doctor
+```
+
 ## Installation & Run
+
+> ⚠️ **PENTING — Kalau lib/ merah semua setelah pull:**
+> Itu artinya packages belum terdownload. Jalankan dulu:
+> ```bash
+> cd megashop_flutter
+> flutter pub get
+> ```
+> Tunggu sampai selesai, lalu restart IDE. Lib sudah tidak merah lagi.
 
 ```bash
 cd megashop_flutter

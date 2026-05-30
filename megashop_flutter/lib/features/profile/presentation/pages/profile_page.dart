@@ -31,14 +31,6 @@ class _ProfilePageState extends State<ProfilePage>
   String username = '';
   String bio = '';
 
-  final _feedImages = [
-    'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=300&q=80',
-    'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=300&q=80',
-    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80',
-    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80',
-    'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=300&q=80',
-  ];
-
   @override
   void initState() {
     super.initState();

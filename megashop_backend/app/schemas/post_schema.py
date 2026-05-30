@@ -5,3 +5,4 @@ class PostCreate(BaseModel):
     caption: str
     image: str
     post_type: str = "regular"
+    user_name: str = "User"

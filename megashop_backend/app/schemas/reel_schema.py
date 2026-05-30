@@ -11,3 +11,4 @@ class ReelCreate(BaseModel):
     like_count: int = 0
     comment_count: int = 0
     is_following: bool = False
+    video_url: str

@@ -5,3 +5,4 @@ class ProductCreate(BaseModel):
     price: int
     description: str
     image: str
+    seller_name: str = "MegaShop User"

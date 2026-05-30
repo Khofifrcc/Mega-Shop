@@ -13,11 +13,13 @@ class PostRepository {
     required String userId,
     required String caption,
     required String image,
+    required String postType,
   }) async {
     await apiService.post('/posts/', {
       'user_id': userId,
       'caption': caption,
       'image': image,
+      'post_type': postType,
     });
   }
 }

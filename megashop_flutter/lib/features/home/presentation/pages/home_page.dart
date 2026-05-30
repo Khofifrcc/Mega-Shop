@@ -9,6 +9,8 @@ import '../widgets/category_filter_bar.dart';
 import '../widgets/stories_row.dart';
 import '../widgets/trending_grid.dart';
 import '../../../product/data/product_repository.dart';
+import '../../../post/data/post_repository.dart';
+import '../../../../shared/models/post_model.dart';
 
 /// Main Home screen of MegaShop.
 ///
@@ -23,10 +25,12 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _productRepository = ProductRepository();
+  final _postRepository = PostRepository();
 
   int _navIndex = 0;
 
   List<Product> _products = [];
+  List<PostModel> _posts = [];
   bool _isLoading = true;
   late final List _stories;
   late final List<String> _categories;
@@ -38,6 +42,19 @@ class _HomePageState extends State<HomePage> {
     _categories = ['All', 'Fashion', 'Tech'];
 
     _loadProducts();
+    _loadPosts();
+  }
+
+  Future<void> _loadPosts() async {
+    try {
+      final posts = await _postRepository.getPosts();
+
+      setState(() {
+        _posts = posts;
+      });
+    } catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   Future<void> _loadProducts() async {
@@ -142,6 +159,61 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                 const SizedBox(height: 24),
+                const SizedBox(height: 28),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Latest Posts',
+                    style: AppTextStyles.sectionTitle,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _posts.length,
+                  itemBuilder: (context, index) {
+                    final post = _posts[index];
+
+                    return Container(
+                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: AppColors.shadow,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(18),
+                            ),
+                            child: Image.network(
+                              post.image,
+                              height: 220,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Text(
+                              post.caption,
+                              style: AppTextStyles.productName,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),

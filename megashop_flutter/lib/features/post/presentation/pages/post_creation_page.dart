@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
+import '../../../../core/services/upload_service.dart';
+import '../../data/post_repository.dart';
 
 /// Post creation page — unified single-form design.
 ///
@@ -17,10 +20,99 @@ class PostCreationPage extends StatefulWidget {
 
 class _PostCreationPageState extends State<PostCreationPage> {
   bool _isProductPost = false;
+  bool _isLoading = false;
+  bool _hasMedia = false;
+
+  String? _uploadedImageUrl;
+
   final _captionCtrl = TextEditingController();
   final _productNameCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
-  bool _hasMedia = false;
+
+  final _postRepository = PostRepository();
+  final _uploadService = UploadService();
+
+  // Pick image from gallery and upload it to FastAPI upload endpoint
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (image == null) return;
+
+    setState(() => _hasMedia = true);
+
+    try {
+      final imageUrl = await _uploadService.uploadImage(image);
+
+      setState(() {
+        _uploadedImageUrl = imageUrl;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _hasMedia = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to upload image')),
+      );
+    }
+  }
+
+  // Share post to backend using PostRepository
+  Future<void> _sharePost() async {
+    if (_captionCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Caption cannot be empty')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _postRepository.createPost(
+        userId: 'user_1',
+        caption: _captionCtrl.text.trim(),
+        image: _uploadedImageUrl ?? 'https://picsum.photos/600',
+        postType: _isProductPost ? 'product' : 'regular',
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacementNamed(context, '/home');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Post shared!',
+            style: AppTextStyles.brandName.copyWith(
+              color: AppColors.textOnPrimary,
+            ),
+          ),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to share post')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -41,28 +133,18 @@ class _PostCreationPageState extends State<PostCreationPage> {
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
         ),
-        title: Text('New Post', style: AppTextStyles.productName.copyWith(fontSize: 18)),
+        title: Text(
+          'New Post',
+          style: AppTextStyles.productName.copyWith(fontSize: 18),
+        ),
         centerTitle: true,
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, '/home');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Post shared!',
-                      style: AppTextStyles.brandName
-                          .copyWith(color: AppColors.textOnPrimary)),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  margin: const EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
-            child: Text('Share',
-                style: AppTextStyles.buttonOutlined.copyWith(fontSize: 15)),
+            onPressed: _isLoading ? null : _sharePost,
+            child: Text(
+              _isLoading ? 'Sharing...' : 'Share',
+              style: AppTextStyles.buttonOutlined.copyWith(fontSize: 15),
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -91,9 +173,10 @@ class _PostCreationPageState extends State<PostCreationPage> {
               ],
             ),
             const SizedBox(height: 20),
+
             // ── Upload area ─────────────────────────────────────────────
             GestureDetector(
-              onTap: () => setState(() => _hasMedia = !_hasMedia),
+              onTap: _pickAndUploadImage,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 height: 220,
@@ -104,9 +187,7 @@ class _PostCreationPageState extends State<PostCreationPage> {
                       : AppColors.primarySurface,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: _hasMedia
-                        ? AppColors.primary
-                        : AppColors.divider,
+                    color: _hasMedia ? AppColors.primary : AppColors.divider,
                     width: _hasMedia ? 2 : 1.5,
                     style: BorderStyle.solid,
                   ),
@@ -115,15 +196,25 @@ class _PostCreationPageState extends State<PostCreationPage> {
                     ? Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.check_circle_rounded,
-                              color: AppColors.primary, size: 48),
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: AppColors.primary,
+                            size: 48,
+                          ),
                           const SizedBox(height: 12),
-                          Text('Media selected',
-                              style: AppTextStyles.productName
-                                  .copyWith(color: AppColors.primary)),
+                          Text(
+                            _uploadedImageUrl == null
+                                ? 'Uploading media...'
+                                : 'Media selected',
+                            style: AppTextStyles.productName.copyWith(
+                              color: AppColors.primary,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text('Tap to change',
-                              style: AppTextStyles.brandName),
+                          Text(
+                            'Tap to change',
+                            style: AppTextStyles.brandName,
+                          ),
                         ],
                       )
                     : Column(
@@ -137,17 +228,23 @@ class _PostCreationPageState extends State<PostCreationPage> {
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
-                                Icons.add_photo_alternate_outlined,
-                                color: AppColors.primary,
-                                size: 32),
+                              Icons.add_photo_alternate_outlined,
+                              color: AppColors.primary,
+                              size: 32,
+                            ),
                           ),
                           const SizedBox(height: 14),
-                          Text('Upload Photo or Video',
-                              style: AppTextStyles.sectionTitle
-                                  .copyWith(fontSize: 17)),
+                          Text(
+                            'Upload Photo or Video',
+                            style: AppTextStyles.sectionTitle.copyWith(
+                              fontSize: 17,
+                            ),
+                          ),
                           const SizedBox(height: 6),
-                          Text('Tap to select from gallery',
-                              style: AppTextStyles.brandName),
+                          Text(
+                            'Tap to select from gallery',
+                            style: AppTextStyles.brandName,
+                          ),
                           const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -162,6 +259,7 @@ class _PostCreationPageState extends State<PostCreationPage> {
               ),
             ),
             const SizedBox(height: 20),
+
             // ── Caption ─────────────────────────────────────────────────
             TextField(
               controller: _captionCtrl,
@@ -173,22 +271,23 @@ class _PostCreationPageState extends State<PostCreationPage> {
                 fillColor: AppColors.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: AppColors.divider),
+                  borderSide: const BorderSide(color: AppColors.divider),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: const BorderSide(
-                      color: AppColors.primary, width: 1.5),
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: AppColors.divider),
+                  borderSide: const BorderSide(color: AppColors.divider),
                 ),
                 contentPadding: const EdgeInsets.all(16),
               ),
             ),
+
             // ── Product fields (only shown for Product Post) ─────────────
             if (_isProductPost) ...[
               const SizedBox(height: 16),
@@ -196,12 +295,19 @@ class _PostCreationPageState extends State<PostCreationPage> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Icon(Icons.local_offer_outlined,
-                      color: AppColors.primary, size: 18),
+                  const Icon(
+                    Icons.local_offer_outlined,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Product Details',
-                      style: AppTextStyles.productName
-                          .copyWith(fontSize: 15, color: AppColors.primary)),
+                  Text(
+                    'Product Details',
+                    style: AppTextStyles.productName.copyWith(
+                      fontSize: 15,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -215,21 +321,30 @@ class _PostCreationPageState extends State<PostCreationPage> {
                 controller: _priceCtrl,
                 hint: 'Price (e.g. 99.99)',
                 icon: Icons.attach_money_rounded,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
             ],
             const SizedBox(height: 28),
+
             // ── Extras row ───────────────────────────────────────────────
             Row(
               children: [
                 _ExtraButton(
-                    icon: Icons.location_on_outlined, label: 'Location'),
+                  icon: Icons.location_on_outlined,
+                  label: 'Location',
+                ),
                 const SizedBox(width: 10),
                 _ExtraButton(
-                    icon: Icons.people_outline_rounded, label: 'Tag people'),
+                  icon: Icons.people_outline_rounded,
+                  label: 'Tag people',
+                ),
                 const SizedBox(width: 10),
-                _ExtraButton(icon: Icons.music_note_outlined, label: 'Music'),
+                _ExtraButton(
+                  icon: Icons.music_note_outlined,
+                  label: 'Music',
+                ),
               ],
             ),
             const SizedBox(height: 32),
@@ -280,8 +395,7 @@ class _TypeChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color:
-              isActive ? AppColors.primary : AppColors.surface,
+          color: isActive ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isActive ? AppColors.primary : AppColors.divider,
@@ -290,18 +404,20 @@ class _TypeChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                size: 16,
-                color: isActive
-                    ? AppColors.textOnPrimary
-                    : AppColors.iconDefault),
+            Icon(
+              icon,
+              size: 16,
+              color: isActive ? AppColors.textOnPrimary : AppColors.iconDefault,
+            ),
             const SizedBox(width: 6),
-            Text(label,
-                style: AppTextStyles.categoryActive.copyWith(
-                    color: isActive
-                        ? AppColors.textOnPrimary
-                        : AppColors.textPrimary,
-                    fontSize: 13)),
+            Text(
+              label,
+              style: AppTextStyles.categoryActive.copyWith(
+                color:
+                    isActive ? AppColors.textOnPrimary : AppColors.textPrimary,
+                fontSize: 13,
+              ),
+            ),
           ],
         ),
       ),
@@ -323,7 +439,10 @@ class _MediaChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.divider),
       ),
-      child: Text(label, style: AppTextStyles.brandName.copyWith(fontSize: 12)),
+      child: Text(
+        label,
+        style: AppTextStyles.brandName.copyWith(fontSize: 12),
+      ),
     );
   }
 }
@@ -364,8 +483,10 @@ class _InlineField extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
     );
   }
@@ -375,7 +496,10 @@ class _ExtraButton extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _ExtraButton({required this.icon, required this.label});
+  const _ExtraButton({
+    required this.icon,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -393,9 +517,10 @@ class _ExtraButton extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: AppColors.iconMuted),
             const SizedBox(width: 4),
-            Text(label,
-                style:
-                    AppTextStyles.brandName.copyWith(fontSize: 12)),
+            Text(
+              label,
+              style: AppTextStyles.brandName.copyWith(fontSize: 12),
+            ),
           ],
         ),
       ),

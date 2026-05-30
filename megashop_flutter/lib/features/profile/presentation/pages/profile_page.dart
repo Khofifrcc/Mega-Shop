@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
+import '../../../post/data/post_repository.dart';
 
 /// Profile page matching the mockup.
 ///
@@ -20,18 +21,38 @@ class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final _feedImages = [
-    'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=300&q=80',
-    'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=300&q=80',
-    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80',
-    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80',
-    'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=300&q=80',
-  ];
+  final _postRepository = PostRepository();
+  List<String> _feedImages = [];
+  List<String> _productImages = [];
+  bool _isLoadingPosts = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadPosts();
+  }
+
+  Future<void> _loadPosts() async {
+    try {
+      final posts = await _postRepository.getPosts();
+
+      setState(() {
+        _feedImages = posts
+            .where((post) => post.postType == 'regular')
+            .map((post) => post.image)
+            .toList();
+
+        _productImages = posts
+            .where((post) => post.postType == 'product')
+            .map((post) => post.image)
+            .toList();
+
+        _isLoadingPosts = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingPosts = false);
+    }
   }
 
   @override
@@ -110,8 +131,12 @@ class _ProfilePageState extends State<ProfilePage>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _FeedGrid(images: _feedImages),
-                  _FeedGrid(images: _feedImages.reversed.toList()),
+                  _isLoadingPosts
+                      ? const Center(child: CircularProgressIndicator())
+                      : _FeedGrid(images: _feedImages),
+                  _isLoadingPosts
+                      ? const Center(child: CircularProgressIndicator())
+                      : _FeedGrid(images: _productImages),
                 ],
               ),
             ),
@@ -353,7 +378,8 @@ class _FeedGrid extends StatelessWidget {
           imageUrl: images[i],
           fit: BoxFit.cover,
           placeholder: (ctx, url) => Container(color: AppColors.primarySurface),
-          errorWidget: (ctx, url, err) => Container(color: AppColors.primarySurface),
+          errorWidget: (ctx, url, err) =>
+              Container(color: AppColors.primarySurface),
         );
       },
     );

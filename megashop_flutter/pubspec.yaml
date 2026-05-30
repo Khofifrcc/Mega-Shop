@@ -40,6 +40,7 @@ dependencies:
 
   # Efficient network image loading with caching
   cached_network_image: ^3.4.1
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

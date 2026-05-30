@@ -5,12 +5,14 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../domain/entities/reel.dart';
+import '../../data/reel_repository.dart';
 
 /// Full-screen vertical-scroll Reels page.
 ///
 /// Each reel fills the entire screen; swipe up/down to navigate.
 /// Overlay: title + search (top), user info + product + price (bottom-left),
-/// action buttons like/comment/share + cart FAB (bottom-right).
+/// action buttons like/comment/share + cart FAB (bottom-right)
+
 class ReelsPage extends StatefulWidget {
   const ReelsPage({super.key});
 
@@ -19,8 +21,40 @@ class ReelsPage extends StatefulWidget {
 }
 
 class _ReelsPageState extends State<ReelsPage> {
-  final _reels = _mockReels;
+  final _reelRepository = ReelRepository();
+
+  // Reels data from FastAPI
+  List<Reel> _reels = [];
+
+  // Local UI state for liked reels
   final _likedIds = <String>{};
+
+  // Loading state while API is fetching data
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReels();
+  }
+
+  // Load reels from FastAPI through ReelRepository
+  Future<void> _loadReels() async {
+    try {
+      final reels = await _reelRepository.getReels();
+
+      setState(() {
+        _reels = reels;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      debugPrint(e.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,49 +63,79 @@ class _ReelsPageState extends State<ReelsPage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // ── Vertical pager ───────────────────────────────────────
-          PageView.builder(
-            scrollDirection: Axis.vertical,
-            itemCount: _reels.length,
-            itemBuilder: (context, index) => _ReelItem(
-              reel: _reels[index],
-              isLiked: _likedIds.contains(_reels[index].id),
-              onLike: () => setState(() {
-                if (_likedIds.contains(_reels[index].id)) {
-                  _likedIds.remove(_reels[index].id);
-                } else {
-                  _likedIds.add(_reels[index].id);
-                }
-              }),
-              onAddToCart: () {
-                CartStateProvider.of(context).addItem(
-                  productId: _reels[index].id,
-                  name: _reels[index].productName,
-                  variant: 'Default',
-                  price: _reels[index].price,
-                  imageUrl: _reels[index].imageUrl,
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Added to cart!',
-                      style: AppTextStyles.brandName.copyWith(
-                        color: AppColors.textOnPrimary,
+          // Loading state
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            )
+
+          // Empty state
+          else if (_reels.isEmpty)
+            Center(
+              child: Text(
+                'No reels available',
+                style: AppTextStyles.sectionTitle.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+            )
+
+          // Reels list from backend
+          else
+            PageView.builder(
+              scrollDirection: Axis.vertical,
+              itemCount: _reels.length,
+              itemBuilder: (context, index) {
+                final reel = _reels[index];
+
+                return _ReelItem(
+                  reel: reel,
+                  isLiked: _likedIds.contains(reel.id),
+
+                  // Like / unlike reel
+                  onLike: () {
+                    setState(() {
+                      if (_likedIds.contains(reel.id)) {
+                        _likedIds.remove(reel.id);
+                      } else {
+                        _likedIds.add(reel.id);
+                      }
+                    });
+                  },
+
+                  // Add reel product to cart
+                  onAddToCart: () {
+                    CartStateProvider.of(context).addItem(
+                      productId: reel.id,
+                      name: reel.productName,
+                      variant: 'Default',
+                      price: reel.price,
+                      imageUrl: reel.imageUrl,
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Added to cart!',
+                          style: AppTextStyles.brandName.copyWith(
+                            color: AppColors.textOnPrimary,
+                          ),
+                        ),
+                        backgroundColor: AppColors.primary,
+                        behavior: SnackBarBehavior.floating,
+                        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        duration: const Duration(seconds: 2),
                       ),
-                    ),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
+                    );
+                  },
                 );
               },
             ),
-          ),
-          // ── Fixed top bar (stays above every reel) ──────────────────
+
+          // Fixed top bar
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -83,11 +147,12 @@ class _ReelsPageState extends State<ReelsPage> {
                     style: AppTextStyles.sectionTitle.copyWith(
                       color: Colors.white,
                       fontSize: 24,
-                      shadows: [
-                        const Shadow(
-                            color: Colors.black54,
-                            blurRadius: 8,
-                            offset: Offset(0, 2)),
+                      shadows: const [
+                        Shadow(
+                          color: Colors.black54,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
                       ],
                     ),
                   ),
@@ -99,8 +164,7 @@ class _ReelsPageState extends State<ReelsPage> {
                       decoration: BoxDecoration(
                         color: Colors.black38,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                            color: Colors.white24, width: 1),
+                        border: Border.all(color: Colors.white24, width: 1),
                       ),
                       child: const Icon(
                         Icons.search_rounded,
@@ -274,8 +338,8 @@ class _ReelItemState extends State<_ReelItem> {
                               children: [
                                 Text(
                                   '\$${reel.price.toStringAsFixed(2)}',
-                                  style: AppTextStyles.price.copyWith(
-                                      fontSize: 20),
+                                  style: AppTextStyles.price
+                                      .copyWith(fontSize: 20),
                                 ),
                                 if (reel.isOnSale) ...[
                                   const SizedBox(width: 8),
@@ -333,9 +397,8 @@ class _ReelItemState extends State<_ReelItem> {
                       icon: widget.isLiked
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
-                      iconColor: widget.isLiked
-                          ? AppColors.badgeSale
-                          : Colors.white,
+                      iconColor:
+                          widget.isLiked ? AppColors.badgeSale : Colors.white,
                       label: _formatCount(
                         reel.likeCount + (widget.isLiked ? 1 : 0),
                       ),
@@ -427,43 +490,3 @@ class _ActionButton extends StatelessWidget {
 }
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
-
-final _mockReels = [
-  const Reel(
-    id: 'r1',
-    username: '@style_guru',
-    userAvatar:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80',
-    productName: 'Vibrant Summer Flow Dress',
-    price: 89.99,
-    originalPrice: 120.00,
-    imageUrl:
-        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80',
-    likeCount: 12400,
-    commentCount: 842,
-  ),
-  const Reel(
-    id: 'r2',
-    username: '@sneaker_king',
-    userAvatar:
-        'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
-    productName: 'Ultra Boost Runner X',
-    price: 159.00,
-    imageUrl:
-        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80',
-    likeCount: 8300,
-    commentCount: 412,
-  ),
-  const Reel(
-    id: 'r3',
-    username: '@tech_vibes',
-    userAvatar:
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
-    productName: 'Pro Series Smartwatch',
-    price: 299.00,
-    imageUrl:
-        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80',
-    likeCount: 5600,
-    commentCount: 321,
-  ),
-];

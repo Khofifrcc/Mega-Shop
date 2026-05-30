@@ -3,12 +3,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
-import '../../data/datasources/home_local_data_source.dart';
 import '../../domain/entities/product.dart';
 import '../widgets/app_bar_widget.dart';
 import '../widgets/category_filter_bar.dart';
 import '../widgets/stories_row.dart';
 import '../widgets/trending_grid.dart';
+import '../../../product/data/product_repository.dart';
 
 /// Main Home screen of MegaShop.
 ///
@@ -22,20 +22,39 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _dataSource = HomeLocalDataSource();
+  final _productRepository = ProductRepository();
 
   int _navIndex = 0;
 
-  late final List<Product> _products;
+  List<Product> _products = [];
+  bool _isLoading = true;
   late final List _stories;
   late final List<String> _categories;
 
   @override
   void initState() {
     super.initState();
-    _products = _dataSource.getTrendingProducts();
-    _stories = _dataSource.getStories();
-    _categories = _dataSource.getCategories();
+    _stories = [];
+    _categories = ['All', 'Fashion', 'Tech'];
+
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final products = await _productRepository.getProducts();
+
+      setState(() {
+        _products = products;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      debugPrint(e.toString());
+    }
   }
 
   void _handleAddToCart(Product product) {
@@ -50,8 +69,8 @@ class _HomePageState extends State<HomePage> {
       SnackBar(
         content: Text(
           '${product.name} added to cart!',
-          style: AppTextStyles.brandName
-              .copyWith(color: AppColors.textOnPrimary),
+          style:
+              AppTextStyles.brandName.copyWith(color: AppColors.textOnPrimary),
         ),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
@@ -102,19 +121,26 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('Trending Now',
-                      style: AppTextStyles.sectionTitle),
+                  child:
+                      Text('Trending Now', style: AppTextStyles.sectionTitle),
                 ),
                 const SizedBox(height: 14),
-                TrendingGrid(
-                  products: _products,
-                  onAddToCart: _handleAddToCart,
-                  onBuyNow: _handleBuyNow,
-                  onFavoriteToggle: (product, isFav) {},
-                  onProductTap: (product) =>
-                      Navigator.pushNamed(context, '/product',
-                          arguments: product),
-                ),
+                _isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : TrendingGrid(
+                        products: _products,
+                        onAddToCart: _handleAddToCart,
+                        onBuyNow: _handleBuyNow,
+                        onFavoriteToggle: (product, isFav) {},
+                        onProductTap: (product) => Navigator.pushNamed(
+                          context,
+                          '/product',
+                          arguments: product,
+                        ),
+                      ),
                 const SizedBox(height: 24),
               ],
             ),

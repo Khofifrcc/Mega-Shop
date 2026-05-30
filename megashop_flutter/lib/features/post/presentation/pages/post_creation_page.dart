@@ -5,6 +5,9 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../../../core/services/upload_service.dart';
 import '../../data/post_repository.dart';
+import '../../../reels/data/reel_repository.dart';
+import '../../../product/data/product_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Post creation page — unified single-form design.
 ///
@@ -24,13 +27,17 @@ class _PostCreationPageState extends State<PostCreationPage> {
   bool _hasMedia = false;
 
   String? _uploadedImageUrl;
+  String? _uploadedVideoUrl;
+  bool _isVideoPost = false;
 
   final _captionCtrl = TextEditingController();
   final _productNameCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
+  final _productRepository = ProductRepository();
 
   final _postRepository = PostRepository();
   final _uploadService = UploadService();
+  final _reelRepository = ReelRepository();
 
   // Pick image from gallery and upload it to FastAPI upload endpoint
   Future<void> _pickAndUploadImage() async {
@@ -49,6 +56,8 @@ class _PostCreationPageState extends State<PostCreationPage> {
 
       setState(() {
         _uploadedImageUrl = imageUrl;
+        _uploadedVideoUrl = null;
+        _isVideoPost = false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -61,7 +70,36 @@ class _PostCreationPageState extends State<PostCreationPage> {
     }
   }
 
-  // Share post to backend using PostRepository
+  Future<void> _pickAndUploadVideo() async {
+    final picker = ImagePicker();
+
+    final XFile? video = await picker.pickVideo(
+      source: ImageSource.gallery,
+    );
+
+    if (video == null) return;
+
+    setState(() => _hasMedia = true);
+
+    try {
+      final videoUrl = await _uploadService.uploadVideo(video);
+
+      setState(() {
+        _uploadedVideoUrl = videoUrl;
+        _uploadedImageUrl = 'https://picsum.photos/600/900';
+        _isVideoPost = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _hasMedia = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to upload video')),
+      );
+    }
+  }
+
   Future<void> _sharePost() async {
     if (_captionCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -73,44 +111,55 @@ class _PostCreationPageState extends State<PostCreationPage> {
     setState(() => _isLoading = true);
 
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      final userName = user?.email?.split('@').first ?? 'User';
+
+      if (_isProductPost) {
+        await _productRepository.createProduct(
+          name: _productNameCtrl.text.trim(),
+          price: int.tryParse(_priceCtrl.text.trim()) ?? 0,
+          description: _captionCtrl.text.trim(),
+          image: _uploadedImageUrl ?? 'https://picsum.photos/600',
+          sellerName: userName,
+        );
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+        return;
+      }
+
+      if (_isVideoPost && _uploadedVideoUrl != null) {
+        await _reelRepository.createReel(
+          username: userName,
+          userAvatar: 'https://picsum.photos/100',
+          productName: _captionCtrl.text.trim(),
+          price: 0,
+          imageUrl: _uploadedImageUrl ?? 'https://picsum.photos/600/900',
+          videoUrl: _uploadedVideoUrl!,
+        );
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/reels');
+        return;
+      }
+
       await _postRepository.createPost(
-        userId: 'user_1',
+        userId: user?.uid ?? 'user_1',
+        userName: userName,
         caption: _captionCtrl.text.trim(),
         image: _uploadedImageUrl ?? 'https://picsum.photos/600',
-        postType: _isProductPost ? 'product' : 'regular',
+        postType: 'regular',
       );
 
       if (!mounted) return;
-
       Navigator.pushReplacementNamed(context, '/home');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Post shared!',
-            style: AppTextStyles.brandName.copyWith(
-              color: AppColors.textOnPrimary,
-            ),
-          ),
-          backgroundColor: AppColors.primary,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
     } catch (e) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to share post')),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -176,7 +225,6 @@ class _PostCreationPageState extends State<PostCreationPage> {
 
             // ── Upload area ─────────────────────────────────────────────
             GestureDetector(
-              onTap: _pickAndUploadImage,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 height: 220,
@@ -249,9 +297,16 @@ class _PostCreationPageState extends State<PostCreationPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _MediaChip(label: '📷 Photo'),
+                              GestureDetector(
+                                onTap: _pickAndUploadImage,
+                                child: _MediaChip(label: '📷 Photo'),
+                              ),
                               const SizedBox(width: 8),
-                              _MediaChip(label: '🎬 Video'),
+                              if (!_isProductPost)
+                                GestureDetector(
+                                  onTap: _pickAndUploadVideo,
+                                  child: _MediaChip(label: '🎬 Video'),
+                                ),
                             ],
                           ),
                         ],

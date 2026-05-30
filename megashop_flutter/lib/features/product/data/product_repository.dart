@@ -11,7 +11,7 @@ class ProductRepository {
       return Product(
         id: item['id'].toString(),
         name: item['name'],
-        brand: 'Mega Shop',
+        brand: item['seller_name'] ?? 'Mega Shop',
         price: (item['price'] as num).toDouble(),
         imageUrl: item['image'],
         badge: 'NEW',
@@ -24,12 +24,14 @@ class ProductRepository {
     required int price,
     required String description,
     required String image,
+    required String sellerName,
   }) async {
     await apiService.post('/products/', {
       'name': name,
       'price': price,
       'description': description,
       'image': image,
+      'seller_name': sellerName,
     });
   }
 }

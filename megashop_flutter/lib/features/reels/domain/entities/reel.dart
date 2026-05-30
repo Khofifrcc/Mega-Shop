@@ -1,4 +1,3 @@
-/// Domain entity for a Reel video item.
 class Reel {
   final String id;
   final String username;
@@ -7,6 +6,7 @@ class Reel {
   final double price;
   final double? originalPrice;
   final String imageUrl;
+  final String videoUrl;
   final int likeCount;
   final int commentCount;
   final bool isFollowing;
@@ -19,6 +19,7 @@ class Reel {
     required this.price,
     this.originalPrice,
     required this.imageUrl,
+    required this.videoUrl,
     required this.likeCount,
     required this.commentCount,
     this.isFollowing = false,

@@ -7,6 +7,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../../post/data/post_repository.dart';
+import '../../../product/data/product_repository.dart';
+import '../../../home/domain/entities/product.dart';
 
 /// Profile page matching the mockup.
 ///
@@ -23,10 +25,10 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
+  final _productRepository = ProductRepository();
   final _postRepository = PostRepository();
   List<String> _feedImages = [];
-  List<String> _productImages = [];
+  List<Product> _myProducts = [];
   bool _isLoadingPosts = true;
   String username = '';
   String bio = '';
@@ -40,29 +42,32 @@ class _ProfilePageState extends State<ProfilePage>
 
   Future<void> _loadPosts() async {
     try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      final currentUsername = user?.email?.split('@').first ?? 'User';
+
       final posts = await _postRepository.getPosts();
+      final products = await _productRepository.getProducts();
 
       setState(() {
         _feedImages = posts
-            .where((post) => post.postType == 'regular')
+            .where((post) => post.userId == user?.uid)
             .map((post) => post.image)
             .toList();
 
-        _productImages = posts
-            .where((post) => post.postType == 'product')
-            .map((post) => post.image)
+        _myProducts = products
+            .where((product) => product.brand == currentUsername)
             .toList();
 
         _isLoadingPosts = false;
       });
     } catch (e) {
-      setState(() => _isLoadingPosts = false);
-    }
+      debugPrint(e.toString());
 
-    _tabController = TabController(
-      length: 2,
-      vsync: this,
-    );
+      setState(() {
+        _isLoadingPosts = false;
+      });
+    }
 
     loadProfile();
   }
@@ -172,7 +177,7 @@ class _ProfilePageState extends State<ProfilePage>
                       : _FeedGrid(images: _feedImages),
                   _isLoadingPosts
                       ? const Center(child: CircularProgressIndicator())
-                      : _FeedGrid(images: _productImages),
+                      : _ProductGrid(products: _myProducts),
                 ],
               ),
             ),
@@ -310,7 +315,7 @@ class _ProfilePageState extends State<ProfilePage>
                             onPressed: () {
                               Navigator.pop(context);
                             },
-                            child: const Text('Cancel'),
+                            child: Text('Cancel'),
                           ),
                           ElevatedButton(
                             onPressed: () async {
@@ -408,14 +413,20 @@ class _ProfilePageState extends State<ProfilePage>
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: const [
+            children: [
               _StatItem(value: '12.4k', label: 'Followers'),
               _Separator(),
               _StatItem(value: '842', label: 'Following'),
               _Separator(),
-              _StatItem(value: '340', label: 'Posts'),
+              _StatItem(
+                value: _feedImages.length.toString(),
+                label: 'Posts',
+              ),
               _Separator(),
-              _StatItem(value: '56', label: 'Products'),
+              _StatItem(
+                value: _myProducts.length.toString(),
+                label: 'Products',
+              ),
             ],
           ),
         ),
@@ -454,7 +465,9 @@ class _Separator extends StatelessWidget {
 class _FeedGrid extends StatelessWidget {
   final List<String> images;
 
-  const _FeedGrid({required this.images});
+  const _FeedGrid({
+    required this.images,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -465,20 +478,40 @@ class _FeedGrid extends StatelessWidget {
         mainAxisSpacing: 2,
         crossAxisSpacing: 2,
       ),
-      itemCount: images.length + 1, // +1 for add post cell
-      itemBuilder: (context, i) {
-        if (i == images.length) {
-          return Container(
-            color: AppColors.primarySurface,
-            child: const Icon(
-              Icons.add_photo_alternate_outlined,
-              color: AppColors.primary,
-              size: 32,
-            ),
-          );
-        }
+      itemCount: images.length,
+      itemBuilder: (context, index) {
         return CachedNetworkImage(
-          imageUrl: images[i],
+          imageUrl: images[index],
+          fit: BoxFit.cover,
+          placeholder: (ctx, url) => Container(color: AppColors.primarySurface),
+          errorWidget: (ctx, url, err) =>
+              Container(color: AppColors.primarySurface),
+        );
+      },
+    );
+  }
+}
+
+class _ProductGrid extends StatelessWidget {
+  final List<Product> products;
+
+  const _ProductGrid({
+    required this.products,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(1),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
+      ),
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        return CachedNetworkImage(
+          imageUrl: products[index].imageUrl,
           fit: BoxFit.cover,
           placeholder: (ctx, url) => Container(color: AppColors.primarySurface),
           errorWidget: (ctx, url, err) =>

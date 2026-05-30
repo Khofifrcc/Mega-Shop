@@ -5,17 +5,11 @@ import '../../../../shared/state/cart_state.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../domain/entities/product.dart';
 import '../widgets/app_bar_widget.dart';
-import '../widgets/category_filter_bar.dart';
-import '../widgets/stories_row.dart';
-import '../widgets/trending_grid.dart';
 import '../../../product/data/product_repository.dart';
 import '../../../post/data/post_repository.dart';
 import '../../../../shared/models/post_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-/// Main Home screen of MegaShop.
-///
-/// Orchestrates data loading (via [HomeLocalDataSource]) and delegates
-/// rendering to purpose-built child widgets.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -28,48 +22,29 @@ class _HomePageState extends State<HomePage> {
   final _postRepository = PostRepository();
 
   int _navIndex = 0;
+  bool _isLoading = true;
 
   List<Product> _products = [];
   List<PostModel> _posts = [];
-  bool _isLoading = true;
-  late final List _stories;
-  late final List<String> _categories;
 
   @override
   void initState() {
     super.initState();
-    _stories = [];
-    _categories = ['All', 'Fashion', 'Tech'];
-
-    _loadProducts();
-    _loadPosts();
+    _loadFeed();
   }
 
-  Future<void> _loadPosts() async {
+  Future<void> _loadFeed() async {
     try {
+      final products = await _productRepository.getProducts();
       final posts = await _postRepository.getPosts();
 
       setState(() {
-        _posts = posts;
-      });
-    } catch (e) {
-      debugPrint(e.toString());
-    }
-  }
-
-  Future<void> _loadProducts() async {
-    try {
-      final products = await _productRepository.getProducts();
-
-      setState(() {
         _products = products;
+        _posts = posts;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-
+      setState(() => _isLoading = false);
       debugPrint(e.toString());
     }
   }
@@ -82,6 +57,7 @@ class _HomePageState extends State<HomePage> {
       price: product.price,
       imageUrl: product.imageUrl,
     );
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -99,19 +75,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _handleBuyNow(Product product) {
-    CartStateProvider.of(context).addItem(
-      productId: product.id,
-      name: product.name,
-      variant: 'Default',
-      price: product.price,
-      imageUrl: product.imageUrl,
-    );
+    _handleAddToCart(product);
     Navigator.pushNamed(context, '/checkout');
   }
 
   @override
   Widget build(BuildContext context) {
     final cart = CartStateProvider.of(context);
+
     return ListenableBuilder(
       listenable: cart,
       builder: (context, _) {
@@ -123,105 +94,27 @@ class _HomePageState extends State<HomePage> {
             onCartTap: () => Navigator.pushNamed(context, '/cart'),
             onChatTap: () => Navigator.pushNamed(context, '/chat'),
           ),
-          body: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                CategoryFilterBar(
-                  categories: _categories,
-                  onCategoryChanged: (_) {},
-                ),
-                const SizedBox(height: 20),
-                StoriesRow(stories: _stories.cast()),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child:
-                      Text('Trending Now', style: AppTextStyles.sectionTitle),
-                ),
-                const SizedBox(height: 14),
-                _isLoading
-                    ? const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    : TrendingGrid(
-                        products: _products,
-                        onAddToCart: _handleAddToCart,
-                        onBuyNow: _handleBuyNow,
-                        onFavoriteToggle: (product, isFav) {},
-                        onProductTap: (product) => Navigator.pushNamed(
-                          context,
-                          '/product',
-                          arguments: product,
-                        ),
-                      ),
-                const SizedBox(height: 24),
-                const SizedBox(height: 28),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'Latest Posts',
-                    style: AppTextStyles.sectionTitle,
+          body: RefreshIndicator(
+            onRefresh: _loadFeed,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                    children: [
+                      ..._products.map(_buildProductFeedCard),
+                      ..._posts.map(_buildPostFeedCard),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 14),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _posts.length,
-                  itemBuilder: (context, index) {
-                    final post = _posts[index];
-
-                    return Container(
-                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: AppColors.shadow,
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(18),
-                            ),
-                            child: Image.network(
-                              post.image,
-                              height: 220,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Text(
-                              post.caption,
-                              style: AppTextStyles.productName,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
           ),
           bottomNavigationBar: MegaBottomNav(
             currentIndex: _navIndex,
             onTap: (i) {
               if (i == _navIndex) return;
               setState(() => _navIndex = i);
+
               switch (i) {
                 case 1:
                   Navigator.pushNamed(context, '/reels');
@@ -240,6 +133,198 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildProductFeedCard(Product product) {
+    final user = FirebaseAuth.instance.currentUser;
+    final currentUserName = user?.email?.split('@').first ?? 'User';
+    final isOwnProduct = product.brand == currentUserName;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => Navigator.pushNamed(
+          context,
+          '/product',
+          arguments: product,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildFeedHeader(
+              name: product.brand,
+              subtitle: 'Product post',
+            ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.network(
+                product.imageUrl,
+                height: 300,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 300,
+                  color: AppColors.primarySurface,
+                  child: const Center(
+                    child: Icon(Icons.image_not_supported_outlined),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.name, style: AppTextStyles.productName),
+                  const SizedBox(height: 6),
+                  Text(
+                    '\$${product.price.toStringAsFixed(2)}',
+                    style: AppTextStyles.price.copyWith(fontSize: 20),
+                  ),
+                  const SizedBox(height: 12),
+                  if (isOwnProduct)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySurface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Your Product',
+                          style: AppTextStyles.buttonOutlined,
+                        ),
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _handleAddToCart(product),
+                            child: Text(
+                              'Add to Cart',
+                              style: AppTextStyles.buttonOutlined,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _handleBuyNow(product),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.accent,
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Buy Now',
+                              style: AppTextStyles.buttonFilled,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostFeedCard(PostModel post) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildFeedHeader(
+            name: post.userId,
+            subtitle: 'Regular post',
+          ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.network(
+              post.image,
+              height: 300,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                height: 300,
+                color: AppColors.primarySurface,
+                child: const Center(
+                  child: Icon(Icons.image_not_supported_outlined),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Text(
+              post.caption,
+              style: AppTextStyles.productName,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedHeader({
+    required String name,
+    required String subtitle,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 18,
+            backgroundColor: AppColors.primarySurface,
+            child: Icon(Icons.person, size: 18, color: AppColors.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: AppTextStyles.productName),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.brandName.copyWith(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.more_horiz, color: AppColors.iconMuted),
+        ],
+      ),
     );
   }
 }

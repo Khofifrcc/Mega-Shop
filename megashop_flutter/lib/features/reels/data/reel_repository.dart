@@ -14,6 +14,7 @@ class ReelRepository {
         userAvatar: item['user_avatar'] ?? '',
         productName: item['product_name'] ?? '',
         price: (item['price'] ?? 0).toDouble(),
+        videoUrl: item['video_url'] ?? '',
         originalPrice: item['original_price'] == null
             ? null
             : (item['original_price'] as num).toDouble(),
@@ -32,6 +33,7 @@ class ReelRepository {
     required double price,
     double? originalPrice,
     required String imageUrl,
+    required String videoUrl,
     int likeCount = 0,
     int commentCount = 0,
     bool isFollowing = false,
@@ -43,6 +45,7 @@ class ReelRepository {
       'price': price,
       'original_price': originalPrice,
       'image_url': imageUrl,
+      'video_url': videoUrl,
       'like_count': likeCount,
       'comment_count': commentCount,
       'is_following': isFollowing,

@@ -15,28 +15,26 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  int _step = 0; // 0 = Alamat, 1 = Bayar, 2 = Selesai
+  int _step = 0; // 0 = Address, 1 = Payment, 2 = Complete
   int _selectedAddress = 0;
   final _cardCtrl = TextEditingController();
   final _cvvCtrl = TextEditingController();
   final _expiryCtrl = TextEditingController();
 
-  final _addresses = [
-    _Address(
-      label: 'Rumah',
-      tag: 'UTAMA',
+  final List<_Address> _addresses = [
+    const _Address(
+      label: 'Home',
+      tag: 'DEFAULT',
       name: 'Budi Santoso',
       phone: '0812-3456-7890',
-      address:
-          'Jl. Sudirman No. 123, RT 01/RW 02, Kebayoran Baru, Jakarta Selatan, DKI Jakarta 12190',
+      address: '123 Main Street, New York, NY 10001',
     ),
-    _Address(
-      label: 'Kantor',
+    const _Address(
+      label: 'Office',
       tag: null,
       name: 'Budi Santoso',
       phone: '0812-3456-7890',
-      address:
-          'Gedung MegaTower Lt. 15, Jl. MH Thamrin No. 9, Menteng, Jakarta Pusat, DKI Jakarta 10350',
+      address: '456 Business Ave, New York, NY 10002',
     ),
   ];
 
@@ -49,9 +47,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   String get _ctaLabel {
-    if (_step == 0) return 'Lanjut ke Pembayaran';
-    if (_step == 1) return 'Konfirmasi Pesanan';
-    return 'Selesai';
+    if (_step == 0) return 'Continue to Payment';
+    if (_step == 1) return 'Confirm Order';
+    return 'Complete';
   }
 
   void _advance() {
@@ -133,11 +131,192 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
+  void _openAddAddressSheet() {
+    final labelCtrl = TextEditingController();
+    final nameCtrl = TextEditingController(text: 'Budi Santoso');
+    final phoneCtrl = TextEditingController(text: '0812-3456-7890');
+    final addressCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            top: 16,
+            left: 20,
+            right: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.add_location_alt_rounded,
+                      color: AppColors.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Text('Add New Address',
+                      style: AppTextStyles.sectionTitle.copyWith(fontSize: 18)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: labelCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Label (e.g., Home, Office)',
+                  hintStyle: AppTextStyles.brandName.copyWith(fontSize: 13),
+                  prefixIcon: const Icon(Icons.label_outline_rounded, color: AppColors.iconMuted, size: 20),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: nameCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Recipient Name',
+                  hintStyle: AppTextStyles.brandName.copyWith(fontSize: 13),
+                  prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.iconMuted, size: 20),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: phoneCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Phone Number',
+                  hintStyle: AppTextStyles.brandName.copyWith(fontSize: 13),
+                  prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.iconMuted, size: 20),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: addressCtrl,
+                maxLines: 2,
+                decoration: InputDecoration(
+                  hintText: 'Full Address details',
+                  hintStyle: AppTextStyles.brandName.copyWith(fontSize: 13),
+                  prefixIcon: const Icon(Icons.place_rounded, color: AppColors.iconMuted, size: 20),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        side: const BorderSide(color: AppColors.divider),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text('Cancel',
+                          style: AppTextStyles.productName
+                              .copyWith(fontSize: 14)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final label = labelCtrl.text.trim();
+                        final name = nameCtrl.text.trim();
+                        final phone = phoneCtrl.text.trim();
+                        final address = addressCtrl.text.trim();
+                        if (label.isEmpty ||
+                            name.isEmpty ||
+                            phone.isEmpty ||
+                            address.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Please fill all fields',
+                                style: AppTextStyles.brandName
+                                    .copyWith(color: AppColors.textOnPrimary),
+                              ),
+                              backgroundColor: AppColors.badgeSale,
+                            ),
+                          );
+                          return;
+                        }
+                        setState(() {
+                          _addresses.add(_Address(
+                            label: label,
+                            tag: null,
+                            name: name,
+                            phone: phone,
+                            address: address,
+                          ));
+                          _selectedAddress = _addresses.length - 1;
+                        });
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                      ),
+                      child: Text('Save Address',
+                          style: AppTextStyles.buttonFilled
+                              .copyWith(fontSize: 14)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildAddressStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Pilih Alamat',
+        Text('Select Shipping Address',
             style: AppTextStyles.sectionTitle.copyWith(fontSize: 22)),
         const SizedBox(height: 16),
         ..._addresses.asMap().entries.map((e) => Padding(
@@ -150,9 +329,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
             )),
         const SizedBox(height: 8),
         OutlinedButton.icon(
-          onPressed: () {},
+          onPressed: _openAddAddressSheet,
           icon: const Icon(Icons.add_rounded, color: AppColors.primary),
-          label: Text('Tambah Alamat',
+          label: Text('Add New Address',
               style: AppTextStyles.buttonOutlined),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(double.infinity, 52),
@@ -169,12 +348,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Informasi Pembayaran',
+        Text('Payment Information',
             style: AppTextStyles.sectionTitle.copyWith(fontSize: 22)),
         const SizedBox(height: 20),
         _PayField(
             ctrl: _cardCtrl,
-            hint: 'Nomor Kartu',
+            hint: 'Card Number',
             icon: Icons.credit_card_rounded),
         const SizedBox(height: 12),
         Row(
@@ -222,7 +401,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Konfirmasi Pesanan',
+        Text('Confirm Order',
             style: AppTextStyles.sectionTitle.copyWith(fontSize: 22)),
         const SizedBox(height: 16),
         Container(
@@ -234,16 +413,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Alamat Pengiriman',
+              Text('Shipping Address',
                   style: AppTextStyles.productName.copyWith(fontSize: 14)),
               const SizedBox(height: 4),
               Text(_addresses[_selectedAddress].address,
                   style: AppTextStyles.brandName),
               const Divider(height: 20, color: AppColors.divider),
-              Text('Metode Pembayaran',
+              Text('Payment Method',
                   style: AppTextStyles.productName.copyWith(fontSize: 14)),
               const SizedBox(height: 4),
-              Text('Kartu Kredit/Debit', style: AppTextStyles.brandName),
+              Text('Credit/Debit Card', style: AppTextStyles.brandName),
             ],
           ),
         ),
@@ -261,7 +440,7 @@ class _StepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labels = ['Alamat', 'Bayar', 'Selesai'];
+    final labels = ['Address', 'Payment', 'Complete'];
     return Row(
       children: List.generate(3, (i) {
         final isActive = i <= currentStep;
@@ -342,60 +521,63 @@ class _AddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.transparent,
-              width: 2),
-          boxShadow: const [
-            BoxShadow(
-                color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2))
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(address.label,
-                    style: AppTextStyles.productName.copyWith(fontSize: 15)),
-                if (address.tag != null) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primarySurface,
-                      borderRadius: BorderRadius.circular(8),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: isSelected ? AppColors.primary : Colors.transparent,
+                width: 2),
+            boxShadow: const [
+              BoxShadow(
+                  color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2))
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(address.label,
+                      style: AppTextStyles.productName.copyWith(fontSize: 15)),
+                  if (address.tag != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySurface,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(address.tag!,
+                          style: AppTextStyles.badge.copyWith(
+                              fontSize: 10, color: AppColors.primary)),
                     ),
-                    child: Text(address.tag!,
-                        style: AppTextStyles.badge.copyWith(
-                            fontSize: 10, color: AppColors.primary)),
+                  ],
+                  const Spacer(),
+                  Icon(
+                    isSelected
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    color: isSelected ? AppColors.primary : AppColors.iconMuted,
+                    size: 22,
                   ),
                 ],
-                const Spacer(),
-                Icon(
-                  isSelected
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  color: isSelected ? AppColors.primary : AppColors.iconMuted,
-                  size: 22,
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(address.name, style: AppTextStyles.productName),
-            Text(address.phone, style: AppTextStyles.brandName),
-            const SizedBox(height: 6),
-            Text(address.address,
-                style: AppTextStyles.brandName.copyWith(height: 1.5)),
-          ],
+              ),
+              const SizedBox(height: 6),
+              Text(address.name, style: AppTextStyles.productName),
+              Text(address.phone, style: AppTextStyles.brandName),
+              const SizedBox(height: 6),
+              Text(address.address,
+                  style: AppTextStyles.brandName.copyWith(height: 1.5)),
+            ],
+          ),
         ),
       ),
     );

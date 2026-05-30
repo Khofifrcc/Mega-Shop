@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/state/cart_state.dart';
@@ -42,13 +42,13 @@ class MegaBottomNav extends StatelessWidget {
               child: Row(
                 children: [
                   _NavItem(
-                    icon: Icons.home_rounded,
+                    icon: currentIndex == 0 ? CupertinoIcons.house_fill : CupertinoIcons.house,
                     label: 'Home',
                     isActive: currentIndex == 0,
                     onTap: () => onTap?.call(0),
                   ),
                   _NavItem(
-                    icon: Icons.grid_view_rounded,
+                    icon: currentIndex == 1 ? CupertinoIcons.play_rectangle_fill : CupertinoIcons.play_rectangle,
                     label: 'Reels',
                     isActive: currentIndex == 1,
                     onTap: () => onTap?.call(1),
@@ -56,40 +56,41 @@ class MegaBottomNav extends StatelessWidget {
                   // Center Post FAB
                   Expanded(
                     child: Center(
-                      child: GestureDetector(
-                        onTap: () => onTap?.call(2),
-                        child: Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                AppColors.primaryLight,
-                                AppColors.primary
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: const [
-                              BoxShadow(
-                                color: AppColors.cardShadow,
-                                blurRadius: 12,
-                                offset: Offset(0, 4),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => onTap?.call(2),
+                          child: Transform.translate(
+                            offset: const Offset(0, -10),
+                            child: Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    AppColors.primaryLight,
+                                    AppColors.primary
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                shape: BoxShape.circle,
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: AppColors.cardShadow,
+                                    blurRadius: 12,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.add_rounded,
-                                  color: AppColors.textOnPrimary, size: 22),
-                              if (currentIndex == 2)
-                                Text('Post',
-                                    style: AppTextStyles.navLabel.copyWith(
-                                        color: AppColors.textOnPrimary,
-                                        fontSize: 8)),
-                            ],
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(CupertinoIcons.add,
+                                      color: AppColors.textOnPrimary, size: 26),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -101,7 +102,7 @@ class MegaBottomNav extends StatelessWidget {
                     onTap: () => onTap?.call(3),
                   ),
                   _NavItem(
-                    icon: Icons.person_outline_rounded,
+                    icon: currentIndex == 4 ? CupertinoIcons.person_fill : CupertinoIcons.person,
                     label: 'Profile',
                     isActive: currentIndex == 4,
                     onTap: () => onTap?.call(4),
@@ -133,17 +134,20 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = isActive ? AppColors.iconActive : AppColors.iconMuted;
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 4),
-            Text(label,
-                style: AppTextStyles.navLabel.copyWith(color: color)),
-          ],
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 4),
+              Text(label,
+                  style: AppTextStyles.navLabel.copyWith(color: color)),
+            ],
+          ),
         ),
       ),
     );
@@ -162,41 +166,44 @@ class _CartNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = isActive ? AppColors.iconActive : AppColors.iconMuted;
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(Icons.shopping_cart_outlined, color: color, size: 24),
-                if (count > 0)
-                  Positioned(
-                    top: -6,
-                    right: -8,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      constraints:
-                          const BoxConstraints(minWidth: 18, minHeight: 18),
-                      decoration: const BoxDecoration(
-                        color: AppColors.badgeSale,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        '$count',
-                        style: AppTextStyles.badge.copyWith(fontSize: 9),
-                        textAlign: TextAlign.center,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(isActive ? CupertinoIcons.cart_fill : CupertinoIcons.cart, color: color, size: 24),
+                  if (count > 0)
+                    Positioned(
+                      top: -6,
+                      right: -8,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        constraints:
+                            const BoxConstraints(minWidth: 18, minHeight: 18),
+                        decoration: const BoxDecoration(
+                          color: AppColors.badgeSale,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$count',
+                          style: AppTextStyles.badge.copyWith(fontSize: 9),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text('Cart',
-                style: AppTextStyles.navLabel.copyWith(color: color)),
-          ],
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text('Cart',
+                  style: AppTextStyles.navLabel.copyWith(color: color)),
+            ],
+          ),
         ),
       ),
     );

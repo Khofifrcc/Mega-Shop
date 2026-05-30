@@ -17,6 +17,7 @@ import 'features/reels/presentation/pages/reels_page.dart';
 
 // Product
 import 'features/product/presentation/pages/product_detail_page.dart';
+import 'features/product/presentation/pages/seller_profile_page.dart';
 
 // Cart
 import 'features/cart/presentation/pages/cart_page.dart';
@@ -69,6 +70,7 @@ class MegaShopApp extends StatelessWidget {
           '/home': (_) => const HomePage(),
           '/reels': (_) => const ReelsPage(),
           '/product': (_) => const ProductDetailPage(),
+          '/seller': (_) => const SellerProfilePage(),
           '/cart': (_) => const CartPage(),
           '/checkout': (_) => const CheckoutPage(),
           '/order-status': (_) => const OrderStatusPage(),

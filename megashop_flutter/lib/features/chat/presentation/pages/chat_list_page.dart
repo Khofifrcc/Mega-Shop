@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/state/chat_state.dart';
 
 /// Chat list / Messages page matching the mockup.
 class ChatListPage extends StatefulWidget {
@@ -13,11 +15,78 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage> {
   final _searchCtrl = TextEditingController();
+  late List<_Conversation> _conversations;
+  bool _inquiryHandled = false;
 
-  final _conversations = _mockConversations;
+  @override
+  void initState() {
+    super.initState();
+    _conversations = List.from(_mockConversations);
+    ChatService.instance.addListener(_onChatServiceChanged);
+  }
+
+  void _onChatServiceChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_inquiryHandled) {
+      _inquiryHandled = true;
+      _handleProductInquiry();
+    }
+  }
+
+  /// Opens/creates a seller conversation when arriving from product detail.
+  void _handleProductInquiry() {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is! Map) return;
+
+    final sellerId = (args['sellerId'] as String?) ?? '';
+    final sellerName = (args['sellerName'] as String?) ?? 'Seller';
+    final productName = (args['productName'] as String?) ?? '';
+    final productImage = (args['productImage'] as String?) ?? '';
+    final productPrice = args['productPrice'];
+    final priceStr = productPrice != null
+        ? productPrice.toStringAsFixed(2)
+        : '';
+
+    if (sellerId.isEmpty) return;
+
+    final existing = _conversations.indexWhere((c) => c.id == sellerId);
+
+    _Conversation conv;
+    if (existing == -1) {
+      conv = _Conversation(
+        id: sellerId,
+        name: sellerName,
+        avatarUrl: productImage,
+        lastMessage:
+            'Hi! I\'m interested in "$productName" (\$$priceStr) — is it still available?',
+        time: 'Now',
+      );
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _conversations.insert(0, conv));
+          _openConversation(conv);
+        }
+      });
+    } else {
+      conv = _conversations[existing];
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openConversation(conv);
+      });
+    }
+  }
+
+  void _openConversation(_Conversation conv) {
+    Navigator.pushNamed(context, '/conversation', arguments: conv);
+  }
 
   @override
   void dispose() {
+    ChatService.instance.removeListener(_onChatServiceChanged);
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -112,11 +181,7 @@ class _ChatListPageState extends State<ChatListPage> {
                   const Divider(color: AppColors.divider, height: 1),
               itemBuilder: (context, i) => _ConversationTile(
                 conv: _conversations[i],
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  '/conversation',
-                  arguments: _conversations[i],
-                ),
+                onTap: () => _openConversation(_conversations[i]),
               ),
             ),
           ),
@@ -234,7 +299,9 @@ class _ConversationTile extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                conv.lastMessage,
+                (ChatService.instance.extraMessages[conv.id]?.isNotEmpty ?? false)
+                    ? ChatService.instance.extraMessages[conv.id]!.last['text'] as String
+                    : conv.lastMessage,
                 style: conv.isTyping
                     ? AppTextStyles.brandName.copyWith(
                         color: AppColors.primary,

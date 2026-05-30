@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/state/chat_state.dart';
 
 /// Conversation / chat detail page matching the mockup.
 ///
@@ -18,40 +19,53 @@ class _ConversationPageState extends State<ConversationPage> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
 
-  final List<_ChatMessage> _messages = [
-    const _ChatMessage(
-      id: 'm1',
-      isMe: false,
-      text:
-          'Hi there! 👋 Welcome to MegaShop Luxe. How can I assist you with your wardrobe today?',
-      time: 'TODAY, 10:42 AM',
-      isDateDivider: true,
-    ),
-    const _ChatMessage(
-      id: 'm2',
-      isMe: true,
-      text:
-          'I\'m looking at the "Aero Glide Sneakers" in size 10. Are they true to size, or should I size up?',
-      time: '10:44 AM',
-    ),
-    const _ChatMessage(
-      id: 'm3',
-      isMe: false,
-      text:
-          'Great choice! The Aero Glides run perfectly true to size for a snug, athletic fit.',
-      time: '10:46 AM',
-      hasProductCard: true,
-      productName: 'Aero Glide Sneaker',
-      productPrice: '\$145.00',
-      productImage:
-          'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&q=80',
-      followUpText:
-          'If you prefer a roomier feel or wear thick socks, going up a half size is a good idea. Would you like me to check stock for size 10.5 as well?',
-    ),
-  ];
+  late final List<_ChatMessage> _staticMessages;
+  final List<_ChatMessage> _dynamicMessages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _staticMessages = [
+      const _ChatMessage(
+        id: 'm1',
+        isMe: false,
+        text:
+            'Hi there! 👋 Welcome to MegaShop Luxe. How can I assist you with your wardrobe today?',
+        time: 'TODAY, 10:42 AM',
+        isDateDivider: true,
+      ),
+      const _ChatMessage(
+        id: 'm2',
+        isMe: true,
+        text:
+            'I\'m looking at the "Aero Glide Sneakers" in size 10. Are they true to size, or should I size up?',
+        time: '10:44 AM',
+      ),
+      const _ChatMessage(
+        id: 'm3',
+        isMe: false,
+        text:
+            'Great choice! The Aero Glides run perfectly true to size for a snug, athletic fit.',
+        time: '10:46 AM',
+        hasProductCard: true,
+        productName: 'Aero Glide Sneaker',
+        productPrice: '\$145.00',
+        productImage:
+            'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&q=80',
+        followUpText:
+            'If you prefer a roomier feel or wear thick socks, going up a half size is a good idea. Would you like me to check stock for size 10.5 as well?',
+      ),
+    ];
+    ChatService.instance.addListener(_onChatServiceChanged);
+  }
+
+  void _onChatServiceChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
+    ChatService.instance.removeListener(_onChatServiceChanged);
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -61,8 +75,8 @@ class _ConversationPageState extends State<ConversationPage> {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty) return;
     setState(() {
-      _messages.add(_ChatMessage(
-        id: 'm${_messages.length + 1}',
+      _dynamicMessages.add(_ChatMessage(
+        id: 'm_dyn_${DateTime.now().millisecondsSinceEpoch}',
         isMe: true,
         text: text,
         time: TimeOfDay.now().format(context),
@@ -82,26 +96,64 @@ class _ConversationPageState extends State<ConversationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    String name = 'MegaShop Luxe';
+    String avatar = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80';
+    String id = 'default';
+
+    if (args != null) {
+      try {
+        final dynamic dynamicArgs = args;
+        id = dynamicArgs.id as String;
+        name = dynamicArgs.name as String;
+        avatar = dynamicArgs.avatarUrl as String;
+      } catch (_) {
+        if (args is Map) {
+          id = args['id'] ?? 'default';
+          name = args['name'] ?? 'MegaShop Luxe';
+          avatar = args['avatar'] ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80';
+        }
+      }
+    }
+
+    final extraMsgs = ChatService.instance.extraMessages[id] ?? [];
+    final allMessages = [
+      ..._staticMessages,
+      ...extraMsgs.map((m) => _ChatMessage(
+            id: m['id'] as String,
+            isMe: m['isMe'] as bool,
+            text: m['text'] as String,
+            time: m['time'] as String,
+            hasProductCard: m['hasProductCard'] as bool? ?? false,
+            productName: m['productName'] as String?,
+            productPrice: m['productPrice'] as String?,
+            productImage: m['productImage'] as String?,
+          )),
+      ..._dynamicMessages,
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
         leadingWidth: 40,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_rounded,
-              color: AppColors.primary),
-          padding: EdgeInsets.zero,
+        leading: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_rounded,
+                color: AppColors.primary),
+            padding: EdgeInsets.zero,
+          ),
         ),
         title: Row(
           children: [
             Stack(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 20,
-                  backgroundImage: NetworkImage(
-                      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80'),
+                  backgroundImage: CachedNetworkImageProvider(avatar),
                 ),
                 Positioned(
                   bottom: 0,
@@ -123,7 +175,7 @@ class _ConversationPageState extends State<ConversationPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('MegaShop Luxe',
+                Text(name,
                     style:
                         AppTextStyles.productName.copyWith(fontSize: 15)),
                 Text('Typically replies in 5m',
@@ -133,10 +185,13 @@ class _ConversationPageState extends State<ConversationPage> {
           ],
         ),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert_rounded,
-                color: AppColors.textPrimary),
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.more_vert_rounded,
+                  color: AppColors.textPrimary),
+            ),
           ),
         ],
       ),
@@ -146,9 +201,9 @@ class _ConversationPageState extends State<ConversationPage> {
             child: ListView.builder(
               controller: _scrollCtrl,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: _messages.length,
+              itemCount: allMessages.length,
               itemBuilder: (context, i) =>
-                  _BubbleItem(message: _messages[i]),
+                  _BubbleItem(message: allMessages[i]),
             ),
           ),
           // Input bar
@@ -161,17 +216,20 @@ class _ConversationPageState extends State<ConversationPage> {
             ),
             child: Row(
               children: [
-                GestureDetector(
-                  onTap: () {},
-                  child: const Icon(Icons.add_circle_outline_rounded,
-                      color: AppColors.iconMuted, size: 26),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: const Icon(Icons.add_circle_outline_rounded,
+                        color: AppColors.iconMuted, size: 26),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: _msgCtrl,
                     decoration: InputDecoration(
-                      hintText: 'Message MegaShop...',
+                      hintText: 'Message $name...',
                       hintStyle: AppTextStyles.brandName,
                       border: InputBorder.none,
                     ),
@@ -179,17 +237,20 @@ class _ConversationPageState extends State<ConversationPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _send,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: _send,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.send_rounded,
+                          color: AppColors.textOnPrimary, size: 20),
                     ),
-                    child: const Icon(Icons.send_rounded,
-                        color: AppColors.textOnPrimary, size: 20),
                   ),
                 ),
               ],

@@ -42,13 +42,16 @@ class TrendingGrid extends StatelessWidget {
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
-        return GestureDetector(
-          onTap: () => onProductTap?.call(product),
-          child: ProductCard(
-            product: product,
-            onAddToCart: () => onAddToCart?.call(product),
-            onBuyNow: () => onBuyNow?.call(product),
-            onFavoriteToggle: (val) => onFavoriteToggle?.call(product, val),
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => onProductTap?.call(product),
+            child: ProductCard(
+              product: product,
+              onAddToCart: () => onAddToCart?.call(product),
+              onBuyNow: () => onBuyNow?.call(product),
+              onFavoriteToggle: (val) => onFavoriteToggle?.call(product, val),
+            ),
           ),
         );
       },

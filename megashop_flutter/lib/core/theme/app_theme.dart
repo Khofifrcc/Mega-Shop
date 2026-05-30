@@ -27,11 +27,11 @@ abstract class AppTheme {
           surfaceContainerHighest: AppColors.background,
         ),
         scaffoldBackgroundColor: AppColors.background,
-        // Text theme derived from Poppins
-        textTheme: GoogleFonts.poppinsTextTheme().copyWith(
-          bodyLarge: GoogleFonts.poppins(color: AppColors.textPrimary),
-          bodyMedium: GoogleFonts.poppins(color: AppColors.textPrimary),
-          bodySmall: GoogleFonts.poppins(color: AppColors.textSecondary),
+        // Text theme derived from Inter (iOS SF Pro equivalent)
+        textTheme: GoogleFonts.interTextTheme().copyWith(
+          bodyLarge: GoogleFonts.inter(color: AppColors.textPrimary),
+          bodyMedium: GoogleFonts.inter(color: AppColors.textPrimary),
+          bodySmall: GoogleFonts.inter(color: AppColors.textSecondary),
         ),
         // AppBar
         appBarTheme: const AppBarTheme(
@@ -53,7 +53,7 @@ abstract class AppTheme {
           color: AppColors.surface,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         // Elevated Button (Buy Now)
@@ -63,7 +63,7 @@ abstract class AppTheme {
             foregroundColor: AppColors.textOnPrimary,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),
@@ -73,7 +73,7 @@ abstract class AppTheme {
             foregroundColor: AppColors.primary,
             side: const BorderSide(color: AppColors.primary, width: 1.5),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),

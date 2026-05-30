@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
@@ -63,9 +64,6 @@ class _ProfilePageState extends State<ProfilePage>
       ),
     );
 
-    print('UID: ${user.uid}');
-    print('BODY: ${response.body}');
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
@@ -83,22 +81,26 @@ class _ProfilePageState extends State<ProfilePage>
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        leading: const Padding(
-          padding: EdgeInsets.only(left: 16),
-          child: Icon(
-            Icons.location_on_rounded,
-            color: AppColors.primary,
-            size: 26,
-          ),
-        ),
+        automaticallyImplyLeading: false,
+        leading: null,
         title: Text('MegaShop', style: AppTextStyles.appLogo),
         centerTitle: true,
         actions: [
-          IconButton(
-            onPressed: () => Navigator.pushNamed(context, '/search'),
-            icon: const Icon(
-              Icons.search_rounded,
-              color: AppColors.iconDefault,
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: IconButton(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                if (context.mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, '/login', (route) => false);
+                }
+              },
+              icon: const Icon(
+                CupertinoIcons.square_arrow_right,
+                color: AppColors.primary,
+              ),
+              tooltip: 'Sign out',
             ),
           ),
         ],
@@ -124,9 +126,9 @@ class _ProfilePageState extends State<ProfilePage>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.grid_view_rounded, size: 16),
+                      Icon(CupertinoIcons.square_grid_2x2_fill, size: 16),
                       SizedBox(width: 6),
-                      Text('Feed'),
+                      Text('Products'),
                     ],
                   ),
                 ),
@@ -134,9 +136,9 @@ class _ProfilePageState extends State<ProfilePage>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.local_offer_outlined, size: 16),
+                      Icon(CupertinoIcons.play_circle_fill, size: 16),
                       SizedBox(width: 6),
-                      Text('Products'),
+                      Text('Reels'),
                     ],
                   ),
                 ),
@@ -147,7 +149,7 @@ class _ProfilePageState extends State<ProfilePage>
                 controller: _tabController,
                 children: [
                   _FeedGrid(images: _feedImages),
-                  _FeedGrid(images: _feedImages.reversed.toList()),
+                  _FeedGrid(images: _feedImages.reversed.toList(), isReels: true),
                 ],
               ),
             ),
@@ -177,211 +179,146 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Cover + avatar
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Cover photo
-            CachedNetworkImage(
-              imageUrl:
-                  'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=700&q=80',
-              height: 160,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (ctx, url) =>
-                  Container(height: 160, color: AppColors.primarySurface),
-              errorWidget: (ctx, url, err) =>
-                  Container(height: 160, color: AppColors.primarySurface),
-            ),
-            // Avatar — pops out 44px below cover
-            Positioned(
-              bottom: -44,
-              left: 16,
-              child: Stack(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [AppColors.primaryLight, AppColors.primary],
-                      ),
-                    ),
-                    child: ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl:
-                            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80',
-                        width: 86,
-                        height: 86,
-                        fit: BoxFit.cover,
-                        placeholder: (ctx, url) =>
-                            Container(color: AppColors.primarySurface),
-                        errorWidget: (ctx, url, err) =>
-                            Container(color: AppColors.primarySurface),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 4,
-                    right: 4,
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: AppColors.accent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.background,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        // Edit + Settings — placed BELOW the cover (not overlapping avatar)
-        const SizedBox(height: 56), // space for avatar overflow
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+    return Container(
+      color: AppColors.background,
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+      child: Column(
+        children: [
+          // Avatar centered with gradient ring
+          Stack(
+            alignment: Alignment.center,
             children: [
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final usernameController = TextEditingController();
-                  final bioController = TextEditingController();
-
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: const Text('Edit Profile'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextField(
-                              controller: usernameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Username',
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: bioController,
-                              decoration: const InputDecoration(
-                                labelText: 'Bio',
-                              ),
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () async {
-                              final user = FirebaseAuth.instance.currentUser;
-
-                              if (user != null) {
-                                await http.put(
-                                  Uri.parse(
-                                    'http://127.0.0.1:8000/users/${user.uid}',
-                                  ),
-                                  headers: {
-                                    'Content-Type': 'application/json',
-                                  },
-                                  body: jsonEncode({
-                                    'username': usernameController.text,
-                                    'bio': bioController.text,
-                                    'profile_photo': '',
-                                  }),
-                                );
-                              }
-
-                              Navigator.pop(context);
-                            },
-                            child: const Text('Save'),
-                          )
-                        ],
-                      );
-                    },
-                  );
-                },
-                icon: const Icon(Icons.edit_rounded, size: 15),
-                label: Text(
-                  'Edit Profile',
-                  style: AppTextStyles.productName.copyWith(fontSize: 13),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary, width: 1.5),
-                  backgroundColor: AppColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
+              Container(
+                width: 96,
+                height: 96,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [AppColors.primaryLight, AppColors.primary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: () async {
-                  await FirebaseAuth.instance.signOut();
-
-                  if (context.mounted) {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/login',
-                      (route) => false,
-                    );
-                  }
-                },
-                icon: const Icon(
-                  Icons.logout_rounded,
-                  color: AppColors.primary,
+              ClipOval(
+                child: CachedNetworkImage(
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80',
+                  width: 90,
+                  height: 90,
+                  fit: BoxFit.cover,
+                  placeholder: (ctx, url) =>
+                      Container(color: AppColors.primarySurface),
+                  errorWidget: (ctx, url, err) =>
+                      Container(color: AppColors.primarySurface),
+                ),
+              ),
+              // Online dot
+              Positioned(
+                bottom: 4,
+                right: 4,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.background, width: 2.5),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        // Name + bio
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                username.isNotEmpty
-                    ? username
-                    : FirebaseAuth.instance.currentUser?.email ?? 'Guest',
-                style: AppTextStyles.sectionTitle.copyWith(fontSize: 20),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                bio.isNotEmpty ? bio : 'No bio yet',
-                style: AppTextStyles.brandName.copyWith(height: 1.5),
-              ),
-            ],
+          const SizedBox(height: 14),
+
+          // Name
+          Text(
+            username.isNotEmpty
+                ? username
+                : FirebaseAuth.instance.currentUser?.email ?? 'Guest',
+            style: AppTextStyles.sectionTitle.copyWith(fontSize: 20),
+            textAlign: TextAlign.center,
           ),
-        ),
-        const SizedBox(height: 16),
-        const Divider(color: AppColors.divider, height: 1),
-        // Stats
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Row(
+          const SizedBox(height: 6),
+
+          // Bio
+          Text(
+            bio.isNotEmpty ? bio : 'No bio yet · MegaShop Member',
+            style: AppTextStyles.brandName
+                .copyWith(fontSize: 13, height: 1.4),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+
+          // Edit Profile button
+          OutlinedButton.icon(
+            onPressed: () {
+              final usernameController = TextEditingController();
+              final bioController = TextEditingController();
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Edit Profile'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: usernameController,
+                        decoration:
+                            const InputDecoration(labelText: 'Username'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: bioController,
+                        decoration:
+                            const InputDecoration(labelText: 'Bio'),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel')),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null) {
+                          await http.put(
+                            Uri.parse(
+                                'http://127.0.0.1:8000/users/${user.uid}'),
+                            headers: {'Content-Type': 'application/json'},
+                            body: jsonEncode({
+                              'username': usernameController.text,
+                              'bio': bioController.text,
+                              'profile_photo': '',
+                            }),
+                          );
+                        }
+                        if (context.mounted) Navigator.pop(context);
+                      },
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            icon: const Icon(CupertinoIcons.pencil, size: 15),
+            label: Text('Edit Profile',
+                style: AppTextStyles.productName.copyWith(fontSize: 13)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary, width: 1.5),
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Stats row
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: const [
               _StatItem(value: '12.4k', label: 'Followers'),
@@ -393,9 +330,10 @@ class _ProfilePageState extends State<ProfilePage>
               _StatItem(value: '56', label: 'Products'),
             ],
           ),
-        ),
-        const Divider(color: AppColors.divider, height: 1),
-      ],
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.divider, height: 1),
+        ],
+      ),
     );
   }
 }
@@ -428,8 +366,9 @@ class _Separator extends StatelessWidget {
 
 class _FeedGrid extends StatelessWidget {
   final List<String> images;
+  final bool isReels;
 
-  const _FeedGrid({required this.images});
+  const _FeedGrid({required this.images, this.isReels = false});
 
   @override
   Widget build(BuildContext context) {
@@ -440,24 +379,43 @@ class _FeedGrid extends StatelessWidget {
         mainAxisSpacing: 2,
         crossAxisSpacing: 2,
       ),
-      itemCount: images.length + 1, // +1 for add post cell
+      itemCount: images.length,
       itemBuilder: (context, i) {
-        if (i == images.length) {
-          return Container(
-            color: AppColors.primarySurface,
-            child: const Icon(
-              Icons.add_photo_alternate_outlined,
-              color: AppColors.primary,
-              size: 32,
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            CachedNetworkImage(
+              imageUrl: images[i],
+              fit: BoxFit.cover,
+              placeholder: (ctx, url) => Container(color: AppColors.primarySurface),
+              errorWidget: (ctx, url, err) =>
+                  Container(color: AppColors.primarySurface),
             ),
-          );
-        }
-        return CachedNetworkImage(
-          imageUrl: images[i],
-          fit: BoxFit.cover,
-          placeholder: (ctx, url) => Container(color: AppColors.primarySurface),
-          errorWidget: (ctx, url, err) =>
-              Container(color: AppColors.primarySurface),
+            if (isReels) ...[
+              Positioned(
+                bottom: 8,
+                left: 8,
+                child: Row(
+                  children: const [
+                    Icon(
+                      CupertinoIcons.play_fill,
+                      color: Colors.white,
+                      size: 12,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      '1.2k',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         );
       },
     );

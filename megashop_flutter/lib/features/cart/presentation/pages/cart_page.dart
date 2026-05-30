@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
@@ -38,11 +39,7 @@ class _CartPageState extends State<CartPage> {
           appBar: AppBar(
             backgroundColor: AppColors.background,
             elevation: 0,
-            leading: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_rounded,
-                  color: AppColors.primary),
-            ),
+            automaticallyImplyLeading: false,
             title: Text('Cart',
                 style: AppTextStyles.sectionTitle
                     .copyWith(color: AppColors.primary)),
@@ -128,7 +125,7 @@ class _CartPageState extends State<CartPage> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    Icons.local_offer_outlined,
+                                    CupertinoIcons.tag,
                                     color: _promoApplied
                                         ? AppColors.primary
                                         : AppColors.iconMuted,
@@ -360,17 +357,20 @@ class _CartItemCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ),
-                    GestureDetector(
-                      onTap: onRemove,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          shape: BoxShape.circle,
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: onRemove,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(CupertinoIcons.xmark_circle_fill,
+                              color: AppColors.iconMuted, size: 16),
                         ),
-                        child: const Icon(Icons.close_rounded,
-                            color: AppColors.iconMuted, size: 16),
                       ),
                     ),
                   ],
@@ -420,13 +420,13 @@ class _QtyControl extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _QtyBtn(icon: Icons.remove, onTap: onMinus),
+          _QtyBtn(icon: CupertinoIcons.minus, onTap: onMinus),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Text('$qty',
                 style: AppTextStyles.productName.copyWith(fontSize: 15)),
           ),
-          _QtyBtn(icon: Icons.add, onTap: onPlus),
+          _QtyBtn(icon: CupertinoIcons.plus, onTap: onPlus),
         ],
       ),
     );
@@ -441,16 +441,19 @@ class _QtyBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          shape: BoxShape.circle,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 16, color: AppColors.textPrimary),
         ),
-        child: Icon(icon, size: 16, color: AppColors.textPrimary),
       ),
     );
   }
@@ -507,7 +510,7 @@ class _EmptyCart extends StatelessWidget {
               color: AppColors.primarySurface,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.shopping_cart_outlined,
+            child: const Icon(CupertinoIcons.cart,
                 size: 48, color: AppColors.primary),
           ),
           const SizedBox(height: 20),
@@ -519,7 +522,7 @@ class _EmptyCart extends StatelessWidget {
           const SizedBox(height: 28),
           ElevatedButton.icon(
             onPressed: onShop,
-            icon: const Icon(Icons.explore_outlined,
+            icon: const Icon(CupertinoIcons.compass,
                 color: AppColors.textOnPrimary),
             label: Text('Browse Products',
                 style: AppTextStyles.buttonFilled),

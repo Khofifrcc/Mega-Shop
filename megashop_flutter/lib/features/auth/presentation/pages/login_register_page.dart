@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import 'package:flutter/foundation.dart';
@@ -33,6 +35,73 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
     super.dispose();
   }
 
+  // ── Helper: styled snackbar ──────────────────────────────────────────────────
+
+  void _showSnackBar(String message,
+      {bool isError = true, IconData? icon}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        duration: const Duration(seconds: 4),
+        backgroundColor: isError
+            ? const Color(0xFFD32F2F)
+            : const Color(0xFF2E7D32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        content: Row(
+          children: [
+            Icon(
+              icon ??
+                  (isError
+                      ? Icons.error_outline_rounded
+                      : Icons.check_circle_outline_rounded),
+              color: Colors.white,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Validation ───────────────────────────────────────────────────────────────
+
+  /// Returns an error string if invalid, null if valid.
+  String? _validateFields() {
+    final email = _emailCtrl.text.trim();
+    final pass = _passCtrl.text.trim();
+
+    if (email.isEmpty) return 'Please enter your email address.';
+
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(email)) {
+      return 'Please enter a valid email address (e.g. user@email.com).';
+    }
+
+    if (pass.isEmpty) return 'Please enter your password.';
+
+    if (_tabIndex == 1 && pass.length < 6) {
+      return 'Password must be at least 6 characters long.';
+    }
+
+    return null;
+  }
+
+  // ── Google Sign-In ───────────────────────────────────────────────────────────
+
   Future<void> signInWithGoogle() async {
     try {
       setState(() => _isLoading = true);
@@ -45,11 +114,8 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
             await FirebaseAuth.instance.signInWithPopup(googleProvider);
       } else {
         await GoogleSignIn.instance.initialize();
-
         final googleUser = await GoogleSignIn.instance.authenticate();
-
         final googleAuth = googleUser.authentication;
-
         final credential = GoogleAuthProvider.credential(
           idToken: googleAuth.idToken,
         );
@@ -58,28 +124,27 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
       }
 
       final user = userCredential.user;
-
       if (user != null) {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
-      print("GOOGLE ERROR");
-      print(e);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      _showSnackBar('Google sign-in failed. Please try again.');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // ── Login ────────────────────────────────────────────────────────────────────
+
   Future<void> login() async {
+    // Client-side validation first
+    final validationError = _validateFields();
+    if (validationError != null) {
+      _showSnackBar(validationError);
+      return;
+    }
+
     try {
       setState(() => _isLoading = true);
 
@@ -92,29 +157,52 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'Terjadi kesalahan';
+      String message;
 
-      if (e.code == 'user-not-found') {
-        message = 'No account found with this email';
-      } else if (e.code == 'wrong-password') {
-        message = 'Incorrect password';
-      } else if (e.code == 'invalid-email') {
-        message = 'Email not found';
-      } else if (e.code == 'invalid-credential') {
-        message = 'Invalid email or password';
+      switch (e.code) {
+        case 'user-not-found':
+          message =
+              'No account found with this email. Please register first.';
+          break;
+        case 'wrong-password':
+          message = 'Incorrect password. Please try again.';
+          break;
+        case 'invalid-email':
+          message =
+              'Invalid email format. Please check your email address.';
+          break;
+        case 'invalid-credential':
+          message =
+              'Incorrect email or password. Please double-check and try again.';
+          break;
+        case 'user-disabled':
+          message =
+              'This account has been disabled. Please contact support.';
+          break;
+        case 'too-many-requests':
+          message =
+              'Too many failed attempts. Please wait a moment and try again.';
+          break;
+        default:
+          message = 'Login failed. Please try again later.';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
-      );
+      _showSnackBar(message);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // ── Register ─────────────────────────────────────────────────────────────────
+
   Future<void> register() async {
+    // Client-side validation first
+    final validationError = _validateFields();
+    if (validationError != null) {
+      _showSnackBar(validationError);
+      return;
+    }
+
     try {
       setState(() => _isLoading = true);
 
@@ -127,42 +215,65 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
       final user = userCredential.user;
 
       if (user != null) {
-        await http.post(
-          Uri.parse('http://127.0.0.1:8000/users/'),
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'firebase_uid': user.uid,
-            'username': _emailCtrl.text.split('@')[0],
-            'email': _emailCtrl.text.trim(),
-            'bio': '',
-            'profile_photo': '',
-          }),
-        );
+        // Try to sync user to backend (non-blocking — failure is ignored)
+        try {
+          await http.post(
+            Uri.parse('http://127.0.0.1:8000/users/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'firebase_uid': user.uid,
+              'username': _emailCtrl.text.split('@')[0],
+              'email': _emailCtrl.text.trim(),
+              'bio': '',
+              'profile_photo': '',
+            }),
+          ).timeout(const Duration(seconds: 5));
+        } catch (_) {
+          // Backend unreachable — not a blocker for the user
+        }
+
+        // Sign out so user must log in manually
+        await FirebaseAuth.instance.signOut();
 
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
+          // Keep email, clear password, switch to Login tab
+          _passCtrl.clear();
+          setState(() => _tabIndex = 0);
+
+          _showSnackBar(
+            'Account created! Please sign in with your new credentials.',
+            isError: false,
+            icon: Icons.check_circle_outline_rounded,
+          );
         }
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'Registrasi gagal';
+      String message;
 
-      if (e.code == 'email-already-in-use') {
-        message = 'This email is already in use';
-      } else if (e.code == 'weak-password') {
-        message = 'Password must be at least 6 characters';
-      } else if (e.code == 'invalid-email') {
-        message = 'Incorrect email format';
+      switch (e.code) {
+        case 'email-already-in-use':
+          message =
+              'This email is already registered. Try logging in instead.';
+          break;
+        case 'weak-password':
+          message =
+              'Password is too weak. Use at least 6 characters with a mix of letters and numbers.';
+          break;
+        case 'invalid-email':
+          message =
+              'Invalid email format. Please enter a valid email address.';
+          break;
+        case 'operation-not-allowed':
+          message =
+              'Email/password registration is not enabled. Please contact support.';
+          break;
+        default:
+          message = 'Registration failed. Please try again later.';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
-      );
+      _showSnackBar(message);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -214,7 +325,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              // ── Form card (index-based, no TabBarView) ────────────────
+              // ── Form card ─────────────────────────────────────────────
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
                 child: _tabIndex == 0
@@ -227,9 +338,10 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                         obscurePass: _obscurePass,
                         onTogglePass: () =>
                             setState(() => _obscurePass = !_obscurePass),
-                        ctaLabel: 'Masuk',
+                        ctaLabel: 'Sign In',
                         onCta: login,
                         isRegister: false,
+                        isLoading: _isLoading,
                       )
                     : _FormCard(
                         key: const ValueKey('register'),
@@ -241,9 +353,10 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                         obscurePass: _obscurePass,
                         onTogglePass: () =>
                             setState(() => _obscurePass = !_obscurePass),
-                        ctaLabel: 'Daftar Sekarang',
+                        ctaLabel: 'Create Account',
                         onCta: register,
                         isRegister: true,
+                        isLoading: _isLoading,
                       ),
               ),
               const SizedBox(height: 24),
@@ -265,7 +378,20 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                   Expanded(
                     child: _SocialButton(
                       label: 'Google',
-                      icon: Icons.g_mobiledata_rounded,
+                      icon: Image.network(
+                        'https://cdn-icons-png.flaticon.com/512/300/300221.png',
+                        width: 20,
+                        height: 20,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Text(
+                          'G',
+                          style: AppTextStyles.productName.copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
                       onTap: signInWithGoogle,
                     ),
                   ),
@@ -273,7 +399,18 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                   Expanded(
                     child: _SocialButton(
                       label: 'Apple',
-                      icon: Icons.apple_rounded,
+                      icon: Image.network(
+                        'https://cdn-icons-png.flaticon.com/512/0/747.png',
+                        width: 20,
+                        height: 20,
+                        color: AppColors.textPrimary,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.apple,
+                          size: 20,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
                       onTap: () {},
                     ),
                   ),
@@ -288,7 +425,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   }
 }
 
-// ── Tab button (replaces TabBar — no TabBarView needed) ───────────────────────
+// ── Tab button ────────────────────────────────────────────────────────────────
 
 class _TabButton extends StatelessWidget {
   final String label;
@@ -304,30 +441,33 @@ class _TabButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: isActive ? AppColors.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: isActive
-                ? const [
-                    BoxShadow(
-                        color: AppColors.shadow,
-                        blurRadius: 8,
-                        offset: Offset(0, 2))
-                  ]
-                : null,
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: isActive
-                  ? AppTextStyles.categoryActive
-                      .copyWith(color: AppColors.primary)
-                  : AppTextStyles.categoryInactive,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isActive ? AppColors.surface : Colors.transparent,
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: isActive
+                  ? const [
+                      BoxShadow(
+                          color: AppColors.shadow,
+                          blurRadius: 8,
+                          offset: Offset(0, 2))
+                    ]
+                  : null,
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: isActive
+                    ? AppTextStyles.categoryActive
+                        .copyWith(color: AppColors.primary)
+                    : AppTextStyles.categoryInactive,
+              ),
             ),
           ),
         ),
@@ -348,6 +488,7 @@ class _FormCard extends StatelessWidget {
   final String ctaLabel;
   final VoidCallback onCta;
   final bool isRegister;
+  final bool isLoading;
 
   const _FormCard({
     super.key,
@@ -360,6 +501,7 @@ class _FormCard extends StatelessWidget {
     required this.ctaLabel,
     required this.onCta,
     required this.isRegister,
+    required this.isLoading,
   });
 
   @override
@@ -393,28 +535,47 @@ class _FormCard extends StatelessWidget {
           const SizedBox(height: 24),
           _AuthField(
             controller: emailCtrl,
-            hint: 'Email or Phone Number',
-            icon: Icons.mail_outline_rounded,
+            hint: 'Email Address',
+            icon: CupertinoIcons.mail,
+            keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 12),
           _AuthField(
             controller: passCtrl,
-            hint: 'Password',
-            icon: Icons.lock_outline_rounded,
+            hint: isRegister
+                ? 'Password (min. 6 characters)'
+                : 'Password',
+            icon: CupertinoIcons.lock,
             obscure: obscurePass,
             suffix: IconButton(
               onPressed: onTogglePass,
               icon: Icon(
                 obscurePass
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
+                    ? CupertinoIcons.eye_slash
+                    : CupertinoIcons.eye,
                 color: AppColors.iconMuted,
                 size: 20,
               ),
             ),
           ),
           if (isRegister) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+            // Password hint
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  const Icon(CupertinoIcons.info,
+                      size: 13, color: AppColors.iconMuted),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Use letters, numbers, and symbols for a strong password.',
+                    style: AppTextStyles.brandName.copyWith(fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
             Center(
               child: RichText(
                 textAlign: TextAlign.center,
@@ -447,23 +608,35 @@ class _FormCard extends StatelessWidget {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: onCta,
+              onPressed: isLoading ? null : onCta,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
+                disabledBackgroundColor: AppColors.accent.withValues(alpha: 0.6),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28)),
                 elevation: 0,
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(ctaLabel,
-                      style: AppTextStyles.buttonFilled.copyWith(fontSize: 16)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded,
-                      color: AppColors.textOnPrimary, size: 20),
-                ],
-              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(ctaLabel,
+                            style: AppTextStyles.buttonFilled
+                                .copyWith(fontSize: 16)),
+                        const SizedBox(width: 8),
+                        const Icon(CupertinoIcons.arrow_right,
+                            color: AppColors.textOnPrimary, size: 20),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -480,6 +653,7 @@ class _AuthField extends StatelessWidget {
   final IconData icon;
   final bool obscure;
   final Widget? suffix;
+  final TextInputType? keyboardType;
 
   const _AuthField({
     required this.controller,
@@ -487,6 +661,7 @@ class _AuthField extends StatelessWidget {
     required this.icon,
     this.obscure = false,
     this.suffix,
+    this.keyboardType,
   });
 
   @override
@@ -494,6 +669,7 @@ class _AuthField extends StatelessWidget {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      keyboardType: keyboardType,
       style: AppTextStyles.productName.copyWith(fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
@@ -517,7 +693,7 @@ class _AuthField extends StatelessWidget {
 
 class _SocialButton extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final Widget icon;
   final VoidCallback onTap;
 
   const _SocialButton(
@@ -525,23 +701,26 @@ class _SocialButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.divider),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 24, color: AppColors.textPrimary),
-            const SizedBox(width: 8),
-            Text(label,
-                style: AppTextStyles.productName.copyWith(fontSize: 14)),
-          ],
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              icon,
+              const SizedBox(width: 8),
+              Text(label,
+                  style: AppTextStyles.productName.copyWith(fontSize: 14)),
+            ],
+          ),
         ),
       ),
     );

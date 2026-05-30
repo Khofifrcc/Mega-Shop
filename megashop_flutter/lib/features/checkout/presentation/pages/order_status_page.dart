@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
@@ -52,7 +53,7 @@ class _SuccessContent extends StatelessWidget {
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
                 color: AppColors.shadow,
@@ -65,10 +66,13 @@ class _SuccessContent extends StatelessWidget {
           children: [
             Align(
               alignment: Alignment.topLeft,
-              child: IconButton(
-                onPressed: onGoHome,
-                icon: const Icon(Icons.close_rounded,
-                    color: AppColors.iconMuted),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: IconButton(
+                  onPressed: onGoHome,
+                  icon: const Icon(CupertinoIcons.xmark,
+                      color: AppColors.iconMuted),
+                ),
               ),
             ),
             Container(
@@ -78,14 +82,14 @@ class _SuccessContent extends StatelessWidget {
                 color: AppColors.primarySurface,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.shopping_bag_rounded,
+              child: const Icon(CupertinoIcons.bag_fill,
                   color: AppColors.primary, size: 56),
             ),
             const SizedBox(height: 20),
-            Text('Order Berhasil!',
+            Text('Order Successful!',
                 style: AppTextStyles.sectionTitle.copyWith(fontSize: 24)),
             const SizedBox(height: 8),
-            Text('Terima kasih telah berbelanja di MegaShop.',
+            Text('Thank you for shopping at MegaShop.',
                 style: AppTextStyles.brandName,
                 textAlign: TextAlign.center),
             const SizedBox(height: 20),
@@ -99,7 +103,7 @@ class _SuccessContent extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Nomor Pesanan',
+                  Text('Order Number',
                       style: AppTextStyles.brandName.copyWith(fontSize: 13)),
                   Text('#ORD-9824XQ',
                       style: AppTextStyles.productName),
@@ -115,26 +119,29 @@ class _SuccessContent extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28)),
+                      borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Lihat Pesanan',
+                    Text('View Order',
                         style: AppTextStyles.buttonFilled.copyWith(fontSize: 15)),
                     const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward_rounded,
+                    const Icon(CupertinoIcons.arrow_right,
                         color: AppColors.textOnPrimary, size: 18),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 12),
-            GestureDetector(
-              onTap: onGoHome,
-              child: Text('Kembali ke Beranda',
-                  style: AppTextStyles.buttonOutlined.copyWith(fontSize: 14)),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: onGoHome,
+                child: Text('Back to Home',
+                    style: AppTextStyles.buttonOutlined.copyWith(fontSize: 14)),
+              ),
             ),
           ],
         ),
@@ -157,7 +164,7 @@ class _FailedContent extends StatelessWidget {
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
                 color: AppColors.shadow,
@@ -170,10 +177,13 @@ class _FailedContent extends StatelessWidget {
           children: [
             Align(
               alignment: Alignment.topLeft,
-              child: IconButton(
-                onPressed: onClose,
-                icon: const Icon(Icons.close_rounded,
-                    color: AppColors.iconMuted),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: IconButton(
+                  onPressed: onClose,
+                  icon: const Icon(CupertinoIcons.xmark,
+                      color: AppColors.iconMuted),
+                ),
               ),
             ),
             Container(
@@ -183,16 +193,16 @@ class _FailedContent extends StatelessWidget {
                 color: AppColors.badgeSale.withAlpha(30),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.error_outline_rounded,
+              child: const Icon(CupertinoIcons.exclamationmark_circle,
                   color: AppColors.badgeSale, size: 48),
             ),
             const SizedBox(height: 20),
-            Text('Gagal',
+            Text('Order Failed',
                 style: AppTextStyles.sectionTitle.copyWith(fontSize: 28)),
             const SizedBox(height: 8),
             Text(
-              'Maaf, terjadi kesalahan saat memproses pesanan Anda. '
-              'Silakan periksa koneksi atau metode pembayaran.',
+              'Sorry, an error occurred while processing your order. '
+              'Please check your connection or payment method.',
               style: AppTextStyles.brandName.copyWith(height: 1.5),
               textAlign: TextAlign.center,
             ),
@@ -200,10 +210,10 @@ class _FailedContent extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.help_outline_rounded,
+                const Icon(CupertinoIcons.question_circle,
                     color: AppColors.iconMuted, size: 16),
                 const SizedBox(width: 6),
-                Text('Hubungi Customer Service',
+                Text('Contact Customer Support',
                     style: AppTextStyles.brandName
                         .copyWith(color: AppColors.iconMuted, fontSize: 12)),
               ],
@@ -214,14 +224,14 @@ class _FailedContent extends StatelessWidget {
               height: 52,
               child: ElevatedButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded,
-                    color: AppColors.textOnPrimary),
-                label: Text('Coba Lagi',
+                icon: const Icon(CupertinoIcons.refresh,
+                    color: AppColors.textOnPrimary, size: 18),
+                label: Text('Try Again',
                     style: AppTextStyles.buttonFilled.copyWith(fontSize: 15)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.badgeSale,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28)),
+                      borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
               ),

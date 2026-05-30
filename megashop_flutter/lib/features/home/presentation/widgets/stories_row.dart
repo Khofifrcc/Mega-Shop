@@ -4,11 +4,22 @@ import 'story_avatar.dart';
 
 /// Horizontal scrollable row of story avatars.
 ///
-/// Renders one [StoryAvatar] per [Story] entity.
+/// [viewedStoryIds] tracks which stories have been seen — their ring turns grey.
 class StoriesRow extends StatelessWidget {
   final List<Story> stories;
+  final Set<String> viewedStoryIds;
+  final void Function(int index)? onStoryTap;
+  final VoidCallback? onOwnStoryTap;
+  final String? ownStoryImagePath;
 
-  const StoriesRow({super.key, required this.stories});
+  const StoriesRow({
+    super.key,
+    required this.stories,
+    this.viewedStoryIds = const {},
+    this.onStoryTap,
+    this.onOwnStoryTap,
+    this.ownStoryImagePath,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +31,14 @@ class StoriesRow extends StatelessWidget {
         itemCount: stories.length,
         separatorBuilder: (ctx, i) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
+          final story = stories[index];
           return StoryAvatar(
-            story: stories[index],
-            onTap: () {
-              // TODO: navigate to story viewer
-            },
+            story: story,
+            isViewed: viewedStoryIds.contains(story.id),
+            localImagePath: story.isOwnStory ? ownStoryImagePath : null,
+            onTap: story.isOwnStory
+                ? onOwnStoryTap
+                : () => onStoryTap?.call(index),
           );
         },
       ),

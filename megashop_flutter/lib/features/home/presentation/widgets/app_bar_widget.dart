@@ -5,19 +5,17 @@ import '../../../../core/theme/app_text_styles.dart';
 /// Custom AppBar for the MegaShop home screen.
 ///
 /// Displays the location icon on the left, "MegaShop" title in the center,
-/// and action icons (search, chat with unread dot, cart) on the right.
+/// and action icons (search, chat with unread dot) on the right.
 class MegaShopAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final int cartItemCount;
   final VoidCallback? onSearchTap;
   final VoidCallback? onChatTap;
-  final VoidCallback? onCartTap;
+  final VoidCallback? onLocationTap;
 
   const MegaShopAppBar({
     super.key,
-    this.cartItemCount = 0,
     this.onSearchTap,
     this.onChatTap,
-    this.onCartTap,
+    this.onLocationTap,
   });
 
   @override
@@ -29,13 +27,10 @@ class MegaShopAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppColors.background,
       elevation: 0,
       leadingWidth: 48,
-      leading: const Padding(
-        padding: EdgeInsets.only(left: 16),
-        child: Icon(
-          Icons.location_on_rounded,
-          color: AppColors.primary,
-          size: 26,
-        ),
+      leading: _AppBarIcon(
+        icon: Icons.location_on_rounded,
+        onTap: onLocationTap,
+        color: AppColors.primary,
       ),
       title: Text('MegaShop', style: AppTextStyles.appLogo),
       actions: [
@@ -66,34 +61,6 @@ class MegaShopAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ],
         ),
-        // Cart icon with count badge
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            _AppBarIcon(
-              icon: Icons.shopping_cart_outlined,
-              onTap: onCartTap,
-            ),
-            if (cartItemCount > 0)
-              Positioned(
-                top: 10,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '$cartItemCount',
-                    style: AppTextStyles.badge.copyWith(fontSize: 9),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-          ],
-        ),
         const SizedBox(width: 8),
       ],
     );
@@ -101,21 +68,34 @@ class MegaShopAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 /// Small tappable icon used in the AppBar.
+/// Uses [InkWell] so hover cursor shows as pointer on web/desktop.
 class _AppBarIcon extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
+  final Color color;
 
-  const _AppBarIcon({required this.icon, this.onTap});
+  const _AppBarIcon({
+    required this.icon,
+    this.onTap,
+    this.color = AppColors.iconDefault,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        alignment: Alignment.center,
-        child: Icon(icon, color: AppColors.iconDefault, size: 24),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        splashColor: AppColors.primary.withValues(alpha: 0.12),
+        highlightColor: AppColors.primary.withValues(alpha: 0.06),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Center(
+            child: Icon(icon, color: color, size: 24),
+          ),
+        ),
       ),
     );
   }

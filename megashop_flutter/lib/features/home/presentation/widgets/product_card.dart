@@ -67,7 +67,7 @@ class _ProductCardState extends State<ProductCard>
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: const [
           BoxShadow(
             color: AppColors.cardShadow,
@@ -76,12 +76,12 @@ class _ProductCardState extends State<ProductCard>
           ),
         ],
       ),
-      // Use Expanded for image so the card never overflows the grid cell
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Image Area (flexible — fills remaining height) ────────────────
-          Expanded(
+          // Consistent Image Area (aspect ratio locks height dynamically)
+          AspectRatio(
+            aspectRatio: 1.15,
             child: _ProductImage(
               product: widget.product,
               isFavorite: _isFavorite,
@@ -90,33 +90,40 @@ class _ProductCardState extends State<ProductCard>
             ),
           ),
 
-          // ── Info Area ────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Brand
-                _BrandRow(brand: widget.product.brand),
-                const SizedBox(height: 3),
-                // Product name
-                Text(
-                  widget.product.name,
-                  style: AppTextStyles.productName.copyWith(fontSize: 13),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                // Price row
-                _PriceRow(product: widget.product),
-                const SizedBox(height: 8),
-                // Action buttons
-                _ActionButtons(
-                  onAddToCart: widget.onAddToCart,
-                  onBuyNow: widget.onBuyNow,
-                ),
-              ],
+          // Expanded Info Area (aligns buttons horizontally)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Brand
+                      _BrandRow(brand: widget.product.brand),
+                      const SizedBox(height: 3),
+                      // Product name
+                      Text(
+                        widget.product.name,
+                        style: AppTextStyles.productName.copyWith(fontSize: 13),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      // Price row
+                      _PriceRow(product: widget.product),
+                    ],
+                  ),
+                  // Action buttons
+                  _ActionButtons(
+                    onAddToCart: widget.onAddToCart,
+                    onBuyNow: widget.onBuyNow,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -149,10 +156,12 @@ class _ProductImage extends StatelessWidget {
       children: [
         // Hero image
         ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           child: CachedNetworkImage(
             imageUrl: product.imageUrl,
             fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
             placeholder: (ctx, url) => Container(
               color: AppColors.primarySurface,
               child: const Center(

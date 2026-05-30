@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// Login / Register page.
 ///
@@ -19,12 +24,146 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscurePass = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      setState(() => _isLoading = true);
+
+      UserCredential userCredential;
+
+      if (kIsWeb) {
+        final googleProvider = GoogleAuthProvider();
+        userCredential =
+            await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        await GoogleSignIn.instance.initialize();
+
+        final googleUser = await GoogleSignIn.instance.authenticate();
+
+        final googleAuth = googleUser.authentication;
+
+        final credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+        userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+
+      final user = userCredential.user;
+
+      if (user != null) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      print("GOOGLE ERROR");
+      print(e);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> login() async {
+    try {
+      setState(() => _isLoading = true);
+
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text.trim(),
+      );
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = 'Terjadi kesalahan';
+
+      if (e.code == 'user-not-found') {
+        message = 'No account found with this email';
+      } else if (e.code == 'wrong-password') {
+        message = 'Incorrect password';
+      } else if (e.code == 'invalid-email') {
+        message = 'Email not found';
+      } else if (e.code == 'invalid-credential') {
+        message = 'Invalid email or password';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> register() async {
+    try {
+      setState(() => _isLoading = true);
+
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text.trim(),
+      );
+
+      final user = userCredential.user;
+
+      if (user != null) {
+        await http.post(
+          Uri.parse('http://127.0.0.1:8000/users/'),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'firebase_uid': user.uid,
+            'username': _emailCtrl.text.split('@')[0],
+            'email': _emailCtrl.text.trim(),
+            'bio': '',
+            'profile_photo': '',
+          }),
+        );
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = 'Registrasi gagal';
+
+      if (e.code == 'email-already-in-use') {
+        message = 'This email is already in use';
+      } else if (e.code == 'weak-password') {
+        message = 'Password must be at least 6 characters';
+      } else if (e.code == 'invalid-email') {
+        message = 'Incorrect email format';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -42,13 +181,11 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                 children: [
                   IconButton(
                     onPressed: () {},
-                    icon: const Icon(Icons.close,
-                        color: AppColors.textPrimary),
+                    icon: const Icon(Icons.close, color: AppColors.textPrimary),
                   ),
                   Expanded(
                     child: Center(
-                        child: Text('MegaShop',
-                            style: AppTextStyles.appLogo)),
+                        child: Text('MegaShop', style: AppTextStyles.appLogo)),
                   ),
                   const SizedBox(width: 48),
                 ],
@@ -91,8 +228,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                         onTogglePass: () =>
                             setState(() => _obscurePass = !_obscurePass),
                         ctaLabel: 'Masuk',
-                        onCta: () =>
-                            Navigator.pushReplacementNamed(context, '/home'),
+                        onCta: login,
                         isRegister: false,
                       )
                     : _FormCard(
@@ -106,8 +242,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                         onTogglePass: () =>
                             setState(() => _obscurePass = !_obscurePass),
                         ctaLabel: 'Daftar Sekarang',
-                        onCta: () =>
-                            Navigator.pushNamed(context, '/otp'),
+                        onCta: register,
                         isRegister: true,
                       ),
               ),
@@ -115,15 +250,13 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
               // ── OR divider ────────────────────────────────────────────
               Row(
                 children: [
-                  const Expanded(
-                      child: Divider(color: AppColors.divider)),
+                  const Expanded(child: Divider(color: AppColors.divider)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text('or continue with',
                         style: AppTextStyles.brandName),
                   ),
-                  const Expanded(
-                      child: Divider(color: AppColors.divider)),
+                  const Expanded(child: Divider(color: AppColors.divider)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -133,7 +266,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                     child: _SocialButton(
                       label: 'Google',
                       icon: Icons.g_mobiledata_rounded,
-                      onTap: () {},
+                      onTap: signInWithGoogle,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -249,14 +382,12 @@ class _FormCard extends StatelessWidget {
         children: [
           Center(
             child: Text(title,
-                style:
-                    AppTextStyles.sectionTitle.copyWith(fontSize: 24)),
+                style: AppTextStyles.sectionTitle.copyWith(fontSize: 24)),
           ),
           const SizedBox(height: 8),
           Center(
             child: Text(subtitle,
-                style:
-                    AppTextStyles.brandName.copyWith(fontSize: 13),
+                style: AppTextStyles.brandName.copyWith(fontSize: 13),
                 textAlign: TextAlign.center),
           ),
           const SizedBox(height: 24),
@@ -288,11 +419,9 @@ class _FormCard extends StatelessWidget {
               child: RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  style:
-                      AppTextStyles.brandName.copyWith(fontSize: 12),
+                  style: AppTextStyles.brandName.copyWith(fontSize: 12),
                   children: [
-                    const TextSpan(
-                        text: 'By registering, you agree to our '),
+                    const TextSpan(text: 'By registering, you agree to our '),
                     TextSpan(
                       text: 'Terms',
                       style: AppTextStyles.brandName.copyWith(
@@ -329,8 +458,7 @@ class _FormCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(ctaLabel,
-                      style: AppTextStyles.buttonFilled
-                          .copyWith(fontSize: 16)),
+                      style: AppTextStyles.buttonFilled.copyWith(fontSize: 16)),
                   const SizedBox(width: 8),
                   const Icon(Icons.arrow_forward_rounded,
                       color: AppColors.textOnPrimary, size: 20),
@@ -412,8 +540,7 @@ class _SocialButton extends StatelessWidget {
             Icon(icon, size: 24, color: AppColors.textPrimary),
             const SizedBox(width: 8),
             Text(label,
-                style:
-                    AppTextStyles.productName.copyWith(fontSize: 14)),
+                style: AppTextStyles.productName.copyWith(fontSize: 14)),
           ],
         ),
       ),

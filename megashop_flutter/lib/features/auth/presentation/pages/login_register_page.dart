@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// Login / Register page.
 ///
@@ -29,6 +31,52 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      setState(() => _isLoading = true);
+
+      UserCredential userCredential;
+
+      if (kIsWeb) {
+        final googleProvider = GoogleAuthProvider();
+        userCredential =
+            await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        await GoogleSignIn.instance.initialize();
+
+        final googleUser = await GoogleSignIn.instance.authenticate();
+
+        final googleAuth = googleUser.authentication;
+
+        final credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+        userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+
+      final user = userCredential.user;
+
+      if (user != null) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      print("GOOGLE ERROR");
+      print(e);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> login() async {
@@ -218,7 +266,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                     child: _SocialButton(
                       label: 'Google',
                       icon: Icons.g_mobiledata_rounded,
-                      onTap: () {},
+                      onTap: signInWithGoogle,
                     ),
                   ),
                   const SizedBox(width: 12),

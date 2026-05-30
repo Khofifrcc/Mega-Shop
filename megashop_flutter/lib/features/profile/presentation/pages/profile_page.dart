@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -20,6 +23,9 @@ class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  String username = '';
+  String bio = '';
+
   final _feedImages = [
     'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=300&q=80',
     'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=300&q=80',
@@ -31,13 +37,43 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+    );
+
+    loadProfile();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> loadProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    final response = await http.get(
+      Uri.parse(
+        'http://127.0.0.1:8000/users/${user.uid}',
+      ),
+    );
+
+    print('UID: ${user.uid}');
+    print('BODY: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      setState(() {
+        username = data['username'] ?? '';
+        bio = data['bio'] ?? '';
+      });
+    }
   }
 
   @override
@@ -217,7 +253,69 @@ class _ProfilePageState extends State<ProfilePage>
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: () async {
+                  final usernameController = TextEditingController();
+                  final bioController = TextEditingController();
+
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text('Edit Profile'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextField(
+                              controller: usernameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Username',
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: bioController,
+                              decoration: const InputDecoration(
+                                labelText: 'Bio',
+                              ),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final user = FirebaseAuth.instance.currentUser;
+
+                              if (user != null) {
+                                await http.put(
+                                  Uri.parse(
+                                    'http://127.0.0.1:8000/users/${user.uid}',
+                                  ),
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: jsonEncode({
+                                    'username': usernameController.text,
+                                    'bio': bioController.text,
+                                    'profile_photo': '',
+                                  }),
+                                );
+                              }
+
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Save'),
+                          )
+                        ],
+                      );
+                    },
+                  );
+                },
                 icon: const Icon(Icons.edit_rounded, size: 15),
                 label: Text(
                   'Edit Profile',
@@ -237,17 +335,20 @@ class _ProfilePageState extends State<ProfilePage>
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.primary, width: 1.5),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.settings_rounded,
-                  size: 18,
+              IconButton(
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+
+                  if (context.mounted) {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/login',
+                      (route) => false,
+                    );
+                  }
+                },
+                icon: const Icon(
+                  Icons.logout_rounded,
                   color: AppColors.primary,
                 ),
               ),
@@ -262,12 +363,14 @@ class _ProfilePageState extends State<ProfilePage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Elena Rodriguez',
+                username.isNotEmpty
+                    ? username
+                    : FirebaseAuth.instance.currentUser?.email ?? 'Guest',
                 style: AppTextStyles.sectionTitle.copyWith(fontSize: 20),
               ),
               const SizedBox(height: 4),
               Text(
-                'Curating the effortless aesthetic. Fashion | Lifestyle | Design ◆ NYC',
+                bio.isNotEmpty ? bio : 'No bio yet',
                 style: AppTextStyles.brandName.copyWith(height: 1.5),
               ),
             ],
@@ -353,7 +456,8 @@ class _FeedGrid extends StatelessWidget {
           imageUrl: images[i],
           fit: BoxFit.cover,
           placeholder: (ctx, url) => Container(color: AppColors.primarySurface),
-          errorWidget: (ctx, url, err) => Container(color: AppColors.primarySurface),
+          errorWidget: (ctx, url, err) =>
+              Container(color: AppColors.primarySurface),
         );
       },
     );

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'shared/state/cart_state.dart';
 
@@ -35,7 +38,13 @@ import 'features/chat/presentation/pages/conversation_page.dart';
 // Profile
 import 'features/profile/presentation/pages/profile_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const MegaShopApp());
 }
 
@@ -52,7 +61,8 @@ class MegaShopApp extends StatelessWidget {
         title: 'MegaShop',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        initialRoute: '/login',
+        initialRoute:
+            FirebaseAuth.instance.currentUser != null ? '/home' : '/login',
         routes: {
           '/login': (_) => const LoginRegisterPage(),
           '/otp': (_) => const OtpPage(),

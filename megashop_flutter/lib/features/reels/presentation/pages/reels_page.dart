@@ -43,6 +43,7 @@ class _ReelsPageState extends State<ReelsPage> {
   @override
   void initState() {
     super.initState();
+
     _loadReels();
     // Initialize mock comments for each reel
     for (var reel in _reels) {
@@ -69,6 +70,16 @@ class _ReelsPageState extends State<ReelsPage> {
     }
   }
 
+  String _fullUrl(dynamic value) {
+    final url = (value ?? '').toString();
+
+    if (url.isEmpty || url == 'string') return '';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return 'http://127.0.0.1:8000$url';
+
+    return 'http://127.0.0.1:8000/$url';
+  }
+
   Future<void> _loadReels() async {
     try {
       final response = await http.get(
@@ -81,36 +92,46 @@ class _ReelsPageState extends State<ReelsPage> {
 
       final List data = jsonDecode(response.body);
 
-      final reels = data.map((item) {
-        final isProduct = item['is_product'] == 1 ||
-            item['is_product'] == true ||
-            item['is_product'] == '1' ||
-            item['is_product'] == 'true' ||
-            ((item['product_name'] ?? '').toString().isNotEmpty &&
-                ((item['price'] as num?)?.toDouble() ?? 0) > 0);
+      final reels = data
+          .map((item) {
+            final videoUrl = _fullUrl(item['video']);
 
-        return Reel(
-          id: item['id'].toString(),
-          userId: item['user_id'] ?? '',
-          username: item['username'] ?? item['user_id'] ?? '@user',
-          userAvatar: item['profile_photo'] ??
-              'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
-          caption: item['caption'] ?? '',
-          productName: isProduct ? (item['product_name'] ?? 'Product') : '',
-          price: isProduct ? ((item['price'] as num?)?.toDouble() ?? 0) : 0,
-          imageUrl: isProduct
-              ? (item['image'] ?? 'https://picsum.photos/500')
-              : 'https://picsum.photos/500',
-          videoUrl: item['video'] ??
-              'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-          likeCount: 0,
-          commentCount: 0,
-        );
-      }).toList();
+            // Skip broken dummy/test data like "video": "string"
+            if (videoUrl.isEmpty) return null;
+
+            final isProduct = item['is_product'] == 1 ||
+                item['is_product'] == true ||
+                item['is_product'] == '1' ||
+                item['is_product'] == 'true' ||
+                ((item['product_name'] ?? '').toString().isNotEmpty &&
+                    ((item['price'] as num?)?.toDouble() ?? 0) > 0);
+
+            final productImageUrl = _fullUrl(item['image']);
+
+            return Reel(
+              id: item['id'].toString(),
+              userId: item['user_id'] ?? '',
+              username: item['username'] ?? item['user_id'] ?? '@user',
+              userAvatar: _fullUrl(item['profile_photo']).isNotEmpty
+                  ? _fullUrl(item['profile_photo'])
+                  : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
+              caption: item['caption'] ?? '',
+              productName: isProduct ? (item['product_name'] ?? 'Product') : '',
+              price: isProduct ? ((item['price'] as num?)?.toDouble() ?? 0) : 0,
+              imageUrl: isProduct && productImageUrl.isNotEmpty
+                  ? productImageUrl
+                  : 'https://picsum.photos/500',
+              videoUrl: videoUrl,
+              likeCount: 0,
+              commentCount: 0,
+            );
+          })
+          .whereType<Reel>()
+          .toList();
 
       if (mounted) {
         setState(() {
-          _reels = reels.isEmpty ? _mockReels : reels;
+          _reels = reels;
           _isLoadingReels = false;
 
           for (var reel in _reels) {
@@ -121,12 +142,8 @@ class _ReelsPageState extends State<ReelsPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _reels = _mockReels;
+          _reels = [];
           _isLoadingReels = false;
-
-          for (var reel in _reels) {
-            _reelComments[reel.id] = [];
-          }
         });
       }
     }
@@ -230,7 +247,7 @@ class _ReelsPageState extends State<ReelsPage> {
                       onTap: () {
                         SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
                             overlays: SystemUiOverlay.values);
-                        Navigator.pushNamed(context, '/search');
+                        _showReelsSearch(context);
                       },
                       child: Container(
                         width: 40,
@@ -276,6 +293,161 @@ class _ReelsPageState extends State<ReelsPage> {
   }
 
   // ── Comment bottom sheet ────────────────────────────────────────────────────
+  void _showReelsSearch(BuildContext context) {
+    final controller = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black,
+      isScrollControlled: true,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final query = controller.text.toLowerCase().trim();
+
+            final results = query.isEmpty
+                ? <Reel>[]
+                : _reels.where((reel) {
+                    return reel.caption.toLowerCase().contains(query) ||
+                        reel.username.toLowerCase().contains(query) ||
+                        reel.productName.toLowerCase().contains(query);
+                  }).toList();
+
+            return SafeArea(
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.92,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: controller,
+                        autofocus: true,
+                        style: const TextStyle(color: Colors.white),
+                        onChanged: (_) => setModalState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'Search reels...',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          prefixIcon:
+                              const Icon(Icons.search, color: Colors.white54),
+                          filled: true,
+                          fillColor: Colors.white10,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: results.isEmpty
+                            ? Center(
+                                child: Text(
+                                  query.isEmpty
+                                      ? 'Type to search reels'
+                                      : 'No reels found',
+                                  style: const TextStyle(color: Colors.white54),
+                                ),
+                              )
+                            : GridView.builder(
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 0.62,
+                                ),
+                                itemCount: results.length,
+                                itemBuilder: (_, i) {
+                                  final reel = results[i];
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      final index = _reels.indexWhere(
+                                        (r) => r.id == reel.id,
+                                      );
+
+                                      if (index != -1) {
+                                        Navigator.pop(context);
+                                        setState(() => _currentIndex = index);
+                                      }
+                                    },
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          Container(
+                                            color: Colors.black87,
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.play_circle_fill_rounded,
+                                                color: Colors.white,
+                                                size: 52,
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            left: 8,
+                                            right: 8,
+                                            bottom: 8,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black54,
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    reel.productName.isNotEmpty
+                                                        ? reel.productName
+                                                        : reel.caption,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 3),
+                                                  Text(
+                                                    '@${reel.username} · \$${reel.price.toStringAsFixed(2)}',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      color: Colors.white70,
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   void _showComments(BuildContext context, Reel reel) {
     showModalBottomSheet(
@@ -1361,57 +1533,3 @@ class _Comment {
     required this.time,
   });
 }
-
-// ── Mock reels with real free video URLs (Big Buck Bunny clips) ───────────────
-
-final _mockReels = [
-  const Reel(
-    id: 'r1',
-    username: '@style_guru',
-    userAvatar:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80',
-    caption:
-        'Summer collection just dropped 🌊 This dress is everything! #fashion #ootd',
-    productName: 'Vibrant Summer Flow Dress',
-    price: 89.99,
-    originalPrice: 120.00,
-    imageUrl:
-        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80',
-    videoUrl:
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    likeCount: 12400,
-    commentCount: 842,
-  ),
-  const Reel(
-    id: 'r2',
-    username: '@sneaker_king',
-    userAvatar:
-        'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
-    caption:
-        'These Ultra Boost runners are next level 🔥 Copped mine last week 👟',
-    productName: 'Ultra Boost Runner X',
-    price: 159.00,
-    imageUrl:
-        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80',
-    videoUrl:
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    likeCount: 8300,
-    commentCount: 412,
-  ),
-  const Reel(
-    id: 'r3',
-    username: '@tech_vibes',
-    userAvatar:
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
-    caption:
-        'The Pro Series Smartwatch tracks everything ⌚ 14-day battery is insane',
-    productName: 'Pro Series Smartwatch',
-    price: 299.00,
-    imageUrl:
-        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80',
-    videoUrl:
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    likeCount: 5600,
-    commentCount: 321,
-  ),
-];

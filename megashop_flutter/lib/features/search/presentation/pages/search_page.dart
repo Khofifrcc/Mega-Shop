@@ -5,6 +5,9 @@ import '../../../../shared/state/cart_state.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../../home/domain/entities/product.dart';
 import '../../../home/presentation/widgets/product_card.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Search page with recent search chips, interactive cursors, and a working filter sheet.
 class SearchPage extends StatefulWidget {
@@ -15,65 +18,75 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final _searchCtrl = TextEditingController(text: 'Jacket');
+  final _searchCtrl = TextEditingController();
   final _focusNode = FocusNode();
-  final List<String> _recentSearches = ['Streetwear', 'Sneakers 2024', 'Oversized Hoodie'];
+  final List<String> _recentSearches = [
+    'Streetwear',
+    'Sneakers 2024',
+    'Oversized Hoodie'
+  ];
+//helper
+  String _fullUrl(dynamic value) {
+    final url = (value ?? '').toString();
+    if (url.isEmpty) return '';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return 'http://127.0.0.1:8000$url';
+    return 'http://127.0.0.1:8000/$url';
+  }
 
   // Filter States
   String _selectedSort = 'Latest';
   String _selectedCategory = 'All';
   String _selectedPriceRange = 'All';
 
+  List<Product> _allProducts = [];
+  bool _isLoading = true;
+  Future<void> _loadProducts() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://127.0.0.1:8000/products/'),
+      );
 
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load products');
+      }
 
-  final List<Product> _allProducts = [
-    const Product(
-      id: 's1',
-      name: 'Urban Leather Jacket',
-      brand: 'Brand X',
-      price: 129,
-      badge: 'SALE',
-      originalPrice: 160.00,
-      imageUrl: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80',
-    ),
-    const Product(
-      id: 's2',
-      name: 'Tech Windbreaker Jacket',
-      brand: 'Aero Wear',
-      price: 89,
-      imageUrl: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&q=80',
-    ),
-    const Product(
-      id: 's3',
-      name: 'Classic Denim Jacket',
-      brand: 'Vintage Co.',
-      price: 110,
-      badge: 'NEW',
-      imageUrl: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&q=80',
-    ),
-    const Product(
-      id: 's4',
-      name: 'Puffer Winter Jacket V2',
-      brand: 'Alpine',
-      price: 145,
-      originalPrice: 190.00,
-      imageUrl: 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=400&q=80',
-    ),
-    const Product(
-      id: 's5',
-      name: 'Ultra Boost Runner Sneakers',
-      brand: 'Adidas',
-      price: 159,
-      imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
-    ),
-    const Product(
-      id: 's6',
-      name: 'Titanium Smartwatch Pro',
-      brand: 'Aura',
-      price: 299,
-      imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80',
-    ),
-  ];
+      final List data = jsonDecode(response.body);
+
+      final products = data.map((item) {
+        return Product(
+          id: item['id'].toString(),
+          userId: item['user_id'] ?? '',
+          name: item['name'] ?? 'Product',
+          brand: item['username'] ?? item['user_id'] ?? 'MegaShop',
+          profilePhoto: item['profile_photo'] ?? '',
+          price: (item['price'] as num).toDouble(),
+          imageUrl: _fullUrl(item['image']),
+          description: item['description'] ?? '',
+          badge: null,
+          isFavorite: false,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _allProducts = products;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _loadProducts();
+  }
 
   @override
   void dispose() {
@@ -87,7 +100,8 @@ class _SearchPageState extends State<SearchPage> {
     final query = _searchCtrl.text.toLowerCase().trim();
     List<Product> list = _allProducts.where((p) {
       // 1. Search Query filter
-      final matchesQuery = p.name.toLowerCase().contains(query) || p.brand.toLowerCase().contains(query);
+      final matchesQuery = p.name.toLowerCase().contains(query) ||
+          p.brand.toLowerCase().contains(query);
       if (!matchesQuery) return false;
 
       // 2. Category filter
@@ -98,19 +112,24 @@ class _SearchPageState extends State<SearchPage> {
             !p.name.toLowerCase().contains('denim')) {
           return false;
         }
-        if (_selectedCategory == 'Shoes' && !p.name.toLowerCase().contains('sneakers')) {
+        if (_selectedCategory == 'Shoes' &&
+            !p.name.toLowerCase().contains('sneakers')) {
           return false;
         }
-        if (_selectedCategory == 'Watches' && !p.name.toLowerCase().contains('watch')) {
+        if (_selectedCategory == 'Watches' &&
+            !p.name.toLowerCase().contains('watch')) {
           return false;
         }
       }
 
       // 3. Price Range filter
       if (_selectedPriceRange != 'All') {
-        if (_selectedPriceRange == 'Under \$100' && p.price >= 100) return false;
-        if (_selectedPriceRange == '\$100 - \$200' && (p.price < 100 || p.price > 200)) return false;
-        if (_selectedPriceRange == 'Above \$200' && p.price <= 200) return false;
+        if (_selectedPriceRange == 'Under \$100' && p.price >= 100)
+          return false;
+        if (_selectedPriceRange == '\$100 - \$200' &&
+            (p.price < 100 || p.price > 200)) return false;
+        if (_selectedPriceRange == 'Above \$200' && p.price <= 200)
+          return false;
       }
 
       return true;
@@ -177,7 +196,9 @@ class _SearchPageState extends State<SearchPage> {
             child: IconButton(
               onPressed: _showFilterSheet,
               icon: Icon(Icons.tune_rounded,
-                  color: (_selectedSort != 'Latest' || _selectedCategory != 'All' || _selectedPriceRange != 'All')
+                  color: (_selectedSort != 'Latest' ||
+                          _selectedCategory != 'All' ||
+                          _selectedPriceRange != 'All')
                       ? AppColors.primary
                       : AppColors.textPrimary),
             ),
@@ -189,49 +210,16 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Recent searches
-            if (_recentSearches.isNotEmpty) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Recent Searches',
-                      style: AppTextStyles.productName.copyWith(fontSize: 15)),
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _recentSearches.clear()),
-                      child: Text('CLEAR ALL',
-                          style: AppTextStyles.buttonOutlined
-                              .copyWith(fontSize: 12, color: AppColors.primary)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _recentSearches
-                    .map((s) => _RecentChip(
-                          label: s,
-                          onTap: () {
-                            setState(() {
-                              _searchCtrl.text = s;
-                            });
-                          },
-                          onRemove: () =>
-                              setState(() => _recentSearches.remove(s)),
-                        ))
-                    .toList(),
-              ),
-              const SizedBox(height: 20),
-            ],
-            
+            const SizedBox(height: 8),
             // Search filters active indicators
-            if (_selectedCategory != 'All' || _selectedPriceRange != 'All' || _selectedSort != 'Latest') ...[
+            if (_selectedCategory != 'All' ||
+                _selectedPriceRange != 'All' ||
+                _selectedSort != 'Latest') ...[
               Row(
                 children: [
-                  Text('Filters:', style: AppTextStyles.brandName.copyWith(fontWeight: FontWeight.bold)),
+                  Text('Filters:',
+                      style: AppTextStyles.brandName
+                          .copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: SingleChildScrollView(
@@ -239,11 +227,20 @@ class _SearchPageState extends State<SearchPage> {
                       child: Row(
                         children: [
                           if (_selectedSort != 'Latest')
-                            _ActiveFilterChip(label: _selectedSort, onRemove: () => setState(() => _selectedSort = 'Latest')),
+                            _ActiveFilterChip(
+                                label: _selectedSort,
+                                onRemove: () =>
+                                    setState(() => _selectedSort = 'Latest')),
                           if (_selectedCategory != 'All')
-                            _ActiveFilterChip(label: _selectedCategory, onRemove: () => setState(() => _selectedCategory = 'All')),
+                            _ActiveFilterChip(
+                                label: _selectedCategory,
+                                onRemove: () =>
+                                    setState(() => _selectedCategory = 'All')),
                           if (_selectedPriceRange != 'All')
-                            _ActiveFilterChip(label: _selectedPriceRange, onRemove: () => setState(() => _selectedPriceRange = 'All')),
+                            _ActiveFilterChip(
+                                label: _selectedPriceRange,
+                                onRemove: () => setState(
+                                    () => _selectedPriceRange = 'All')),
                         ],
                       ),
                     ),
@@ -256,14 +253,22 @@ class _SearchPageState extends State<SearchPage> {
             Text('Search Results (${results.length})',
                 style: AppTextStyles.sectionTitle.copyWith(fontSize: 18)),
             const SizedBox(height: 12),
-            
-            if (results.isEmpty)
+
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (results.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 40),
                 child: Center(
                   child: Column(
                     children: [
-                      Icon(Icons.search_off_rounded, size: 48, color: AppColors.iconMuted.withAlpha(120)),
+                      Icon(Icons.search_off_rounded,
+                          size: 48, color: AppColors.iconMuted.withAlpha(120)),
                       const SizedBox(height: 12),
                       Text('No products found matching filters.',
                           style: AppTextStyles.brandName),
@@ -284,47 +289,56 @@ class _SearchPageState extends State<SearchPage> {
                 itemCount: results.length,
                 itemBuilder: (context, i) {
                   final prod = results[i];
+                  final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+                  final isMine = prod.userId == currentUserId;
                   return MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/product',
-                          arguments: prod),
-                      child: ProductCard(
-                        product: prod,
-                        onAddToCart: () {
-                          CartStateProvider.of(context).addItem(
-                            productId: prod.id,
-                            name: prod.name,
-                            variant: 'Default',
-                            price: prod.price,
-                            imageUrl: prod.imageUrl,
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Added to cart!',
-                                  style: AppTextStyles.brandName
-                                      .copyWith(color: Colors.white)),
-                              backgroundColor: AppColors.primary,
-                              behavior: SnackBarBehavior.floating,
-                              margin: const EdgeInsets.all(16),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        onBuyNow: () {
-                          CartStateProvider.of(context).addItem(
-                            productId: prod.id,
-                            name: prod.name,
-                            variant: 'Default',
-                            price: prod.price,
-                            imageUrl: prod.imageUrl,
-                          );
-                          Navigator.pushNamed(context, '/checkout');
-                        },
-                      ),
-                    ),
+                        onTap: () => Navigator.pushNamed(context, '/product',
+                            arguments: prod),
+                        child: ProductCard(
+                          product: prod,
+                          onAddToCart: isMine
+                              ? null
+                              : () {
+                                  CartStateProvider.of(context).addItem(
+                                    productId: prod.id,
+                                    name: prod.name,
+                                    variant: 'Default',
+                                    price: prod.price,
+                                    imageUrl: prod.imageUrl,
+                                  );
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Added to cart!',
+                                        style: AppTextStyles.brandName
+                                            .copyWith(color: Colors.white),
+                                      ),
+                                      backgroundColor: AppColors.primary,
+                                      behavior: SnackBarBehavior.floating,
+                                      margin: const EdgeInsets.all(16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                          onBuyNow: isMine
+                              ? null
+                              : () {
+                                  CartStateProvider.of(context).addItem(
+                                    productId: prod.id,
+                                    name: prod.name,
+                                    variant: 'Default',
+                                    price: prod.price,
+                                    imageUrl: prod.imageUrl,
+                                  );
+                                  Navigator.pushNamed(context, '/checkout');
+                                },
+                        )),
                   );
                 },
               ),
@@ -359,7 +373,8 @@ class _SearchBar extends StatelessWidget {
   final FocusNode focusNode;
   final ValueChanged<String>? onChanged;
 
-  const _SearchBar({required this.controller, required this.focusNode, this.onChanged});
+  const _SearchBar(
+      {required this.controller, required this.focusNode, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -402,7 +417,8 @@ class _RecentChip extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onRemove;
 
-  const _RecentChip({required this.label, required this.onTap, required this.onRemove});
+  const _RecentChip(
+      {required this.label, required this.onTap, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -424,7 +440,8 @@ class _RecentChip extends StatelessWidget {
                   size: 14, color: AppColors.iconMuted),
               const SizedBox(width: 6),
               Text(label,
-                  style: AppTextStyles.brandName.copyWith(fontSize: 13, color: AppColors.textPrimary)),
+                  style: AppTextStyles.brandName
+                      .copyWith(fontSize: 13, color: AppColors.textPrimary)),
               const SizedBox(width: 6),
               GestureDetector(
                 onTap: () {
@@ -460,13 +477,16 @@ class _ActiveFilterChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AppTextStyles.brandName.copyWith(color: AppColors.primary, fontSize: 11)),
+          Text(label,
+              style: AppTextStyles.brandName
+                  .copyWith(color: AppColors.primary, fontSize: 11)),
           const SizedBox(width: 4),
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
               onTap: onRemove,
-              child: const Icon(Icons.close_rounded, size: 12, color: AppColors.primary),
+              child: const Icon(Icons.close_rounded,
+                  size: 12, color: AppColors.primary),
             ),
           ),
         ],
@@ -474,8 +494,6 @@ class _ActiveFilterChip extends StatelessWidget {
     );
   }
 }
-
-
 
 // ── Filter Sheet Bottom Sheet ──────────────────────────────────────────────────
 
@@ -522,7 +540,8 @@ class _FilterSheetState extends State<_FilterSheet> {
         color: Color(0xFF1E1E1E),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
-          BoxShadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, -4))
+          BoxShadow(
+              color: Colors.black54, blurRadius: 16, offset: Offset(0, -4))
         ],
       ),
       child: Column(
@@ -550,7 +569,8 @@ class _FilterSheetState extends State<_FilterSheet> {
 
           // Sort Section
           Text('Sort By',
-              style: AppTextStyles.productName.copyWith(color: Colors.white70, fontSize: 14)),
+              style: AppTextStyles.productName
+                  .copyWith(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -562,11 +582,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                 child: GestureDetector(
                   onTap: () => setState(() => _sort = opt),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: active ? AppColors.primary : Colors.white10,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: active ? Colors.transparent : Colors.white24),
+                      border: Border.all(
+                          color: active ? Colors.transparent : Colors.white24),
                     ),
                     child: Text(opt,
                         style: AppTextStyles.brandName.copyWith(
@@ -581,7 +603,8 @@ class _FilterSheetState extends State<_FilterSheet> {
 
           // Category Section
           Text('Category',
-              style: AppTextStyles.productName.copyWith(color: Colors.white70, fontSize: 14)),
+              style: AppTextStyles.productName
+                  .copyWith(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -593,11 +616,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                 child: GestureDetector(
                   onTap: () => setState(() => _category = opt),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: active ? AppColors.primary : Colors.white10,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: active ? Colors.transparent : Colors.white24),
+                      border: Border.all(
+                          color: active ? Colors.transparent : Colors.white24),
                     ),
                     child: Text(opt,
                         style: AppTextStyles.brandName.copyWith(
@@ -612,7 +637,8 @@ class _FilterSheetState extends State<_FilterSheet> {
 
           // Price Section
           Text('Price Range',
-              style: AppTextStyles.productName.copyWith(color: Colors.white70, fontSize: 14)),
+              style: AppTextStyles.productName
+                  .copyWith(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -624,11 +650,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                 child: GestureDetector(
                   onTap: () => setState(() => _priceRange = opt),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: active ? AppColors.primary : Colors.white10,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: active ? Colors.transparent : Colors.white24),
+                      border: Border.all(
+                          color: active ? Colors.transparent : Colors.white24),
                     ),
                     child: Text(opt,
                         style: AppTextStyles.brandName.copyWith(
@@ -658,9 +686,12 @@ class _FilterSheetState extends State<_FilterSheet> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.white30),
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
                     ),
-                    child: Text('Reset', style: AppTextStyles.buttonOutlined.copyWith(color: Colors.white)),
+                    child: Text('Reset',
+                        style: AppTextStyles.buttonOutlined
+                            .copyWith(color: Colors.white)),
                   ),
                 ),
               ),
@@ -677,9 +708,12 @@ class _FilterSheetState extends State<_FilterSheet> {
                       backgroundColor: AppColors.primary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
                     ),
-                    child: Text('Apply Filters', style: AppTextStyles.buttonFilled.copyWith(color: Colors.white)),
+                    child: Text('Apply Filters',
+                        style: AppTextStyles.buttonFilled
+                            .copyWith(color: Colors.white)),
                   ),
                 ),
               ),

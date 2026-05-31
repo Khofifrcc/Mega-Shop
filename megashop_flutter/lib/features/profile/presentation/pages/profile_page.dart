@@ -25,6 +25,15 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  String _fullUrl(dynamic value) {
+    final url = (value ?? '').toString();
+
+    if (url.isEmpty) return '';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return 'http://127.0.0.1:8000$url';
+
+    return 'http://127.0.0.1:8000/$url';
+  }
 
   String username = '';
   String profilePhoto = '';
@@ -153,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage>
               name: item['name'] ?? 'Product',
               brand: item['user_id'] ?? 'MegaShop',
               price: (item['price'] as num).toDouble(),
-              imageUrl: item['image'] ?? '',
+              imageUrl: _fullUrl(item['image']),
               description: item['description'] ?? '',
             );
           }).toList();

@@ -56,6 +56,15 @@ class _HomePageState extends State<HomePage> {
     _categories = _dataSource.getCategories();
   }
 
+//helper
+  String _fullUrl(dynamic value) {
+    final url = (value ?? '').toString();
+    if (url.isEmpty) return '';
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return 'http://127.0.0.1:8000$url';
+    return 'http://127.0.0.1:8000/$url';
+  }
+
   Future<void> _loadProducts() async {
     try {
       final response = await http.get(
@@ -74,9 +83,9 @@ class _HomePageState extends State<HomePage> {
           userId: item['user_id'] ?? '',
           name: item['name'] ?? 'Product',
           brand: item['username'] ?? item['user_id'] ?? 'MegaShop',
-          profilePhoto: item['profile_photo'] ?? '',
+          profilePhoto: Uri.encodeFull(_fullUrl(item['profile_photo'])),
+          imageUrl: Uri.encodeFull(_fullUrl(item['image'])),
           price: (item['price'] as num).toDouble(),
-          imageUrl: item['image'] ?? 'https://picsum.photos/500',
           description: item['description'] ?? '',
           badge: null,
           isFavorite: false,
@@ -102,7 +111,7 @@ class _HomePageState extends State<HomePage> {
   void _handleAddToCart(Product product) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    if (product.brand == currentUserId) {
+    if (product.userId == currentUserId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("You can't add your own product to cart")),
       );
@@ -128,7 +137,7 @@ class _HomePageState extends State<HomePage> {
   void _handleBuyNow(Product product) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    if (product.brand == currentUserId) {
+    if (product.userId == currentUserId) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("You can't buy your own product")),
       );

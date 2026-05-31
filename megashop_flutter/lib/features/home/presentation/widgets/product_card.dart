@@ -201,7 +201,7 @@ class _ProductImage extends StatelessWidget {
                   ],
                 )
               : CachedNetworkImage(
-                  imageUrl: product.imageUrl,
+                  imageUrl: Uri.encodeFull(product.imageUrl),
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,

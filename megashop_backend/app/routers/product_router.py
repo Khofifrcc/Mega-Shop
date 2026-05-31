@@ -46,7 +46,7 @@ def update_product(product_id: int, product: ProductCreate):
         raise HTTPException(status_code=404, detail="Product not found")
 
     return {"message": "Product updated successfully"}
-@router.get("/user/{user_id}")
+
 @router.get("/user/{user_id}")
 def get_products_by_user(user_id: str):
     conn = get_connection()
@@ -102,3 +102,5 @@ def delete_product(product_id: int):
         raise HTTPException(status_code=404, detail="Product not found")
 
     return {"message": "Product deleted successfully"}
+
+    

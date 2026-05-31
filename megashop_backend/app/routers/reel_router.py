@@ -1,65 +1,64 @@
 from fastapi import APIRouter, HTTPException
 from app.schemas.reel_schema import ReelCreate
+from app.database import get_connection
 
 router = APIRouter(prefix="/reels", tags=["Reels"])
 
-reels = [
-    {
-        "id": 1,
-        "user_id": "user_1",
-        "caption": "Check this hoodie!",
-        "video_url": "https://example.com/video.mp4",
-        "product_id": 1
-    }
-]
-
 @router.get("/")
 def get_reels():
-    return reels
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM reels ORDER BY id DESC").fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
 
-@router.get("/{reel_id}")
-def get_reel(reel_id: int):
-    for reel in reels:
-        if reel["id"] == reel_id:
-            return reel
-
-    raise HTTPException(status_code=404, detail="Reel not found")
+@router.get("/user/{user_id}")
+def get_reels_by_user(user_id: str):
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM reels WHERE user_id = ? ORDER BY id DESC",
+        (user_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
 
 @router.post("/")
+@router.post("/")
 def create_reel(reel: ReelCreate):
-    new_reel = {
-        "id": len(reels) + 1,
-        **reel.dict()
-    }
-
-    reels.append(new_reel)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO reels (user_id, caption, video, product_name, price, image)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            reel.user_id,
+            reel.caption,
+            reel.video,
+            reel.product_name,
+            reel.price,
+            reel.image,
+        ),
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
 
     return {
         "message": "Reel created successfully",
-        "data": new_reel
+        "data": {"id": new_id, **reel.dict()},
     }
-
-@router.put("/{reel_id}")
-def update_reel(reel_id: int, updated_reel: ReelCreate):
-    for reel in reels:
-        if reel["id"] == reel_id:
-            reel.update(updated_reel.dict())
-
-            return {
-                "message": "Reel updated successfully",
-                "data": reel
-            }
-
-    raise HTTPException(status_code=404, detail="Reel not found")
 
 @router.delete("/{reel_id}")
 def delete_reel(reel_id: int):
-    for reel in reels:
-        if reel["id"] == reel_id:
-            reels.remove(reel)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM reels WHERE id = ?", (reel_id,))
+    conn.commit()
+    deleted = cur.rowcount
+    conn.close()
 
-            return {
-                "message": "Reel deleted successfully"
-            }
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Reel not found")
 
-    raise HTTPException(status_code=404, detail="Reel not found")
+    return {"message": "Reel deleted successfully"}

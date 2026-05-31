@@ -1,47 +1,89 @@
 from fastapi import APIRouter, HTTPException
 from app.schemas.product_schema import ProductCreate
+from app.database import get_connection
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
-products = [
-    {
-        "id": 1,
-        "name": "Pink Hoodie",
-        "price": 300000,
-        "description": "Oversized hoodie",
-        "image": "https://picsum.photos/500"
-    }
-]
-
 @router.get("/")
 def get_products():
-    return products
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
 
-@router.get("/{product_id}")
-def get_product(product_id: int):
-    for product in products:
-        if product["id"] == product_id:
-            return product
-    raise HTTPException(status_code=404, detail="Product not found")
+@router.put("/{product_id}")
+def update_product(product_id: int, product: ProductCreate):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE products
+        SET name = ?, price = ?, description = ?, image = ?
+        WHERE id = ? AND user_id = ?
+        """,
+        (
+            product.name,
+            product.price,
+            product.description,
+            product.image,
+            product_id,
+            product.user_id,
+        ),
+    )
+    conn.commit()
+    updated = cur.rowcount
+    conn.close()
+
+    if updated == 0:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    return {"message": "Product updated successfully"}
+@router.get("/user/{user_id}")
+def get_products_by_user(user_id: str):
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM products WHERE user_id = ? ORDER BY id DESC",
+        (user_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
 
 @router.post("/")
 def create_product(product: ProductCreate):
-    new_product = {"id": len(products) + 1, **product.dict()}
-    products.append(new_product)
-    return {"message": "Product created successfully", "data": new_product}
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO products (user_id, name, price, description, image)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            product.user_id,
+            product.name,
+            product.price,
+            product.description,
+            product.image,
+        ),
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
 
-@router.put("/{product_id}")
-def update_product(product_id: int, updated_product: ProductCreate):
-    for product in products:
-        if product["id"] == product_id:
-            product.update(updated_product.dict())
-            return {"message": "Product updated successfully", "data": product}
-    raise HTTPException(status_code=404, detail="Product not found")
+    return {
+        "message": "Product created successfully",
+        "data": {"id": new_id, **product.dict()},
+    }
 
 @router.delete("/{product_id}")
 def delete_product(product_id: int):
-    for product in products:
-        if product["id"] == product_id:
-            products.remove(product)
-            return {"message": "Product deleted successfully"}
-    raise HTTPException(status_code=404, detail="Product not found")
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM products WHERE id = ?", (product_id,))
+    conn.commit()
+    deleted = cur.rowcount
+    conn.close()
+
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    return {"message": "Product deleted successfully"}

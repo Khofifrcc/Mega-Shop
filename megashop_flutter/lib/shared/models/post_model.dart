@@ -4,6 +4,8 @@ class PostModel {
   final String caption;
   final String image;
   final String postType;
+  int likes;
+  bool isLiked;
 
   PostModel({
     required this.id,
@@ -11,6 +13,8 @@ class PostModel {
     required this.caption,
     required this.image,
     required this.postType,
+    required this.likes,
+    this.isLiked = false,
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +24,7 @@ class PostModel {
       caption: json['caption'],
       image: json['image'],
       postType: json['post_type'] ?? 'regular',
+      likes: json['likes'] ?? 0,
     );
   }
 }

@@ -115,6 +115,23 @@ class _PostCreationPageState extends State<PostCreationPage> {
       final userName = user?.email?.split('@').first ?? 'User';
 
       if (_isProductPost) {
+        // Product Video → Reels Shop
+        if (_isVideoPost && _uploadedVideoUrl != null) {
+          await _reelRepository.createReel(
+            username: userName,
+            userAvatar: 'https://picsum.photos/100',
+            productName: _productNameCtrl.text.trim(),
+            price: double.tryParse(_priceCtrl.text) ?? 0,
+            imageUrl: _uploadedImageUrl ?? 'https://picsum.photos/600',
+            videoUrl: _uploadedVideoUrl!,
+          );
+
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/reels');
+          return;
+        }
+
+        // Product Image → Feed Shop
         await _productRepository.createProduct(
           name: _productNameCtrl.text.trim(),
           price: int.tryParse(_priceCtrl.text.trim()) ?? 0,
@@ -302,11 +319,10 @@ class _PostCreationPageState extends State<PostCreationPage> {
                                 child: _MediaChip(label: '📷 Photo'),
                               ),
                               const SizedBox(width: 8),
-                              if (!_isProductPost)
-                                GestureDetector(
-                                  onTap: _pickAndUploadVideo,
-                                  child: _MediaChip(label: '🎬 Video'),
-                                ),
+                              GestureDetector(
+                                onTap: _pickAndUploadVideo,
+                                child: _MediaChip(label: '🎬 Video'),
+                              ),
                             ],
                           ),
                         ],

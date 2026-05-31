@@ -291,6 +291,37 @@ class _HomePageState extends State<HomePage> {
               style: AppTextStyles.productName,
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      if (post.isLiked) {
+                        post.likes--;
+                      } else {
+                        post.likes++;
+                      }
+
+                      post.isLiked = !post.isLiked;
+                    });
+                  },
+                  icon: Icon(
+                    post.isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: post.isLiked ? Colors.red : AppColors.iconMuted,
+                  ),
+                ),
+                Text('${post.likes}'),
+                const SizedBox(width: 12),
+                const Icon(Icons.chat_bubble_outline),
+                const SizedBox(width: 4),
+                const Text('0'),
+                const Spacer(),
+                const Icon(Icons.share_outlined),
+              ],
+            ),
+          ),
         ],
       ),
     );

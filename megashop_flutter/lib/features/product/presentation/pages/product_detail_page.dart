@@ -81,8 +81,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final product = (ModalRoute.of(context)?.settings.arguments is Product)
         ? ModalRoute.of(context)!.settings.arguments as Product
         : _mockProduct;
-
-    final images = [product.imageUrl, ..._extraImages];
+    final isVideoProduct = product.imageUrl.toLowerCase().contains('.mp4') ||
+        product.imageUrl.toLowerCase().contains('.mov') ||
+        product.imageUrl.toLowerCase().contains('.webm');
+    final images = [product.imageUrl];
+    final detailText = product.description.isNotEmpty
+        ? product.description
+        : '${product.name} by ${product.brand}';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -158,8 +163,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     padding: EdgeInsets.zero,
                   ),
                   child: Text('Buy Now',
-                      style:
-                          AppTextStyles.buttonFilled.copyWith(fontSize: 15)),
+                      style: AppTextStyles.buttonFilled.copyWith(fontSize: 15)),
                 ),
               ),
             ),
@@ -176,6 +180,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               images: images,
               currentIndex: _imageIndex,
               isFavorite: _isFavorite,
+              isVideoProduct: isVideoProduct,
               onIndexChanged: (i) => setState(() => _imageIndex = i),
               onBack: () => Navigator.pop(context),
               onShare: () {},
@@ -195,8 +200,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 children: [
                   // Product name
                   Text(product.name,
-                      style:
-                          AppTextStyles.sectionTitle.copyWith(fontSize: 22)),
+                      style: AppTextStyles.sectionTitle.copyWith(fontSize: 22)),
                   const SizedBox(height: 8),
 
                   // Price + free shipping
@@ -255,7 +259,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('TechHaven Official',
+                                  Text(product.brand,
                                       style: AppTextStyles.productName),
                                   const SizedBox(height: 2),
                                   Row(
@@ -308,13 +312,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
                   // Description
                   Text('Product Details',
-                      style:
-                          AppTextStyles.sectionTitle.copyWith(fontSize: 17)),
+                      style: AppTextStyles.sectionTitle.copyWith(fontSize: 17)),
                   const SizedBox(height: 8),
                   Text(
                     _isExpanded
-                        ? _description
-                        : '${_description.substring(0, 120)}...',
+                        ? detailText
+                        : detailText.length > 120
+                            ? '${detailText.substring(0, 120)}...'
+                            : detailText,
                     style: AppTextStyles.brandName
                         .copyWith(fontSize: 13, height: 1.6),
                   ),
@@ -322,8 +327,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
-                      onTap: () =>
-                          setState(() => _isExpanded = !_isExpanded),
+                      onTap: () => setState(() => _isExpanded = !_isExpanded),
                       child: Text(
                         _isExpanded ? 'Show less' : 'Read more',
                         style:
@@ -351,6 +355,7 @@ class _HeroImageSection extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onShare;
   final VoidCallback onFavorite;
+  final bool isVideoProduct;
 
   const _HeroImageSection({
     required this.images,
@@ -360,6 +365,7 @@ class _HeroImageSection extends StatelessWidget {
     required this.onBack,
     required this.onShare,
     required this.onFavorite,
+    required this.isVideoProduct,
   });
 
   @override
@@ -371,15 +377,37 @@ class _HeroImageSection extends StatelessWidget {
           PageView.builder(
             itemCount: images.length,
             onPageChanged: onIndexChanged,
-            itemBuilder: (_, i) => CachedNetworkImage(
-              imageUrl: images[i],
-              fit: BoxFit.cover,
-              width: double.infinity,
-              placeholder: (_, __) =>
-                  Container(color: AppColors.primarySurface),
-              errorWidget: (_, __, ___) =>
-                  Container(color: AppColors.primarySurface),
-            ),
+            itemBuilder: (_, i) {
+              final isVideo = images[i].toLowerCase().contains('.mp4') ||
+                  images[i].toLowerCase().contains('.mov') ||
+                  images[i].toLowerCase().contains('.webm');
+
+              return isVideo
+                  ? Container(
+                      color: Colors.black,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(context, '/reels');
+                          },
+                          child: const Icon(
+                            Icons.play_circle_fill_rounded,
+                            color: Colors.white,
+                            size: 72,
+                          ),
+                        ),
+                      ),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: images[i],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      placeholder: (_, __) =>
+                          Container(color: AppColors.primarySurface),
+                      errorWidget: (_, __, ___) =>
+                          Container(color: AppColors.primarySurface),
+                    );
+            },
           ),
           // Dot indicators
           Positioned(
@@ -396,7 +424,8 @@ class _HeroImageSection extends StatelessWidget {
                   height: 6,
                   margin: const EdgeInsets.symmetric(horizontal: 2),
                   decoration: BoxDecoration(
-                    color: i == currentIndex ? AppColors.surface : Colors.white54,
+                    color:
+                        i == currentIndex ? AppColors.surface : Colors.white54,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -406,13 +435,11 @@ class _HeroImageSection extends StatelessWidget {
           // Back / Share / Heart buttons
           SafeArea(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _CircleIconBtn(
-                      icon: Icons.arrow_back_rounded, onTap: onBack),
+                  _CircleIconBtn(icon: Icons.arrow_back_rounded, onTap: onBack),
                   Row(
                     children: [
                       _CircleIconBtn(

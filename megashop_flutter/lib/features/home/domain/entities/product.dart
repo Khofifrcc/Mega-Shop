@@ -4,6 +4,7 @@ class Product {
   final String id;
   final String name;
   final String brand;
+  final String description;
 
   /// Current selling price in USD
   final double price;
@@ -25,6 +26,7 @@ class Product {
     required this.name,
     required this.brand,
     required this.price,
+    this.description = '',
     this.originalPrice,
     required this.imageUrl,
     this.badge,
@@ -42,6 +44,7 @@ class Product {
     double? originalPrice,
     String? imageUrl,
     String? badge,
+    String? description,
     bool? isFavorite,
   }) {
     return Product(
@@ -53,6 +56,7 @@ class Product {
       imageUrl: imageUrl ?? this.imageUrl,
       badge: badge ?? this.badge,
       isFavorite: isFavorite ?? this.isFavorite,
+      description: description ?? this.description,
     );
   }
 }

@@ -12,6 +12,8 @@ class TrendingGrid extends StatelessWidget {
   final Function(Product)? onBuyNow;
   final Function(Product, bool)? onFavoriteToggle;
   final Function(Product)? onProductTap;
+  final Function(Product)? onEdit;
+  final Function(Product)? onDelete;
 
   const TrendingGrid({
     super.key,
@@ -20,6 +22,8 @@ class TrendingGrid extends StatelessWidget {
     this.onBuyNow,
     this.onFavoriteToggle,
     this.onProductTap,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -51,6 +55,8 @@ class TrendingGrid extends StatelessWidget {
               onAddToCart: () => onAddToCart?.call(product),
               onBuyNow: () => onBuyNow?.call(product),
               onFavoriteToggle: (val) => onFavoriteToggle?.call(product, val),
+              onEdit: () => onEdit?.call(product),
+              onDelete: () => onDelete?.call(product),
             ),
           ),
         );

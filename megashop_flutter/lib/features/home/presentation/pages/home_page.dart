@@ -12,6 +12,9 @@ import '../widgets/category_filter_bar.dart';
 import '../widgets/stories_row.dart';
 import '../widgets/story_viewer.dart';
 import '../widgets/trending_grid.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Main Home screen of MegaShop.
 ///
@@ -29,7 +32,8 @@ class _HomePageState extends State<HomePage> {
 
   int _navIndex = 0;
 
-  late final List<Product> _products;
+  List<Product> _products = [];
+  bool _isLoadingProducts = true;
   late final List<Story> _stories;
   late final List<String> _categories;
 
@@ -47,12 +51,62 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _products = _dataSource.getTrendingProducts();
+    _loadProducts();
     _stories = _dataSource.getStories().cast<Story>();
     _categories = _dataSource.getCategories();
   }
 
+  Future<void> _loadProducts() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://127.0.0.1:8000/products/'),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load products');
+      }
+
+      final List data = jsonDecode(response.body);
+
+      final products = data.map((item) {
+        return Product(
+          id: item['id'].toString(),
+          name: item['name'] ?? 'Product',
+          brand: item['user_id'] ?? 'MegaShop',
+          price: (item['price'] as num).toDouble(),
+          imageUrl: item['image'] ?? 'https://picsum.photos/500',
+          description: item['description'] ?? '',
+          badge: null,
+          isFavorite: false,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _products = products;
+          _isLoadingProducts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _products = _dataSource.getTrendingProducts();
+          _isLoadingProducts = false;
+        });
+      }
+    }
+  }
+
   void _handleAddToCart(Product product) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (product.brand == currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You can't add your own product to cart")),
+      );
+      return;
+    }
+
     CartStateProvider.of(context).addItem(
       productId: product.id,
       name: product.name,
@@ -60,23 +114,25 @@ class _HomePageState extends State<HomePage> {
       price: product.price,
       imageUrl: product.imageUrl,
     );
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          '${product.name} added to cart!',
-          style: AppTextStyles.brandName
-              .copyWith(color: AppColors.textOnPrimary),
-        ),
+        content: Text('${product.name} added to cart!'),
         backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
       ),
     );
   }
 
   void _handleBuyNow(Product product) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (product.brand == currentUserId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You can't buy your own product")),
+      );
+      return;
+    }
+
     CartStateProvider.of(context).addItem(
       productId: product.id,
       name: product.name,
@@ -84,6 +140,7 @@ class _HomePageState extends State<HomePage> {
       price: product.price,
       imageUrl: product.imageUrl,
     );
+
     Navigator.pushNamed(context, '/checkout');
   }
 
@@ -168,17 +225,17 @@ class _HomePageState extends State<HomePage> {
     final storyId = _stories[index].id;
     Navigator.of(context)
         .push(
-          PageRouteBuilder(
-            opaque: false,
-            barrierColor: Colors.black87,
-            pageBuilder: (_, __, ___) => StoryViewer(
-              stories: _stories,
-              initialIndex: index,
-            ),
-            transitionsBuilder: (_, animation, __, child) =>
-                FadeTransition(opacity: animation, child: child),
-          ),
-        )
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black87,
+        pageBuilder: (_, __, ___) => StoryViewer(
+          stories: _stories,
+          initialIndex: index,
+        ),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+      ),
+    )
         .then((_) {
       // Mark as viewed when the viewer closes
       if (mounted) {
@@ -212,12 +269,40 @@ class _HomePageState extends State<HomePage> {
           setState(() {
             _addresses.removeAt(i);
             if (_selectedAddressIndex >= _addresses.length) {
-              _selectedAddressIndex = _addresses.isEmpty ? 0 : _addresses.length - 1;
+              _selectedAddressIndex =
+                  _addresses.isEmpty ? 0 : _addresses.length - 1;
             }
           });
         },
       ),
     );
+  }
+
+  Future<void> _deleteProduct(Product product) async {
+    final response = await http.delete(
+      Uri.parse('http://127.0.0.1:8000/products/${product.id}'),
+    );
+
+    if (!mounted) return;
+
+    if (response.statusCode >= 400) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Delete failed: ${response.body}')),
+      );
+      return;
+    }
+
+    setState(() {
+      _products.removeWhere((p) => p.id == product.id);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Product deleted')),
+    );
+  }
+
+  void _editProduct(Product product) {
+    Navigator.pushNamed(context, '/post', arguments: product);
   }
 
   @override
@@ -283,19 +368,31 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('Trending Now',
-                      style: AppTextStyles.sectionTitle),
+                  child:
+                      Text('Trending Now', style: AppTextStyles.sectionTitle),
                 ),
                 const SizedBox(height: 14),
-                TrendingGrid(
-                  products: _products,
-                  onAddToCart: _handleAddToCart,
-                  onBuyNow: _handleBuyNow,
-                  onFavoriteToggle: (product, isFav) {},
-                  onProductTap: (product) =>
-                      Navigator.pushNamed(context, '/product',
-                          arguments: product),
-                ),
+                if (_isLoadingProducts)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else
+                  TrendingGrid(
+                    products: _products,
+                    onAddToCart: _handleAddToCart,
+                    onBuyNow: _handleBuyNow,
+                    onFavoriteToggle: (product, isFav) {},
+                    onProductTap: (product) => Navigator.pushNamed(
+                      context,
+                      '/product',
+                      arguments: product,
+                    ),
+                    onEdit: _editProduct,
+                    onDelete: _deleteProduct,
+                  ),
                 const SizedBox(height: 24),
               ],
             ),
@@ -418,17 +515,15 @@ class _AddressBottomSheetState extends State<_AddressBottomSheet> {
                 onTap: () => widget.onSelect(i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppColors.primarySurface
                         : AppColors.background,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.divider,
+                      color: isSelected ? AppColors.primary : AppColors.divider,
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
@@ -509,8 +604,8 @@ class _AddressBottomSheetState extends State<_AddressBottomSheet> {
                         color: AppColors.primary, size: 18),
                     const SizedBox(width: 8),
                     Text('Add New Address',
-                        style: AppTextStyles.productName.copyWith(
-                            color: AppColors.primary, fontSize: 14)),
+                        style: AppTextStyles.productName
+                            .copyWith(color: AppColors.primary, fontSize: 14)),
                   ],
                 ),
               ),
@@ -540,8 +635,8 @@ class _AddressBottomSheetState extends State<_AddressBottomSheet> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: Text('Cancel',
-                        style: AppTextStyles.productName
-                            .copyWith(fontSize: 14)),
+                        style:
+                            AppTextStyles.productName.copyWith(fontSize: 14)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -561,8 +656,8 @@ class _AddressBottomSheetState extends State<_AddressBottomSheet> {
                       elevation: 0,
                     ),
                     child: Text('Save Address',
-                        style: AppTextStyles.buttonFilled
-                            .copyWith(fontSize: 14)),
+                        style:
+                            AppTextStyles.buttonFilled.copyWith(fontSize: 14)),
                   ),
                 ),
               ],

@@ -10,6 +10,9 @@ import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../domain/entities/reel.dart';
 import '../../../home/domain/entities/product.dart';
 import '../../../product/presentation/pages/seller_profile_page.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Full-screen vertical Reels — Instagram-style.
 ///
@@ -29,7 +32,8 @@ class ReelsPage extends StatefulWidget {
 }
 
 class _ReelsPageState extends State<ReelsPage> {
-  final _reels = _mockReels;
+  List<Reel> _reels = [];
+  bool _isLoadingReels = true;
   final _likedIds = <String>{};
   int _currentIndex = 0;
 
@@ -39,6 +43,7 @@ class _ReelsPageState extends State<ReelsPage> {
   @override
   void initState() {
     super.initState();
+    _loadReels();
     // Initialize mock comments for each reel
     for (var reel in _reels) {
       _reelComments[reel.id] = [
@@ -64,6 +69,68 @@ class _ReelsPageState extends State<ReelsPage> {
     }
   }
 
+  Future<void> _loadReels() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://127.0.0.1:8000/reels/'),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load reels');
+      }
+
+      final List data = jsonDecode(response.body);
+
+      final reels = data.map((item) {
+        final isProduct = item['is_product'] == 1 ||
+            item['is_product'] == true ||
+            item['is_product'] == '1' ||
+            item['is_product'] == 'true' ||
+            ((item['product_name'] ?? '').toString().isNotEmpty &&
+                ((item['price'] as num?)?.toDouble() ?? 0) > 0);
+
+        return Reel(
+          id: item['id'].toString(),
+          username: item['user_id'] ?? '@user',
+          userAvatar:
+              'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
+          caption: item['caption'] ?? '',
+          productName: isProduct ? (item['product_name'] ?? 'Product') : '',
+          price: isProduct ? ((item['price'] as num?)?.toDouble() ?? 0) : 0,
+          imageUrl: isProduct
+              ? (item['image'] ?? 'https://picsum.photos/500')
+              : 'https://picsum.photos/500',
+          videoUrl: item['video'] ??
+              'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+          likeCount: 0,
+          commentCount: 0,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _reels = reels.isEmpty ? _mockReels : reels;
+          _isLoadingReels = false;
+
+          for (var reel in _reels) {
+            _reelComments[reel.id] = [];
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _reels = _mockReels;
+          _isLoadingReels = false;
+
+          for (var reel in _reels) {
+            _reelComments[reel.id] = [];
+          }
+        });
+      }
+    }
+  }
+
   void _handlePageChange(int index) {
     setState(() => _currentIndex = index);
   }
@@ -72,6 +139,14 @@ class _ReelsPageState extends State<ReelsPage> {
   Widget build(BuildContext context) {
     // Hide status bar for immersive full-screen experience
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    if (_isLoadingReels) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
 
     return Scaffold(
       extendBody: true,
@@ -86,7 +161,8 @@ class _ReelsPageState extends State<ReelsPage> {
             onPageChanged: _handlePageChange,
             itemBuilder: (context, index) {
               final reel = _reels[index];
-              final currentCommentCount = _reelComments[reel.id]?.length ?? reel.commentCount;
+              final currentCommentCount =
+                  _reelComments[reel.id]?.length ?? reel.commentCount;
               return _ReelItem(
                 reel: reel,
                 isActive: index == _currentIndex,
@@ -360,7 +436,8 @@ class _ReelItemState extends State<_ReelItem>
         name: widget.reel.username,
         tagline: '🏆 Top Rated Seller · Premium Products',
         avatarUrl: widget.reel.userAvatar,
-        coverUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
+        coverUrl:
+            'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
         isVerified: true,
         productCount: 45,
         followersStr: '12.4K',
@@ -473,134 +550,146 @@ class _ReelItemState extends State<_ReelItem>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // 1. Product glass card (top of overlays)
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: _goToDetail,
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white12),
-                            ),
-                            child: Row(
-                              children: [
-                                // Product thumbnail
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: CachedNetworkImage(
-                                    imageUrl: widget.reel.imageUrl,
+                      if (widget.reel.productName.isNotEmpty &&
+                          widget.reel.price > 0)
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: _goToDetail,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Product thumbnail
+                                  Container(
                                     width: 48,
                                     height: 48,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(
-                                        color: Colors.white24),
-                                    errorWidget: (_, __, ___) =>
-                                        Container(color: Colors.white24),
+                                    color: Colors.black,
+                                    child: const Icon(
+                                      Icons.play_circle_fill_rounded,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        widget.reel.productName,
-                                        style: AppTextStyles.productName.copyWith(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            '\$${widget.reel.price.toStringAsFixed(2)}',
-                                            style: AppTextStyles.price.copyWith(fontSize: 14),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.reel.productName,
+                                          style: AppTextStyles.productName
+                                              .copyWith(
+                                            color: Colors.white,
+                                            fontSize: 13,
                                           ),
-                                          if (widget.reel.isOnSale) ...[
-                                            const SizedBox(width: 6),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
                                             Text(
-                                              '\$${widget.reel.originalPrice!.toStringAsFixed(2)}',
-                                              style: AppTextStyles.originalPrice.copyWith(
-                                                color: Colors.white54,
+                                              '\$${widget.reel.price.toStringAsFixed(2)}',
+                                              style: AppTextStyles.price
+                                                  .copyWith(fontSize: 14),
+                                            ),
+                                            if (widget.reel.isOnSale) ...[
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '\$${widget.reel.originalPrice!.toStringAsFixed(2)}',
+                                                style: AppTextStyles
+                                                    .originalPrice
+                                                    .copyWith(
+                                                  color: Colors.white54,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Buttons area
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Add to Cart: logo only, no text
+                                      MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: GestureDetector(
+                                          onTap: widget.onAddToCart,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white24,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                  color: Colors.white30),
+                                            ),
+                                            child: const Icon(
+                                              Icons.add_shopping_cart_rounded,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      // Buy Now: pill button with text
+                                      MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            CartStateProvider.of(context)
+                                                .addItem(
+                                              productId: widget.reel.id,
+                                              name: widget.reel.productName,
+                                              variant: 'Default',
+                                              price: widget.reel.price,
+                                              imageUrl: widget.reel.imageUrl,
+                                            );
+                                            SystemChrome.setEnabledSystemUIMode(
+                                                SystemUiMode.manual,
+                                                overlays:
+                                                    SystemUiOverlay.values);
+                                            Navigator.pushNamed(
+                                                context, '/checkout');
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.accent,
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                            child: Text(
+                                              'Buy Now',
+                                              style: AppTextStyles.buttonFilled
+                                                  .copyWith(
                                                 fontSize: 11,
+                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
-                                          ],
-                                        ],
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                // Buttons area
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Add to Cart: logo only, no text
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: GestureDetector(
-                                        onTap: widget.onAddToCart,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white24,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: Colors.white30),
-                                          ),
-                                          child: const Icon(
-                                            Icons.add_shopping_cart_rounded,
-                                            color: Colors.white,
-                                            size: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    // Buy Now: pill button with text
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          CartStateProvider.of(context).addItem(
-                                            productId: widget.reel.id,
-                                            name: widget.reel.productName,
-                                            variant: 'Default',
-                                            price: widget.reel.price,
-                                            imageUrl: widget.reel.imageUrl,
-                                          );
-                                          SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-                                              overlays: SystemUiOverlay.values);
-                                          Navigator.pushNamed(context, '/checkout');
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.accent,
-                                            borderRadius: BorderRadius.circular(16),
-                                          ),
-                                          child: Text(
-                                            'Buy Now',
-                                            style: AppTextStyles.buttonFilled.copyWith(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
                       const SizedBox(height: 10),
 
                       // 2. User row (middle of overlays)
@@ -616,8 +705,8 @@ class _ReelItemState extends State<_ReelItem>
                                   width: 40,
                                   height: 40,
                                   fit: BoxFit.cover,
-                                  placeholder: (_, __) => Container(
-                                      color: Colors.white24),
+                                  placeholder: (_, __) =>
+                                      Container(color: Colors.white24),
                                   errorWidget: (_, __, ___) =>
                                       Container(color: Colors.white24),
                                 ),
@@ -645,24 +734,35 @@ class _ReelItemState extends State<_ReelItem>
                           MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: GestureDetector(
-                              onTap: () => setState(
-                                  () => _isFollowing = !_isFollowing),
+                              onTap: () {
+                                if (widget.reel.username ==
+                                    FirebaseAuth.instance.currentUser?.uid) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text("This is your own reel")),
+                                  );
+                                  return;
+                                }
+
+                                setState(() => _isFollowing = !_isFollowing);
+                              },
                               child: AnimatedContainer(
-                                duration:
-                                    const Duration(milliseconds: 200),
+                                duration: const Duration(milliseconds: 200),
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 5),
                                 decoration: BoxDecoration(
                                   color: _isFollowing
                                       ? Colors.white24
                                       : AppColors.primary,
-                                  borderRadius:
-                                      BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
                                       color: Colors.white38, width: 1),
                                 ),
                                 child: Text(
-                                  _isFollowing ? 'Following' : 'Follow',
+                                  widget.reel.username ==
+                                          FirebaseAuth.instance.currentUser?.uid
+                                      ? 'Your Reel'
+                                      : (_isFollowing ? 'Following' : 'Follow'),
                                   style: AppTextStyles.badge
                                       .copyWith(fontSize: 12),
                                 ),
@@ -677,9 +777,7 @@ class _ReelItemState extends State<_ReelItem>
                       Text(
                         widget.reel.caption,
                         style: AppTextStyles.brandName.copyWith(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            height: 1.4),
+                            color: Colors.white70, fontSize: 13, height: 1.4),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -697,11 +795,10 @@ class _ReelItemState extends State<_ReelItem>
                       icon: widget.isLiked
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
-                      iconColor: widget.isLiked
-                          ? Colors.redAccent
-                          : Colors.white,
-                      label: _fmt(widget.reel.likeCount +
-                          (widget.isLiked ? 1 : 0)),
+                      iconColor:
+                          widget.isLiked ? Colors.redAccent : Colors.white,
+                      label: _fmt(
+                          widget.reel.likeCount + (widget.isLiked ? 1 : 0)),
                       onTap: widget.onLike,
                     ),
                     const SizedBox(height: 18),
@@ -723,8 +820,7 @@ class _ReelItemState extends State<_ReelItem>
                     const SizedBox(height: 18),
 
                     // Video progress ring (mini)
-                    if (_initialized)
-                      _VideoProgress(controller: _controller),
+                    if (_initialized) _VideoProgress(controller: _controller),
                   ],
                 ),
               ],
@@ -735,8 +831,7 @@ class _ReelItemState extends State<_ReelItem>
     );
   }
 
-  String _fmt(int n) =>
-      n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
+  String _fmt(int n) => n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
 }
 
 // ── Action button (Like / Comment / Share) ────────────────────────────────────
@@ -775,8 +870,8 @@ class _ActionBtn extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: AppTextStyles.brandName.copyWith(
-                  color: Colors.white, fontSize: 12),
+              style: AppTextStyles.brandName
+                  .copyWith(color: Colors.white, fontSize: 12),
             ),
           ],
         ),
@@ -882,8 +977,8 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             const SizedBox(height: 12),
             Text(
               '${widget.comments.length} Comments',
-              style: AppTextStyles.sectionTitle.copyWith(
-                  color: Colors.white, fontSize: 16),
+              style: AppTextStyles.sectionTitle
+                  .copyWith(color: Colors.white, fontSize: 16),
             ),
             const Divider(color: Colors.white12, height: 20),
 
@@ -913,8 +1008,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                   Expanded(
                     child: TextField(
                       controller: _ctrl,
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 14),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Add a comment…',
                         hintStyle: const TextStyle(color: Colors.white38),
@@ -971,8 +1065,7 @@ class _CommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-              radius: 18, backgroundImage: NetworkImage(c.avatar)),
+          CircleAvatar(radius: 18, backgroundImage: NetworkImage(c.avatar)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -981,8 +1074,8 @@ class _CommentTile extends StatelessWidget {
                 Row(
                   children: [
                     Text('@${c.author}',
-                        style: AppTextStyles.productName.copyWith(
-                            color: Colors.white, fontSize: 13)),
+                        style: AppTextStyles.productName
+                            .copyWith(color: Colors.white, fontSize: 13)),
                     const SizedBox(width: 8),
                     Text(c.time,
                         style: AppTextStyles.brandName
@@ -1068,7 +1161,8 @@ class _ShareSheetState extends State<_ShareSheet> {
           // Send to Friends horizontal list
           Text(
             'Send to Friends',
-            style: AppTextStyles.productName.copyWith(color: Colors.white, fontSize: 14),
+            style: AppTextStyles.productName
+                .copyWith(color: Colors.white, fontSize: 14),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -1086,12 +1180,14 @@ class _ShareSheetState extends State<_ShareSheet> {
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundImage: CachedNetworkImageProvider(f.avatarUrl),
+                        backgroundImage:
+                            CachedNetworkImageProvider(f.avatarUrl),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         f.name.split(' ').first,
-                        style: AppTextStyles.brandName.copyWith(color: Colors.white70, fontSize: 11),
+                        style: AppTextStyles.brandName
+                            .copyWith(color: Colors.white70, fontSize: 11),
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1123,18 +1219,23 @@ class _ShareSheetState extends State<_ShareSheet> {
                                       behavior: SnackBarBehavior.floating,
                                       margin: const EdgeInsets.all(16),
                                       shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12)),
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
                                       duration: const Duration(seconds: 2),
                                     ),
                                   );
                                 },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isSent ? Colors.white10 : AppColors.primary,
+                              color:
+                                  isSent ? Colors.white10 : AppColors.primary,
                               borderRadius: BorderRadius.circular(12),
-                              border: isSent ? Border.all(color: Colors.white24) : null,
+                              border: isSent
+                                  ? Border.all(color: Colors.white24)
+                                  : null,
                             ),
                             child: Text(
                               isSent ? 'Sent' : 'Send',
@@ -1173,7 +1274,8 @@ class _ShareSheetState extends State<_ShareSheet> {
                           .copyWith(color: Colors.white, fontSize: 15)),
                   onTap: () {
                     if (opt.$2 == 'Copy Link') {
-                      Clipboard.setData(ClipboardData(text: widget.reel.videoUrl));
+                      Clipboard.setData(
+                          ClipboardData(text: widget.reel.videoUrl));
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -1207,7 +1309,8 @@ class _ShareSheetState extends State<_ShareSheet> {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Thank you for reporting. We will review this Reel.',
+                          content: Text(
+                              'Thank you for reporting. We will review this Reel.',
                               style: AppTextStyles.brandName
                                   .copyWith(color: Colors.white)),
                           backgroundColor: Colors.redAccent,
@@ -1254,7 +1357,8 @@ final _mockReels = [
     username: '@style_guru',
     userAvatar:
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80',
-    caption: 'Summer collection just dropped 🌊 This dress is everything! #fashion #ootd',
+    caption:
+        'Summer collection just dropped 🌊 This dress is everything! #fashion #ootd',
     productName: 'Vibrant Summer Flow Dress',
     price: 89.99,
     originalPrice: 120.00,
@@ -1270,7 +1374,8 @@ final _mockReels = [
     username: '@sneaker_king',
     userAvatar:
         'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
-    caption: 'These Ultra Boost runners are next level 🔥 Copped mine last week 👟',
+    caption:
+        'These Ultra Boost runners are next level 🔥 Copped mine last week 👟',
     productName: 'Ultra Boost Runner X',
     price: 159.00,
     imageUrl:
@@ -1285,7 +1390,8 @@ final _mockReels = [
     username: '@tech_vibes',
     userAvatar:
         'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
-    caption: 'The Pro Series Smartwatch tracks everything ⌚ 14-day battery is insane',
+    caption:
+        'The Pro Series Smartwatch tracks everything ⌚ 14-day battery is insane',
     productName: 'Pro Series Smartwatch',
     price: 299.00,
     imageUrl:

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/product.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Reusable product card displayed in the 2-column trending grid.
 ///
@@ -17,6 +18,8 @@ class ProductCard extends StatefulWidget {
   final VoidCallback? onAddToCart;
   final VoidCallback? onBuyNow;
   final ValueChanged<bool>? onFavoriteToggle;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const ProductCard({
     super.key,
@@ -24,6 +27,8 @@ class ProductCard extends StatefulWidget {
     this.onAddToCart,
     this.onBuyNow,
     this.onFavoriteToggle,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -64,6 +69,8 @@ class _ProductCardState extends State<ProductCard>
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isMyProduct = widget.product.brand == currentUserId;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -118,10 +125,15 @@ class _ProductCardState extends State<ProductCard>
                     ],
                   ),
                   // Action buttons
-                  _ActionButtons(
-                    onAddToCart: widget.onAddToCart,
-                    onBuyNow: widget.onBuyNow,
-                  ),
+                  isMyProduct
+                      ? _OwnerButtons(
+                          onEdit: widget.onEdit,
+                          onDelete: widget.onDelete,
+                        )
+                      : _ActionButtons(
+                          onAddToCart: widget.onAddToCart,
+                          onBuyNow: widget.onBuyNow,
+                        ),
                 ],
               ),
             ),
@@ -151,34 +163,65 @@ class _ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isVideoProduct = product.imageUrl.toLowerCase().contains('.mp4') ||
+        product.imageUrl.toLowerCase().contains('.mov') ||
+        product.imageUrl.toLowerCase().contains('.webm');
     return Stack(
-      fit: StackFit.expand,  // fills the Expanded parent
+      fit: StackFit.expand, // fills the Expanded parent
       children: [
-        // Hero image
+        // Hero image / video preview
         ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-          child: CachedNetworkImage(
-            imageUrl: product.imageUrl,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-            placeholder: (ctx, url) => Container(
-              color: AppColors.primarySurface,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.primary,
-                  strokeWidth: 2,
+          child: isVideoProduct
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(
+                      color: Colors.black87,
+                    ),
+                    const Center(
+                      child: Icon(
+                        Icons.play_circle_fill_rounded,
+                        color: Colors.white,
+                        size: 60,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      left: 8,
+                      right: 8,
+                      child: Container(
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : CachedNetworkImage(
+                  imageUrl: product.imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  placeholder: (ctx, url) => Container(
+                    color: AppColors.primarySurface,
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  ),
+                  errorWidget: (ctx, url, err) => Container(
+                    color: AppColors.primarySurface,
+                    child: const Icon(
+                      Icons.image_not_supported_outlined,
+                      color: AppColors.iconMuted,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            errorWidget: (ctx, url, err) => Container(
-              color: AppColors.primarySurface,
-              child: const Icon(
-                Icons.image_not_supported_outlined,
-                color: AppColors.iconMuted,
-              ),
-            ),
-          ),
         ),
         // Badge (NEW / SALE)
         if (product.badge != null)
@@ -210,7 +253,9 @@ class _ProductImage extends StatelessWidget {
               child: ScaleTransition(
                 scale: heartScale,
                 child: Icon(
-                  isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
                   color: isFavorite ? AppColors.badgeSale : AppColors.iconMuted,
                   size: 18,
                 ),
@@ -353,6 +398,43 @@ class _ActionButtons extends StatelessWidget {
                 ),
               ),
               child: Text('Buy Now', style: AppTextStyles.buttonFilled),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OwnerButtons extends StatelessWidget {
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  const _OwnerButtons({this.onEdit, this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 34,
+            child: OutlinedButton(
+              onPressed: onEdit,
+              child: Text('Edit', style: AppTextStyles.buttonOutlined),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SizedBox(
+            height: 34,
+            child: ElevatedButton(
+              onPressed: onDelete,
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+              child:
+                  const Text('Delete', style: TextStyle(color: Colors.white)),
             ),
           ),
         ),

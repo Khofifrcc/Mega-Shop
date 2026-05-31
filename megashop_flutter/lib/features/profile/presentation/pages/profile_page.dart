@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
+import '../../../home/domain/entities/product.dart';
 
 /// Profile page matching the mockup.
 ///
@@ -26,6 +27,9 @@ class _ProfilePageState extends State<ProfilePage>
 
   String username = '';
   String bio = '';
+  List<Product> _products = [];
+  List<String> _reelVideos = [];
+  bool _isLoadingProfileData = true;
 
   final _feedImages = [
     'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=300&q=80',
@@ -45,6 +49,7 @@ class _ProfilePageState extends State<ProfilePage>
     );
 
     loadProfile();
+    loadUserUploads();
   }
 
   @override
@@ -71,6 +76,55 @@ class _ProfilePageState extends State<ProfilePage>
         username = data['username'] ?? '';
         bio = data['bio'] ?? '';
       });
+    }
+  }
+
+  Future<void> loadUserUploads() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final productResponse = await http.get(
+        Uri.parse('http://127.0.0.1:8000/products/user/${user.uid}'),
+      );
+
+      final reelResponse = await http.get(
+        Uri.parse('http://127.0.0.1:8000/reels/user/${user.uid}'),
+      );
+
+      final products = productResponse.statusCode == 200
+          ? jsonDecode(productResponse.body) as List
+          : [];
+
+      final reels = reelResponse.statusCode == 200
+          ? jsonDecode(reelResponse.body) as List
+          : [];
+
+      if (mounted) {
+        setState(() {
+          _products = products.map((item) {
+            return Product(
+              id: item['id'].toString(),
+              name: item['name'] ?? 'Product',
+              brand: item['user_id'] ?? 'MegaShop',
+              price: (item['price'] as num).toDouble(),
+              imageUrl: item['image'] ?? '',
+              description: item['description'] ?? '',
+            );
+          }).toList();
+
+          _reelVideos = reels
+              .map((item) => item['video']?.toString() ?? '')
+              .where((url) => url.isNotEmpty)
+              .toList();
+
+          _isLoadingProfileData = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingProfileData = false);
+      }
     }
   }
 
@@ -148,8 +202,12 @@ class _ProfilePageState extends State<ProfilePage>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _FeedGrid(images: _feedImages),
-                  _FeedGrid(images: _feedImages.reversed.toList(), isReels: true),
+                  _isLoadingProfileData
+                      ? const Center(child: CircularProgressIndicator())
+                      : _ProductGrid(products: _products),
+                  _isLoadingProfileData
+                      ? const Center(child: CircularProgressIndicator())
+                      : _ReelsGrid(videos: _reelVideos),
                 ],
               ),
             ),
@@ -244,8 +302,7 @@ class _ProfilePageState extends State<ProfilePage>
           // Bio
           Text(
             bio.isNotEmpty ? bio : 'No bio yet · MegaShop Member',
-            style: AppTextStyles.brandName
-                .copyWith(fontSize: 13, height: 1.4),
+            style: AppTextStyles.brandName.copyWith(fontSize: 13, height: 1.4),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -270,8 +327,7 @@ class _ProfilePageState extends State<ProfilePage>
                       const SizedBox(height: 12),
                       TextField(
                         controller: bioController,
-                        decoration:
-                            const InputDecoration(labelText: 'Bio'),
+                        decoration: const InputDecoration(labelText: 'Bio'),
                       ),
                     ],
                   ),
@@ -311,8 +367,7 @@ class _ProfilePageState extends State<ProfilePage>
               backgroundColor: AppColors.surface,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             ),
           ),
           const SizedBox(height: 20),
@@ -370,6 +425,13 @@ class _FeedGrid extends StatelessWidget {
 
   const _FeedGrid({required this.images, this.isReels = false});
 
+  bool _isVideo(String url) {
+    final lower = url.toLowerCase();
+    return lower.contains('.mp4') ||
+        lower.contains('.mov') ||
+        lower.contains('.webm');
+  }
+
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
@@ -381,17 +443,31 @@ class _FeedGrid extends StatelessWidget {
       ),
       itemCount: images.length,
       itemBuilder: (context, i) {
+        final isVideo = _isVideo(images[i]);
+
         return Stack(
           fit: StackFit.expand,
           children: [
-            CachedNetworkImage(
-              imageUrl: images[i],
-              fit: BoxFit.cover,
-              placeholder: (ctx, url) => Container(color: AppColors.primarySurface),
-              errorWidget: (ctx, url, err) =>
-                  Container(color: AppColors.primarySurface),
-            ),
-            if (isReels) ...[
+            isVideo
+                ? Container(
+                    color: Colors.black,
+                    child: const Center(
+                      child: Icon(
+                        CupertinoIcons.play_circle_fill,
+                        color: Colors.white,
+                        size: 34,
+                      ),
+                    ),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: images[i],
+                    fit: BoxFit.cover,
+                    placeholder: (ctx, url) =>
+                        Container(color: AppColors.primarySurface),
+                    errorWidget: (ctx, url, err) =>
+                        Container(color: AppColors.primarySurface),
+                  ),
+            if (isVideo || isReels) ...[
               Positioned(
                 bottom: 8,
                 left: 8,
@@ -404,7 +480,7 @@ class _FeedGrid extends StatelessWidget {
                     ),
                     SizedBox(width: 4),
                     Text(
-                      '1.2k',
+                      'Video',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 11,
@@ -416,6 +492,124 @@ class _FeedGrid extends StatelessWidget {
               ),
             ],
           ],
+        );
+      },
+    );
+  }
+}
+
+class _ReelsGrid extends StatelessWidget {
+  final List<String> videos;
+
+  const _ReelsGrid({required this.videos});
+
+  @override
+  Widget build(BuildContext context) {
+    if (videos.isEmpty) {
+      return Center(
+        child: Text(
+          'No reels yet',
+          style: AppTextStyles.brandName,
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(1),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
+      ),
+      itemCount: videos.length,
+      itemBuilder: (context, i) {
+        return GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/reels');
+          },
+          child: Container(
+            color: Colors.black,
+            child: const Center(
+              child: Icon(
+                CupertinoIcons.play_circle_fill,
+                color: Colors.white,
+                size: 34,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProductGrid extends StatelessWidget {
+  final List<Product> products;
+
+  const _ProductGrid({required this.products});
+
+  bool _isVideo(String url) {
+    final lower = url.toLowerCase();
+    return lower.contains('.mp4') ||
+        lower.contains('.mov') ||
+        lower.contains('.webm');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(1),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
+      ),
+      itemCount: products.length,
+      itemBuilder: (context, i) {
+        final product = products[i];
+        final isVideo = _isVideo(product.imageUrl);
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/product', arguments: product);
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              isVideo
+                  ? Container(
+                      color: Colors.black,
+                      child: const Center(
+                        child: Icon(
+                          CupertinoIcons.play_circle_fill,
+                          color: Colors.white,
+                          size: 34,
+                        ),
+                      ),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: product.imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (ctx, url) =>
+                          Container(color: AppColors.primarySurface),
+                      errorWidget: (ctx, url, err) =>
+                          Container(color: AppColors.primarySurface),
+                    ),
+              if (isVideo)
+                const Positioned(
+                  bottom: 8,
+                  left: 8,
+                  child: Text(
+                    '▶ Video',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );

@@ -91,8 +91,9 @@ class _ReelsPageState extends State<ReelsPage> {
 
         return Reel(
           id: item['id'].toString(),
-          username: item['user_id'] ?? '@user',
-          userAvatar:
+          userId: item['user_id'] ?? '',
+          username: item['username'] ?? item['user_id'] ?? '@user',
+          userAvatar: item['profile_photo'] ??
               'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
           caption: item['caption'] ?? '',
           productName: isProduct ? (item['product_name'] ?? 'Product') : '',
@@ -409,13 +410,17 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _goToDetail() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-        overlays: SystemUiOverlay.values);
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+
     Navigator.pushNamed(
       context,
       '/product',
       arguments: Product(
         id: widget.reel.id,
+        userId: widget.reel.userId,
         name: widget.reel.productName,
         brand: widget.reel.username,
         price: widget.reel.price,
@@ -445,6 +450,7 @@ class _ReelItemState extends State<_ReelItem>
         products: [
           Product(
             id: widget.reel.id,
+            userId: widget.reel.userId,
             name: widget.reel.productName,
             brand: widget.reel.username,
             price: widget.reel.price,
@@ -458,6 +464,9 @@ class _ReelItemState extends State<_ReelItem>
 
   @override
   Widget build(BuildContext context) {
+    final isMyReel =
+        widget.reel.userId == FirebaseAuth.instance.currentUser?.uid;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -619,72 +628,78 @@ class _ReelItemState extends State<_ReelItem>
                                   ),
                                   const SizedBox(width: 8),
                                   // Buttons area
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // Add to Cart: logo only, no text
-                                      MouseRegion(
-                                        cursor: SystemMouseCursors.click,
-                                        child: GestureDetector(
-                                          onTap: widget.onAddToCart,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white24,
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                  color: Colors.white30),
-                                            ),
-                                            child: const Icon(
-                                              Icons.add_shopping_cart_rounded,
-                                              color: Colors.white,
-                                              size: 16,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      // Buy Now: pill button with text
-                                      MouseRegion(
-                                        cursor: SystemMouseCursors.click,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            CartStateProvider.of(context)
-                                                .addItem(
-                                              productId: widget.reel.id,
-                                              name: widget.reel.productName,
-                                              variant: 'Default',
-                                              price: widget.reel.price,
-                                              imageUrl: widget.reel.imageUrl,
-                                            );
-                                            SystemChrome.setEnabledSystemUIMode(
-                                                SystemUiMode.manual,
-                                                overlays:
-                                                    SystemUiOverlay.values);
-                                            Navigator.pushNamed(
-                                                context, '/checkout');
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 8),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.accent,
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                            ),
-                                            child: Text(
-                                              'Buy Now',
-                                              style: AppTextStyles.buttonFilled
-                                                  .copyWith(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
+                                  // Buttons area
+                                  if (!isMyReel)
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Add to Cart: logo only, no text
+                                        MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: GestureDetector(
+                                            onTap: widget.onAddToCart,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white24,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                    color: Colors.white30),
+                                              ),
+                                              child: const Icon(
+                                                Icons.add_shopping_cart_rounded,
+                                                color: Colors.white,
+                                                size: 16,
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                        const SizedBox(width: 6),
+                                        // Buy Now: pill button with text
+                                        MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              CartStateProvider.of(context)
+                                                  .addItem(
+                                                productId: widget.reel.id,
+                                                name: widget.reel.productName,
+                                                variant: 'Default',
+                                                price: widget.reel.price,
+                                                imageUrl: widget.reel.imageUrl,
+                                              );
+                                              SystemChrome
+                                                  .setEnabledSystemUIMode(
+                                                      SystemUiMode.manual,
+                                                      overlays: SystemUiOverlay
+                                                          .values);
+                                              Navigator.pushNamed(
+                                                  context, '/checkout');
+                                            },
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 8),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.accent,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                              ),
+                                              child: Text(
+                                                'Buy Now',
+                                                style: AppTextStyles
+                                                    .buttonFilled
+                                                    .copyWith(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                 ],
                               ),
                             ),
@@ -735,8 +750,7 @@ class _ReelItemState extends State<_ReelItem>
                             cursor: SystemMouseCursors.click,
                             child: GestureDetector(
                               onTap: () {
-                                if (widget.reel.username ==
-                                    FirebaseAuth.instance.currentUser?.uid) {
+                                if (isMyReel) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                         content: Text("This is your own reel")),
@@ -759,8 +773,7 @@ class _ReelItemState extends State<_ReelItem>
                                       color: Colors.white38, width: 1),
                                 ),
                                 child: Text(
-                                  widget.reel.username ==
-                                          FirebaseAuth.instance.currentUser?.uid
+                                  isMyReel
                                       ? 'Your Reel'
                                       : (_isFollowing ? 'Following' : 'Follow'),
                                   style: AppTextStyles.badge

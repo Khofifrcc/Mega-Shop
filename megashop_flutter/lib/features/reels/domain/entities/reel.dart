@@ -12,6 +12,7 @@ class Reel {
   final int likeCount;
   final int commentCount;
   final bool isFollowing;
+  final String userId;
 
   const Reel({
     required this.id,
@@ -26,6 +27,7 @@ class Reel {
     required this.likeCount,
     required this.commentCount,
     this.isFollowing = false,
+    this.userId = '',
   });
 
   bool get isOnSale => originalPrice != null;

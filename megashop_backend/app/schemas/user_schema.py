@@ -5,10 +5,10 @@ class UserCreate(BaseModel):
     firebase_uid: str
     username: str
     email: EmailStr
-    bio: Optional[str] = None
-    profile_photo: Optional[str] = None
+    bio: Optional[str] = ""
+    profile_photo: Optional[str] = ""
 
 class UserUpdate(BaseModel):
-    username: str
-    bio: Optional[str] = None
-    profile_photo: Optional[str] = None
+    username: Optional[str] = ""
+    bio: Optional[str] = ""
+    profile_photo: Optional[str] = ""

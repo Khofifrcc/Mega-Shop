@@ -70,7 +70,7 @@ class _ProductCardState extends State<ProductCard>
   @override
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final isMyProduct = widget.product.brand == currentUserId;
+    final isMyProduct = widget.product.userId == currentUserId;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,

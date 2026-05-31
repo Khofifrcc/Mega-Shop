@@ -7,6 +7,15 @@ def get_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+    conn.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    firebase_uid TEXT PRIMARY KEY,
+    email TEXT,
+    username TEXT,
+    bio TEXT,
+    profile_photo TEXT
+)
+""")
 
 def init_db():
     conn = get_connection()
@@ -31,6 +40,7 @@ def init_db():
         image TEXT NOT NULL
     )
     """)
+    
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS reels (

@@ -5,6 +5,8 @@ class Product {
   final String name;
   final String brand;
   final String description;
+  final String userId;
+  final String profilePhoto;
 
   /// Current selling price in USD
   final double price;
@@ -31,6 +33,8 @@ class Product {
     required this.imageUrl,
     this.badge,
     this.isFavorite = false,
+    this.userId = '',
+    this.profilePhoto = '',
   });
 
   /// Returns true when the product has a strikethrough original price
@@ -46,6 +50,8 @@ class Product {
     String? badge,
     String? description,
     bool? isFavorite,
+    String? userId,
+    String? profilePhoto,
   }) {
     return Product(
       id: id ?? this.id,
@@ -57,6 +63,8 @@ class Product {
       badge: badge ?? this.badge,
       isFavorite: isFavorite ?? this.isFavorite,
       description: description ?? this.description,
+      userId: userId ?? this.userId,
+      profilePhoto: profilePhoto ?? this.profilePhoto,
     );
   }
 }

@@ -7,7 +7,15 @@ router = APIRouter(prefix="/products", tags=["Products"])
 @router.get("/")
 def get_products():
     conn = get_connection()
-    rows = conn.execute("SELECT * FROM products ORDER BY id DESC").fetchall()
+    rows = conn.execute("""
+        SELECT 
+            products.*,
+            users.username AS username,
+            users.profile_photo AS profile_photo
+        FROM products
+        LEFT JOIN users ON products.user_id = users.firebase_uid
+        ORDER BY products.id DESC
+    """).fetchall()
     conn.close()
     return [dict(row) for row in rows]
 
@@ -39,12 +47,19 @@ def update_product(product_id: int, product: ProductCreate):
 
     return {"message": "Product updated successfully"}
 @router.get("/user/{user_id}")
+@router.get("/user/{user_id}")
 def get_products_by_user(user_id: str):
     conn = get_connection()
-    rows = conn.execute(
-        "SELECT * FROM products WHERE user_id = ? ORDER BY id DESC",
-        (user_id,),
-    ).fetchall()
+    rows = conn.execute("""
+        SELECT 
+            products.*,
+            users.username AS username,
+            users.profile_photo AS profile_photo
+        FROM products
+        LEFT JOIN users ON products.user_id = users.firebase_uid
+        WHERE products.user_id = ?
+        ORDER BY products.id DESC
+    """, (user_id,)).fetchall()
     conn.close()
     return [dict(row) for row in rows]
 

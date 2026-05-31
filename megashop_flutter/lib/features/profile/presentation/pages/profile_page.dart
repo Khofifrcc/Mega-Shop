@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../../home/domain/entities/product.dart';
+import 'package:image_picker/image_picker.dart';
 
 /// Profile page matching the mockup.
 ///
@@ -26,6 +27,7 @@ class _ProfilePageState extends State<ProfilePage>
   late TabController _tabController;
 
   String username = '';
+  String profilePhoto = '';
   String bio = '';
   List<Product> _products = [];
   List<String> _reelVideos = [];
@@ -58,15 +60,57 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
+  Future<String?> _pickAndUploadProfilePhoto() async {
+    final picker = ImagePicker();
+
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (image == null) return null;
+
+    final bytes = await image.readAsBytes();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('http://127.0.0.1:8000/upload'),
+    );
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: image.name,
+      ),
+    );
+
+    final response = await request.send();
+
+    if (response.statusCode != 200) {
+      return null;
+    }
+
+    final body = await response.stream.bytesToString();
+    final data = jsonDecode(body);
+
+    final url = data['url'] ?? data['file_url'] ?? data['path'];
+
+    if (url == null) return null;
+
+    if (url.toString().startsWith('http')) {
+      return url.toString();
+    }
+
+    return 'http://127.0.0.1:8000$url';
+  }
+
   Future<void> loadProfile() async {
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) return;
 
     final response = await http.get(
-      Uri.parse(
-        'http://127.0.0.1:8000/users/${user.uid}',
-      ),
+      Uri.parse('http://127.0.0.1:8000/users/${user.uid}'),
     );
 
     if (response.statusCode == 200) {
@@ -75,6 +119,7 @@ class _ProfilePageState extends State<ProfilePage>
       setState(() {
         username = data['username'] ?? '';
         bio = data['bio'] ?? '';
+        profilePhoto = data['profile_photo'] ?? '';
       });
     }
   }
@@ -260,8 +305,9 @@ class _ProfilePageState extends State<ProfilePage>
               ),
               ClipOval(
                 child: CachedNetworkImage(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80',
+                  imageUrl: profilePhoto.isNotEmpty
+                      ? profilePhoto
+                      : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80',
                   width: 90,
                   height: 90,
                   fit: BoxFit.cover,
@@ -310,8 +356,9 @@ class _ProfilePageState extends State<ProfilePage>
           // Edit Profile button
           OutlinedButton.icon(
             onPressed: () {
-              final usernameController = TextEditingController();
-              final bioController = TextEditingController();
+              final usernameController = TextEditingController(text: username);
+              final bioController = TextEditingController(text: bio);
+              String tempPhoto = profilePhoto;
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -329,6 +376,23 @@ class _ProfilePageState extends State<ProfilePage>
                         controller: bioController,
                         decoration: const InputDecoration(labelText: 'Bio'),
                       ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final uploadedUrl =
+                              await _pickAndUploadProfilePhoto();
+
+                          if (uploadedUrl != null) {
+                            tempPhoto = uploadedUrl;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Profile photo selected')),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.photo_library_outlined),
+                        label: const Text('Choose Profile Photo'),
+                      ),
                     ],
                   ),
                   actions: [
@@ -344,13 +408,14 @@ class _ProfilePageState extends State<ProfilePage>
                                 'http://127.0.0.1:8000/users/${user.uid}'),
                             headers: {'Content-Type': 'application/json'},
                             body: jsonEncode({
-                              'username': usernameController.text,
-                              'bio': bioController.text,
-                              'profile_photo': '',
+                              'username': usernameController.text.trim(),
+                              'bio': bioController.text.trim(),
+                              'profile_photo': tempPhoto,
                             }),
                           );
                         }
                         if (context.mounted) Navigator.pop(context);
+                        await loadProfile();
                       },
                       child: const Text('Save'),
                     ),

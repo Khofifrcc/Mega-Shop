@@ -71,8 +71,10 @@ class _HomePageState extends State<HomePage> {
       final products = data.map((item) {
         return Product(
           id: item['id'].toString(),
+          userId: item['user_id'] ?? '',
           name: item['name'] ?? 'Product',
-          brand: item['user_id'] ?? 'MegaShop',
+          brand: item['username'] ?? item['user_id'] ?? 'MegaShop',
+          profilePhoto: item['profile_photo'] ?? '',
           price: (item['price'] as num).toDouble(),
           imageUrl: item['image'] ?? 'https://picsum.photos/500',
           description: item['description'] ?? '',

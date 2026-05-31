@@ -7,21 +7,34 @@ router = APIRouter(prefix="/reels", tags=["Reels"])
 @router.get("/")
 def get_reels():
     conn = get_connection()
-    rows = conn.execute("SELECT * FROM reels ORDER BY id DESC").fetchall()
+    rows = conn.execute("""
+        SELECT
+            reels.*,
+            users.username AS username,
+            users.profile_photo AS profile_photo
+        FROM reels
+        LEFT JOIN users ON reels.user_id = users.firebase_uid
+        ORDER BY reels.id DESC
+    """).fetchall()
     conn.close()
     return [dict(row) for row in rows]
 
 @router.get("/user/{user_id}")
 def get_reels_by_user(user_id: str):
     conn = get_connection()
-    rows = conn.execute(
-        "SELECT * FROM reels WHERE user_id = ? ORDER BY id DESC",
-        (user_id,),
-    ).fetchall()
+    rows = conn.execute("""
+        SELECT
+            reels.*,
+            users.username AS username,
+            users.profile_photo AS profile_photo
+        FROM reels
+        LEFT JOIN users ON reels.user_id = users.firebase_uid
+        WHERE reels.user_id = ?
+        ORDER BY reels.id DESC
+    """, (user_id,)).fetchall()
     conn.close()
     return [dict(row) for row in rows]
 
-@router.post("/")
 @router.post("/")
 def create_reel(reel: ReelCreate):
     conn = get_connection()

@@ -5,6 +5,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
 import '../../../home/domain/entities/product.dart';
 import 'seller_profile_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Product Detail page — Shopee-style layout.
 ///
@@ -46,8 +47,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         id: 'seller_${product.id}',
         name: product.brand,
         tagline: '🏆 Top Rated Seller · Premium Products',
-        avatarUrl:
-            'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=200&q=80',
+        avatarUrl: product.profilePhoto.isNotEmpty
+            ? product.profilePhoto
+            : 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=200&q=80',
         coverUrl:
             'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
         isVerified: true,
@@ -88,6 +90,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final detailText = product.description.isNotEmpty
         ? product.description
         : '${product.name} by ${product.brand}';
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isMyProduct = product.userId == currentUserId;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -108,65 +112,89 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             0, 8, 12, MediaQuery.of(context).padding.bottom + 8),
         child: Row(
           children: [
-            // 🛒 Cart
-            _BottomIconBtn(
-              icon: Icons.shopping_cart_outlined,
-              label: 'Cart',
-              color: AppColors.primary,
-              onTap: () {
-                CartStateProvider.of(context).addItem(
-                  productId: product.id,
-                  name: product.name,
-                  variant: 'Default',
-                  price: product.price,
-                  imageUrl: product.imageUrl,
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Added to cart!',
-                        style: AppTextStyles.brandName
-                            .copyWith(color: Colors.white)),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.all(16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    duration: const Duration(seconds: 2),
+            if (isMyProduct) ...[
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pushNamed(context, '/post',
+                        arguments: product),
+                    child: const Text('Edit Product'),
                   ),
-                );
-              },
-            ),
-
-            Container(width: 1, height: 36, color: AppColors.divider),
-
-            // 💬 Chat
-            _BottomIconBtn(
-              icon: Icons.chat_bubble_outline_rounded,
-              label: 'Chat',
-              color: AppColors.textPrimary,
-              onTap: () => _chatSeller(product),
-            ),
-
-            const SizedBox(width: 10),
-
-            // Buy Now (wider)
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pushNamed(context, '/checkout'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24)),
-                    elevation: 0,
-                    padding: EdgeInsets.zero,
-                  ),
-                  child: Text('Buy Now',
-                      style: AppTextStyles.buttonFilled.copyWith(fontSize: 15)),
                 ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Delete from Home/Profile page')),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent),
+                    child: const Text('Delete',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ),
+            ] else ...[
+              _BottomIconBtn(
+                icon: Icons.shopping_cart_outlined,
+                label: 'Cart',
+                color: AppColors.primary,
+                onTap: () {
+                  CartStateProvider.of(context).addItem(
+                    productId: product.id,
+                    name: product.name,
+                    variant: 'Default',
+                    price: product.price,
+                    imageUrl: product.imageUrl,
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Added to cart!')),
+                  );
+                },
+              ),
+              Container(width: 1, height: 36, color: AppColors.divider),
+              _BottomIconBtn(
+                icon: Icons.chat_bubble_outline_rounded,
+                label: 'Chat',
+                color: AppColors.textPrimary,
+                onTap: () => _chatSeller(product),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      CartStateProvider.of(context).addItem(
+                        productId: product.id,
+                        name: product.name,
+                        variant: 'Default',
+                        price: product.price,
+                        imageUrl: product.imageUrl,
+                      );
+                      Navigator.pushNamed(context, '/checkout');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
+                      elevation: 0,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: Text('Buy Now',
+                        style:
+                            AppTextStyles.buttonFilled.copyWith(fontSize: 15)),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -243,10 +271,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           cursor: SystemMouseCursors.click,
                           child: GestureDetector(
                             onTap: () => _openSeller(product),
-                            child: const CircleAvatar(
+                            child: CircleAvatar(
                               radius: 24,
                               backgroundImage: NetworkImage(
-                                  'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80'),
+                                product.profilePhoto.isNotEmpty
+                                    ? product.profilePhoto
+                                    : 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
+                              ),
                             ),
                           ),
                         ),
@@ -276,35 +307,43 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             ),
                           ),
                         ),
-                        MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _isFollowing = !_isFollowing),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _isFollowing
-                                    ? AppColors.primary
-                                    : AppColors.primarySurface,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                    color: AppColors.primary, width: 1.5),
-                              ),
-                              child: Text(
-                                _isFollowing ? 'Following' : 'Follow',
-                                style: AppTextStyles.buttonOutlined.copyWith(
-                                  fontSize: 13,
+                        if (!isMyProduct)
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () =>
+                                  setState(() => _isFollowing = !_isFollowing),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
                                   color: _isFollowing
-                                      ? Colors.white
-                                      : AppColors.primary,
+                                      ? AppColors.primary
+                                      : AppColors.primarySurface,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: AppColors.primary, width: 1.5),
+                                ),
+                                child: Text(
+                                  _isFollowing ? 'Following' : 'Follow',
+                                  style: AppTextStyles.buttonOutlined.copyWith(
+                                    fontSize: 13,
+                                    color: _isFollowing
+                                        ? Colors.white
+                                        : AppColors.primary,
+                                  ),
                                 ),
                               ),
                             ),
+                          )
+                        else
+                          Text(
+                            'Your Product',
+                            style: AppTextStyles.buttonOutlined.copyWith(
+                              color: AppColors.primary,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),

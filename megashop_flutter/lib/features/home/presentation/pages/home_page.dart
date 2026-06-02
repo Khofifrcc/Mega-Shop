@@ -12,6 +12,8 @@ import '../widgets/category_filter_bar.dart';
 import '../widgets/stories_row.dart';
 import '../widgets/story_viewer.dart';
 import '../widgets/trending_grid.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Main Home screen of MegaShop.
 ///
@@ -34,10 +36,7 @@ class _HomePageState extends State<HomePage> {
   late final List<String> _categories;
 
   // ── Address state ─────────────────────────────────────────────────────────
-  final List<_Address> _addresses = [
-    _Address(label: 'Home', detail: '123 Main Street, New York, NY 10001'),
-    _Address(label: 'Office', detail: '456 Business Ave, New York, NY 10002'),
-  ];
+  final List<_Address> _addresses = [];
   int _selectedAddressIndex = 0;
 
   // ── Story state ───────────────────────────────────────────────────────────
@@ -50,10 +49,11 @@ class _HomePageState extends State<HomePage> {
     _products = _dataSource.getTrendingProducts();
     _stories = _dataSource.getStories().cast<Story>();
     _categories = _dataSource.getCategories();
+    _loadAddresses();
   }
 
-  void _handleAddToCart(Product product) {
-    CartStateProvider.of(context).addItem(
+  Future<void> _handleAddToCart(Product product) async {
+    await CartStateProvider.of(context).addItem(
       productId: product.id,
       name: product.name,
       variant: 'Default',
@@ -64,8 +64,8 @@ class _HomePageState extends State<HomePage> {
       SnackBar(
         content: Text(
           '${product.name} added to cart!',
-          style: AppTextStyles.brandName
-              .copyWith(color: AppColors.textOnPrimary),
+          style:
+              AppTextStyles.brandName.copyWith(color: AppColors.textOnPrimary),
         ),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
@@ -76,14 +76,43 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _handleBuyNow(Product product) {
-    CartStateProvider.of(context).addItem(
+  Future<void> _loadAddresses() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('addresses')
+        .get();
+
+    setState(() {
+      _addresses.clear();
+      _addresses.addAll(snapshot.docs.map((doc) {
+        final data = doc.data();
+        return _Address(
+          id: doc.id,
+          label: data['label'] ?? '',
+          detail: data['detail'] ?? '',
+        );
+      }));
+
+      if (_selectedAddressIndex >= _addresses.length) {
+        _selectedAddressIndex = 0;
+      }
+    });
+  }
+
+  Future<void> _handleBuyNow(Product product) async {
+    await CartStateProvider.of(context).addItem(
       productId: product.id,
       name: product.name,
       variant: 'Default',
       price: product.price,
       imageUrl: product.imageUrl,
     );
+
+    if (!mounted) return;
     Navigator.pushNamed(context, '/checkout');
   }
 
@@ -168,17 +197,17 @@ class _HomePageState extends State<HomePage> {
     final storyId = _stories[index].id;
     Navigator.of(context)
         .push(
-          PageRouteBuilder(
-            opaque: false,
-            barrierColor: Colors.black87,
-            pageBuilder: (_, __, ___) => StoryViewer(
-              stories: _stories,
-              initialIndex: index,
-            ),
-            transitionsBuilder: (_, animation, __, child) =>
-                FadeTransition(opacity: animation, child: child),
-          ),
-        )
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black87,
+        pageBuilder: (_, __, ___) => StoryViewer(
+          stories: _stories,
+          initialIndex: index,
+        ),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+      ),
+    )
         .then((_) {
       // Mark as viewed when the viewer closes
       if (mounted) {
@@ -201,20 +230,39 @@ class _HomePageState extends State<HomePage> {
           setState(() => _selectedAddressIndex = i);
           Navigator.pop(context);
         },
-        onAdd: (address) {
-          setState(() {
-            _addresses.add(address);
-            _selectedAddressIndex = _addresses.length - 1;
+        onAdd: (address) async {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) return;
+
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('addresses')
+              .add({
+            'label': address.label,
+            'detail': address.detail,
+            'createdAt': FieldValue.serverTimestamp(),
           });
+
+          await _loadAddresses();
           Navigator.pop(context);
         },
-        onDelete: (i) {
-          setState(() {
-            _addresses.removeAt(i);
-            if (_selectedAddressIndex >= _addresses.length) {
-              _selectedAddressIndex = _addresses.isEmpty ? 0 : _addresses.length - 1;
-            }
-          });
+        onDelete: (i) async {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user == null) return;
+
+          final addressId = _addresses[i].id;
+
+          if (addressId != null) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .collection('addresses')
+                .doc(addressId)
+                .delete();
+          }
+
+          await _loadAddresses();
         },
       ),
     );
@@ -283,18 +331,61 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('Trending Now',
-                      style: AppTextStyles.sectionTitle),
+                  child:
+                      Text('Trending Now', style: AppTextStyles.sectionTitle),
                 ),
                 const SizedBox(height: 14),
-                TrendingGrid(
-                  products: _products,
-                  onAddToCart: _handleAddToCart,
-                  onBuyNow: _handleBuyNow,
-                  onFavoriteToggle: (product, isFav) {},
-                  onProductTap: (product) =>
-                      Navigator.pushNamed(context, '/product',
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('products')
+                      .orderBy('createdAt', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return TrendingGrid(
+                        products: _products,
+                        onAddToCart: _handleAddToCart,
+                        onBuyNow: _handleBuyNow,
+                        onFavoriteToggle: (product, isFav) {},
+                        onProductTap: (product) => Navigator.pushNamed(
+                            context, '/product',
+                            arguments: product),
+                      );
+                    }
+
+                    final firebaseProducts = snapshot.data!.docs.map((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+
+                      return Product(
+                        id: doc.id,
+                        description: data['description'] ?? '',
+                        ownerId: data['ownerId'] ?? '',
+                        name: data['name'] ?? '',
+                        brand: data['ownerUsername'] ??
+                            data['ownerEmail'] ??
+                            'Seller',
+                        price: (data['price'] ?? 0).toDouble(),
+                        originalPrice: null,
+                        imageUrl: data['imageUrl'] ?? '',
+                        badge: data['mediaType'] == 'Photo' ? 'NEW' : null,
+                        isFavorite: false,
+                      );
+                    }).toList();
+
+                    return TrendingGrid(
+                      products: firebaseProducts,
+                      onAddToCart: _handleAddToCart,
+                      onBuyNow: _handleBuyNow,
+                      onFavoriteToggle: (product, isFav) {},
+                      onProductTap: (product) => Navigator.pushNamed(
+                          context, '/product',
                           arguments: product),
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
               ],
@@ -330,9 +421,15 @@ class _HomePageState extends State<HomePage> {
 // ── Address model ─────────────────────────────────────────────────────────────
 
 class _Address {
+  String? id;
   String label;
   String detail;
-  _Address({required this.label, required this.detail});
+
+  _Address({
+    this.id,
+    required this.label,
+    required this.detail,
+  });
 }
 
 // ── Address bottom sheet ──────────────────────────────────────────────────────
@@ -341,7 +438,7 @@ class _AddressBottomSheet extends StatefulWidget {
   final List<_Address> addresses;
   final int selectedIndex;
   final void Function(int) onSelect;
-  final void Function(_Address) onAdd;
+  final Future<void> Function(_Address) onAdd;
   final void Function(int) onDelete;
 
   const _AddressBottomSheet({
@@ -418,17 +515,15 @@ class _AddressBottomSheetState extends State<_AddressBottomSheet> {
                 onTap: () => widget.onSelect(i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppColors.primarySurface
                         : AppColors.background,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.divider,
+                      color: isSelected ? AppColors.primary : AppColors.divider,
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
@@ -509,8 +604,8 @@ class _AddressBottomSheetState extends State<_AddressBottomSheet> {
                         color: AppColors.primary, size: 18),
                     const SizedBox(width: 8),
                     Text('Add New Address',
-                        style: AppTextStyles.productName.copyWith(
-                            color: AppColors.primary, fontSize: 14)),
+                        style: AppTextStyles.productName
+                            .copyWith(color: AppColors.primary, fontSize: 14)),
                   ],
                 ),
               ),
@@ -540,18 +635,25 @@ class _AddressBottomSheetState extends State<_AddressBottomSheet> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: Text('Cancel',
-                        style: AppTextStyles.productName
-                            .copyWith(fontSize: 14)),
+                        style:
+                            AppTextStyles.productName.copyWith(fontSize: 14)),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       final label = _labelCtrl.text.trim();
                       final detail = _detailCtrl.text.trim();
+
                       if (label.isEmpty || detail.isEmpty) return;
-                      widget.onAdd(_Address(label: label, detail: detail));
+
+                      await widget.onAdd(
+                        _Address(
+                          label: label,
+                          detail: detail,
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
@@ -561,8 +663,8 @@ class _AddressBottomSheetState extends State<_AddressBottomSheet> {
                       elevation: 0,
                     ),
                     child: Text('Save Address',
-                        style: AppTextStyles.buttonFilled
-                            .copyWith(fontSize: 14)),
+                        style:
+                            AppTextStyles.buttonFilled.copyWith(fontSize: 14)),
                   ),
                 ),
               ],

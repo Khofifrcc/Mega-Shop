@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/product.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Reusable product card displayed in the 2-column trending grid.
 ///
@@ -64,6 +65,18 @@ class _ProductCardState extends State<ProductCard>
 
   @override
   Widget build(BuildContext context) {
+    final isMyProduct =
+        widget.product.ownerId == FirebaseAuth.instance.currentUser?.uid;
+
+    void showOwnProductMessage() {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This is your own product.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -119,8 +132,11 @@ class _ProductCardState extends State<ProductCard>
                   ),
                   // Action buttons
                   _ActionButtons(
-                    onAddToCart: widget.onAddToCart,
-                    onBuyNow: widget.onBuyNow,
+                    onAddToCart: isMyProduct
+                        ? showOwnProductMessage
+                        : widget.onAddToCart,
+                    onBuyNow:
+                        isMyProduct ? showOwnProductMessage : widget.onBuyNow,
                   ),
                 ],
               ),
@@ -152,33 +168,36 @@ class _ProductImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
-      fit: StackFit.expand,  // fills the Expanded parent
+      fit: StackFit.expand, // fills the Expanded parent
       children: [
         // Hero image
         ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-          child: CachedNetworkImage(
-            imageUrl: product.imageUrl,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-            placeholder: (ctx, url) => Container(
-              color: AppColors.primarySurface,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.primary,
-                  strokeWidth: 2,
+          child: product.imageUrl.isEmpty
+              ? Container(
+                  color: AppColors.primarySurface,
+                  child: const Icon(
+                    Icons.image_not_supported_outlined,
+                    color: AppColors.iconMuted,
+                  ),
+                )
+              : Image.network(
+                  product.imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorBuilder: (context, error, stackTrace) {
+                    print('IMAGE ERROR: $error');
+                    print('IMAGE URL: ${product.imageUrl}');
+                    return Container(
+                      color: AppColors.primarySurface,
+                      child: const Icon(
+                        Icons.broken_image_outlined,
+                        color: AppColors.iconMuted,
+                      ),
+                    );
+                  },
                 ),
-              ),
-            ),
-            errorWidget: (ctx, url, err) => Container(
-              color: AppColors.primarySurface,
-              child: const Icon(
-                Icons.image_not_supported_outlined,
-                color: AppColors.iconMuted,
-              ),
-            ),
-          ),
         ),
         // Badge (NEW / SALE)
         if (product.badge != null)
@@ -210,7 +229,9 @@ class _ProductImage extends StatelessWidget {
               child: ScaleTransition(
                 scale: heartScale,
                 child: Icon(
-                  isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
                   color: isFavorite ? AppColors.badgeSale : AppColors.iconMuted,
                   size: 18,
                 ),

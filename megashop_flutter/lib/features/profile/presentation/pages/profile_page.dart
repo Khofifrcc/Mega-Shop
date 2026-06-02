@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +5,12 @@ import 'package:flutter/cupertino.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import '../../../home/domain/entities/product.dart';
 
 /// Profile page matching the mockup.
 ///
@@ -26,6 +30,8 @@ class _ProfilePageState extends State<ProfilePage>
 
   String username = '';
   String bio = '';
+  String profileImageUrl = '';
+  bool _isUploadingPhoto = false;
 
   final _feedImages = [
     'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=300&q=80',
@@ -53,23 +59,87 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
-  Future<void> loadProfile() async {
+//chane profil pict
+  Future<void> _changeProfilePhoto() async {
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) return;
 
-    final response = await http.get(
-      Uri.parse(
-        'http://127.0.0.1:8000/users/${user.uid}',
-      ),
+    final picker = ImagePicker();
+
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
     );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+    if (image == null) return;
 
+    try {
+      setState(() => _isUploadingPhoto = true);
+
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('profile_photos')
+          .child('${user.uid}.jpg');
+
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        await ref.putData(bytes);
+      } else {
+        await ref.putFile(File(image.path));
+      }
+
+      final url = await ref.getDownloadURL();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'profileImageUrl': url,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        setState(() => profileImageUrl = url);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile photo changed successfully!'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Profile photo upload failed: $e'),
+            backgroundColor: AppColors.badgeSale,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+      }
+    }
+  }
+
+  Future<void> loadProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final data = doc.data();
+
+    if (data != null && mounted) {
       setState(() {
         username = data['username'] ?? '';
         bio = data['bio'] ?? '';
+        profileImageUrl = data['profileImageUrl'] ?? '';
       });
     }
   }
@@ -148,8 +218,8 @@ class _ProfilePageState extends State<ProfilePage>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _FeedGrid(images: _feedImages),
-                  _FeedGrid(images: _feedImages.reversed.toList(), isReels: true),
+                  const _MyProductsGrid(),
+                  const _MyReelsGrid(),
                 ],
               ),
             ),
@@ -188,6 +258,38 @@ class _ProfilePageState extends State<ProfilePage>
           Stack(
             alignment: Alignment.center,
             children: [
+              Positioned(
+                bottom: -2,
+                right: -2,
+                child: GestureDetector(
+                  onTap: _changeProfilePhoto,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.background,
+                        width: 2,
+                      ),
+                    ),
+                    child: _isUploadingPhoto
+                        ? const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.camera_alt_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                  ),
+                ),
+              ),
               Container(
                 width: 96,
                 height: 96,
@@ -201,17 +303,30 @@ class _ProfilePageState extends State<ProfilePage>
                 ),
               ),
               ClipOval(
-                child: CachedNetworkImage(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80',
-                  width: 90,
-                  height: 90,
-                  fit: BoxFit.cover,
-                  placeholder: (ctx, url) =>
-                      Container(color: AppColors.primarySurface),
-                  errorWidget: (ctx, url, err) =>
-                      Container(color: AppColors.primarySurface),
-                ),
+                child: profileImageUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: profileImageUrl,
+                        width: 90,
+                        height: 90,
+                        fit: BoxFit.cover,
+                        placeholder: (ctx, url) => Container(
+                          color: AppColors.primarySurface,
+                        ),
+                        errorWidget: (ctx, url, err) => Container(
+                          color: AppColors.primarySurface,
+                          child: const Icon(Icons.person, size: 40),
+                        ),
+                      )
+                    : Container(
+                        width: 90,
+                        height: 90,
+                        color: AppColors.primarySurface,
+                        child: const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: AppColors.primary,
+                        ),
+                      ),
               ),
               // Online dot
               Positioned(
@@ -224,6 +339,30 @@ class _ProfilePageState extends State<ProfilePage>
                     color: AppColors.accent,
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.background, width: 2.5),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -2,
+                right: -2,
+                child: GestureDetector(
+                  onTap: _changeProfilePhoto,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.background,
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -244,8 +383,7 @@ class _ProfilePageState extends State<ProfilePage>
           // Bio
           Text(
             bio.isNotEmpty ? bio : 'No bio yet · MegaShop Member',
-            style: AppTextStyles.brandName
-                .copyWith(fontSize: 13, height: 1.4),
+            style: AppTextStyles.brandName.copyWith(fontSize: 13, height: 1.4),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -270,8 +408,7 @@ class _ProfilePageState extends State<ProfilePage>
                       const SizedBox(height: 12),
                       TextField(
                         controller: bioController,
-                        decoration:
-                            const InputDecoration(labelText: 'Bio'),
+                        decoration: const InputDecoration(labelText: 'Bio'),
                       ),
                     ],
                   ),
@@ -283,16 +420,38 @@ class _ProfilePageState extends State<ProfilePage>
                       onPressed: () async {
                         final user = FirebaseAuth.instance.currentUser;
                         if (user != null) {
-                          await http.put(
-                            Uri.parse(
-                                'http://127.0.0.1:8000/users/${user.uid}'),
-                            headers: {'Content-Type': 'application/json'},
-                            body: jsonEncode({
-                              'username': usernameController.text,
-                              'bio': bioController.text,
-                              'profile_photo': '',
-                            }),
-                          );
+                          await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .update({
+                            'username': usernameController.text.trim(),
+                            'bio': bioController.text.trim(),
+                            'updatedAt': FieldValue.serverTimestamp(),
+                          });
+                          final productDocs = await FirebaseFirestore.instance
+                              .collection('products')
+                              .where('ownerId', isEqualTo: user.uid)
+                              .get();
+
+                          for (final doc in productDocs.docs) {
+                            await doc.reference.update({
+                              'ownerUsername': usernameController.text.trim(),
+                            });
+                          }
+
+                          if (mounted) {
+                            setState(() {
+                              username = usernameController.text.trim();
+                              bio = bioController.text.trim();
+                            });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Profile updated successfully!'),
+                                backgroundColor: AppColors.primary,
+                              ),
+                            );
+                          }
                         }
                         if (context.mounted) Navigator.pop(context);
                       },
@@ -311,8 +470,7 @@ class _ProfilePageState extends State<ProfilePage>
               backgroundColor: AppColors.surface,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             ),
           ),
           const SizedBox(height: 20),
@@ -364,6 +522,201 @@ class _Separator extends StatelessWidget {
   }
 }
 
+class _MyProductsGrid extends StatelessWidget {
+  const _MyProductsGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Center(
+        child: Text('Please login first.'),
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .where('ownerId', isEqualTo: user.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: AppTextStyles.brandName,
+            ),
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+
+        if (docs.isEmpty) {
+          return Center(
+            child: Text(
+              'No products uploaded yet.',
+              style: AppTextStyles.brandName,
+            ),
+          );
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(1),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: 2,
+            crossAxisSpacing: 2,
+          ),
+          itemCount: docs.length,
+          itemBuilder: (context, i) {
+            final data = docs[i].data() as Map<String, dynamic>;
+            final imageUrl = data['imageUrl'] ?? '';
+            final product = Product(
+              id: docs[i].id,
+              ownerId: data['ownerId'] ?? '',
+              name: data['name'] ?? '',
+              brand: data['ownerUsername'] ?? data['ownerEmail'] ?? 'Seller',
+              description: data['description'] ?? '',
+              price: (data['price'] ?? 0).toDouble(),
+              imageUrl: imageUrl,
+              badge: data['mediaType'] == 'Photo' ? 'NEW' : null,
+            );
+
+            return GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  '/product',
+                  arguments: product,
+                );
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (ctx, url) =>
+                        Container(color: AppColors.primarySurface),
+                    errorWidget: (ctx, url, err) => Container(
+                      color: AppColors.primarySurface,
+                      child: const Icon(
+                        Icons.image_not_supported_outlined,
+                        color: AppColors.iconMuted,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 6,
+                    right: 6,
+                    bottom: 6,
+                    child: Text(
+                      data['name'] ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 4,
+                            color: Colors.black54,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _MyReelsGrid extends StatelessWidget {
+  const _MyReelsGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('reels')
+          .where('ownerId', isEqualTo: user!.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+
+        if (docs.isEmpty) {
+          return const Center(
+            child: Text('No reels uploaded yet'),
+          );
+        }
+
+        return GridView.builder(
+            padding: const EdgeInsets.all(1),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 2,
+              crossAxisSpacing: 2,
+            ),
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/reels',
+                  );
+                },
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: data['userAvatar'] ?? '',
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(color: Colors.black12),
+                      errorWidget: (_, __, ___) =>
+                          Container(color: Colors.black12),
+                    ),
+                    Container(
+                      color: Colors.black26,
+                    ),
+                    const Center(
+                      child: Icon(
+                        Icons.play_circle_fill_rounded,
+                        size: 40,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            });
+      },
+    );
+  }
+}
+
 class _FeedGrid extends StatelessWidget {
   final List<String> images;
   final bool isReels;
@@ -387,16 +740,17 @@ class _FeedGrid extends StatelessWidget {
             CachedNetworkImage(
               imageUrl: images[i],
               fit: BoxFit.cover,
-              placeholder: (ctx, url) => Container(color: AppColors.primarySurface),
+              placeholder: (ctx, url) =>
+                  Container(color: AppColors.primarySurface),
               errorWidget: (ctx, url, err) =>
                   Container(color: AppColors.primarySurface),
             ),
-            if (isReels) ...[
-              Positioned(
+            if (isReels)
+              const Positioned(
                 bottom: 8,
                 left: 8,
                 child: Row(
-                  children: const [
+                  children: [
                     Icon(
                       CupertinoIcons.play_fill,
                       color: Colors.white,
@@ -414,7 +768,6 @@ class _FeedGrid extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
           ],
         );
       },

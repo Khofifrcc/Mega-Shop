@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
-/// Post creation page — unified single-form design.
-///
-/// Handles posting photos for the product catalog and videos for Reels.
-/// Includes price, name, description, and details.
 class PostCreationPage extends StatefulWidget {
   const PostCreationPage({super.key});
 
@@ -15,11 +17,17 @@ class PostCreationPage extends StatefulWidget {
 }
 
 class _PostCreationPageState extends State<PostCreationPage> {
-  String _mediaType = 'Photo'; // 'Photo' or 'Video'
+  String _mediaType = 'Photo'; // Photo = product, Video = reels
+
   final _captionCtrl = TextEditingController();
   final _productNameCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
+
   bool _hasMedia = false;
+  bool _isUploading = false;
+
+  // Selected media can be product image or reels video
+  XFile? _selectedMedia;
 
   @override
   void dispose() {
@@ -29,6 +37,157 @@ class _PostCreationPageState extends State<PostCreationPage> {
     super.dispose();
   }
 
+  // Pick media based on selected type
+  Future<void> _pickMedia() async {
+    final picker = ImagePicker();
+
+    final media = _mediaType == 'Photo'
+        ? await picker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 80,
+          )
+        : await picker.pickVideo(
+            source: ImageSource.gallery,
+          );
+
+    if (media == null) return;
+
+    setState(() {
+      _selectedMedia = media;
+      _hasMedia = true;
+    });
+  }
+
+  // Share product photo or reels video
+  Future<void> _sharePost() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login first.')),
+      );
+      return;
+    }
+
+    final productName = _productNameCtrl.text.trim();
+    final priceText = _priceCtrl.text.trim();
+    final description = _captionCtrl.text.trim();
+    final price = double.tryParse(priceText);
+
+    if (productName.isEmpty ||
+        priceText.isEmpty ||
+        description.isEmpty ||
+        _selectedMedia == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please fill all fields and select media.')),
+      );
+      return;
+    }
+
+    if (price == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid price.')),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isUploading = true);
+
+      // Upload selected file to Firebase Storage
+      final folder = _mediaType == 'Photo' ? 'products' : 'reels';
+      final extension = _mediaType == 'Photo' ? 'jpg' : 'mp4';
+
+      final fileName =
+          '$folder/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+
+      if (kIsWeb) {
+        final bytes = await _selectedMedia!.readAsBytes();
+        await ref.putData(bytes);
+      } else {
+        await ref.putFile(File(_selectedMedia!.path));
+      }
+
+      final mediaUrl = await ref.getDownloadURL();
+
+      // Get latest user profile data
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final userData = userDoc.data();
+      final ownerUsername =
+          userData?['username'] ?? user.email?.split('@')[0] ?? 'Seller';
+      final userAvatar = userData?['profileImageUrl'] ?? '';
+
+      // Save photo product to products collection
+      if (_mediaType == 'Photo') {
+        await FirebaseFirestore.instance.collection('products').add({
+          'ownerId': user.uid,
+          'ownerEmail': user.email,
+          'ownerUsername': ownerUsername,
+          'name': productName,
+          'price': price,
+          'description': description,
+          'mediaType': 'Photo',
+          'imageUrl': mediaUrl,
+          'videoUrl': '',
+          'likes': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Save video post only to reels collection
+// Reels will appear only in Reels page, Reels section in profile,
+// and not in Home product grid.
+      if (_mediaType == 'Video') {
+        await FirebaseFirestore.instance.collection('reels').add({
+          'ownerId': user.uid,
+          'username': ownerUsername,
+          'userAvatar': userAvatar,
+          'caption': description,
+          'productName': productName,
+          'price': price,
+          'originalPrice': null,
+          'imageUrl': '',
+          'videoUrl': mediaUrl,
+          'likeCount': 0,
+          'commentCount': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _mediaType == 'Photo'
+                ? 'Product shared successfully!'
+                : 'Reels video shared successfully!',
+          ),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+
+      // Go to the correct page after upload
+      Navigator.pushReplacementNamed(
+        context,
+        _mediaType == 'Photo' ? '/home' : '/reels',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,38 +195,28 @@ class _PostCreationPageState extends State<PostCreationPage> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        leading: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
-          ),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
         ),
-        title: Text('Create Product Listing', style: AppTextStyles.productName.copyWith(fontSize: 18)),
+        title: Text(
+          'Create Product Listing',
+          style: AppTextStyles.productName.copyWith(fontSize: 18),
+        ),
         centerTitle: true,
         actions: [
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: TextButton(
-              onPressed: () {
-                Navigator.pushReplacementNamed(context, '/home');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(_mediaType == 'Photo'
-                        ? 'Product shared successfully!'
-                        : 'Reels video shared successfully!'),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.all(16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    duration: const Duration(seconds: 2),
+          TextButton(
+            onPressed: _isUploading ? null : _sharePost,
+            child: _isUploading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    'Share',
+                    style: AppTextStyles.buttonOutlined.copyWith(fontSize: 15),
                   ),
-                );
-              },
-              child: Text('Share',
-                  style: AppTextStyles.buttonOutlined.copyWith(fontSize: 15)),
-            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -77,131 +226,131 @@ class _PostCreationPageState extends State<PostCreationPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Upload Type Selector (Photo vs Video) ──────────────────
             Text('Media Type',
-                style: AppTextStyles.productName.copyWith(fontSize: 14, color: AppColors.textSecondary)),
+                style: AppTextStyles.productName
+                    .copyWith(fontSize: 14, color: AppColors.textSecondary)),
             const SizedBox(height: 8),
+
             Row(
               children: [
                 _TypeChip(
                   label: 'Product Photo',
                   icon: Icons.photo_library_outlined,
                   isActive: _mediaType == 'Photo',
-                  onTap: () => setState(() => _mediaType = 'Photo'),
+                  onTap: () {
+                    setState(() {
+                      _mediaType = 'Photo';
+                      _selectedMedia = null;
+                      _hasMedia = false;
+                    });
+                  },
                 ),
                 const SizedBox(width: 10),
                 _TypeChip(
                   label: 'Reels Video',
                   icon: Icons.video_library_outlined,
                   isActive: _mediaType == 'Video',
-                  onTap: () => setState(() => _mediaType = 'Video'),
+                  onTap: () {
+                    setState(() {
+                      _mediaType = 'Video';
+                      _selectedMedia = null;
+                      _hasMedia = false;
+                    });
+                  },
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              _mediaType == 'Photo'
-                  ? '• Photo uploads will be displayed on the home product grids.'
-                  : '• Video uploads will play on the full-screen Reels tab feed.',
-              style: AppTextStyles.brandName.copyWith(color: AppColors.primary, fontSize: 12),
-            ),
+
             const SizedBox(height: 20),
 
-            // ── Upload area ─────────────────────────────────────────────
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => setState(() => _hasMedia = !_hasMedia),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  height: 220,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: _hasMedia
-                        ? AppColors.primary.withAlpha(20)
-                        : AppColors.primarySurface,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: _hasMedia
-                          ? AppColors.primary
-                          : AppColors.divider,
-                      width: _hasMedia ? 2 : 1.5,
-                      style: BorderStyle.solid,
-                    ),
+            // Upload area
+            GestureDetector(
+              onTap: _pickMedia,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: 220,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: _hasMedia
+                      ? AppColors.primary.withAlpha(20)
+                      : AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: _hasMedia ? AppColors.primary : AppColors.divider,
+                    width: _hasMedia ? 2 : 1.5,
                   ),
-                  child: _hasMedia
-                      ? Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.check_circle_rounded,
-                                color: AppColors.primary, size: 48),
-                            const SizedBox(height: 12),
-                            Text(
-                                _mediaType == 'Photo'
-                                    ? 'Photo media selected'
-                                    : 'Reels Video clip selected',
-                                style: AppTextStyles.productName
-                                    .copyWith(color: AppColors.primary)),
-                            const SizedBox(height: 4),
-                            Text('Tap to change media file',
-                                style: AppTextStyles.brandName),
-                          ],
-                        )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: const BoxDecoration(
-                                color: AppColors.surface,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                  _mediaType == 'Photo'
-                                      ? Icons.add_photo_alternate_outlined
-                                      : Icons.video_call_outlined,
-                                  color: AppColors.primary,
-                                  size: 32),
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                                _mediaType == 'Photo'
-                                    ? 'Upload Product Photo'
-                                    : 'Upload Reels Video',
-                                style: AppTextStyles.sectionTitle
-                                    .copyWith(fontSize: 17)),
-                            const SizedBox(height: 6),
-                            Text(
-                                _mediaType == 'Photo'
-                                    ? 'Tap to select an image from gallery'
-                                    : 'Tap to select an MP4 video clip',
-                                style: AppTextStyles.brandName),
-                          ],
-                        ),
                 ),
+                child: _selectedMedia != null
+                    ? _mediaType == 'Photo'
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: kIsWeb
+                                ? Image.network(
+                                    _selectedMedia!.path,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  )
+                                : Image.file(
+                                    File(_selectedMedia!.path),
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  ),
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.video_file_rounded,
+                                  color: AppColors.primary, size: 54),
+                              const SizedBox(height: 12),
+                              Text('Video selected',
+                                  style: AppTextStyles.sectionTitle
+                                      .copyWith(fontSize: 17)),
+                            ],
+                          )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _mediaType == 'Photo'
+                                ? Icons.add_photo_alternate_outlined
+                                : Icons.video_call_outlined,
+                            color: AppColors.primary,
+                            size: 42,
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            _mediaType == 'Photo'
+                                ? 'Upload Product Photo'
+                                : 'Upload Reels Video',
+                            style: AppTextStyles.sectionTitle
+                                .copyWith(fontSize: 17),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _mediaType == 'Photo'
+                                ? 'Tap to select an image from gallery'
+                                : 'Tap to select an MP4 video clip',
+                            style: AppTextStyles.brandName,
+                          ),
+                        ],
+                      ),
               ),
             ),
+
             const SizedBox(height: 24),
 
-            // ── Product Details section (always visible) ────────────────
-            Row(
-              children: [
-                const Icon(Icons.local_offer_outlined,
-                    color: AppColors.primary, size: 18),
-                const SizedBox(width: 8),
-                Text('Product Information',
-                    style: AppTextStyles.productName
-                        .copyWith(fontSize: 15, color: AppColors.primary)),
-              ],
-            ),
+            Text('Product Information',
+                style: AppTextStyles.productName
+                    .copyWith(fontSize: 15, color: AppColors.primary)),
             const SizedBox(height: 12),
+
             _InlineField(
               controller: _productNameCtrl,
               hint: 'Product name',
               icon: Icons.inventory_2_outlined,
             ),
             const SizedBox(height: 10),
+
             _InlineField(
               controller: _priceCtrl,
               hint: 'Price (e.g. 99.99)',
@@ -211,51 +360,23 @@ class _PostCreationPageState extends State<PostCreationPage> {
             ),
             const SizedBox(height: 20),
 
-            // ── Caption ─────────────────────────────────────────────────
             Text('Product Description',
-                style: AppTextStyles.productName.copyWith(fontSize: 14, color: AppColors.textSecondary)),
+                style: AppTextStyles.productName
+                    .copyWith(fontSize: 14, color: AppColors.textSecondary)),
             const SizedBox(height: 8),
+
             TextField(
               controller: _captionCtrl,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: 'Write an engaging details description or caption...',
+                hintText: 'Write description or caption...',
                 hintStyle: AppTextStyles.brandName.copyWith(fontSize: 14),
                 filled: true,
                 fillColor: AppColors.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: AppColors.divider),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                      color: AppColors.primary, width: 1.5),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: AppColors.divider),
-                ),
-                contentPadding: const EdgeInsets.all(16),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
-            const SizedBox(height: 24),
-
-            // ── Extras row ───────────────────────────────────────────────
-            Row(
-              children: [
-                _ExtraButton(
-                    icon: Icons.location_on_outlined, label: 'Location'),
-                const SizedBox(width: 10),
-                _ExtraButton(
-                    icon: Icons.people_outline_rounded, label: 'Tag people'),
-                const SizedBox(width: 10),
-                _ExtraButton(icon: Icons.music_note_outlined, label: 'Music'),
-              ],
-            ),
-            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -305,8 +426,7 @@ class _TypeChip extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
-            color:
-                isActive ? AppColors.primary : AppColors.surface,
+            color: isActive ? AppColors.primary : AppColors.surface,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isActive ? AppColors.primary : AppColors.divider,
@@ -403,12 +523,11 @@ class _ExtraButton extends StatelessWidget {
               Icon(icon, size: 14, color: AppColors.iconMuted),
               const SizedBox(width: 4),
               Text(label,
-                  style:
-                      AppTextStyles.brandName.copyWith(fontSize: 12)),
-          ],
+                  style: AppTextStyles.brandName.copyWith(fontSize: 12)),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }

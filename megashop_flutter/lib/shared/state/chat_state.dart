@@ -14,27 +14,32 @@ class ChatService extends ChangeNotifier {
     const ChatFriend(
       id: 'c1',
       name: 'Aria Montgomery',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
+      avatarUrl:
+          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
     ),
     const ChatFriend(
       id: 'c2',
       name: 'Julian Rossi',
-      avatarUrl: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
+      avatarUrl:
+          'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
     ),
     const ChatFriend(
       id: 'c3',
       name: 'Elena Vance',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80',
+      avatarUrl:
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80',
     ),
     const ChatFriend(
       id: 'c4',
       name: 'Marcus Thorne',
-      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80',
+      avatarUrl:
+          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80',
     ),
     const ChatFriend(
       id: 'c5',
       name: 'Diana Prince',
-      avatarUrl: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=100&q=80',
+      avatarUrl:
+          'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=100&q=80',
     ),
   ];
 

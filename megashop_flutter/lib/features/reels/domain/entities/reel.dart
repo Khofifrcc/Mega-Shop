@@ -12,12 +12,14 @@ class Reel {
   final int likeCount;
   final int commentCount;
   final bool isFollowing;
+  final String ownerId;
 
   const Reel({
     required this.id,
     required this.username,
     required this.userAvatar,
     this.caption = '',
+    this.ownerId = '',
     required this.productName,
     required this.price,
     this.originalPrice,

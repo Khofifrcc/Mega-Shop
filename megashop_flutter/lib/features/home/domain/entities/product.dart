@@ -2,8 +2,11 @@
 /// Pure Dart — no Flutter dependencies; suitable for unit testing.
 class Product {
   final String id;
+  final String ownerId;
   final String name;
   final String brand;
+  final String description;
+  final String category;
 
   /// Current selling price in USD
   final double price;
@@ -22,8 +25,11 @@ class Product {
 
   const Product({
     required this.id,
+    this.ownerId = '',
     required this.name,
     required this.brand,
+    this.category = 'Fashion',
+    this.description = '',
     required this.price,
     this.originalPrice,
     required this.imageUrl,
@@ -36,18 +42,24 @@ class Product {
 
   Product copyWith({
     String? id,
+    String? ownerId,
     String? name,
     String? brand,
+    String? description,
     double? price,
     double? originalPrice,
     String? imageUrl,
     String? badge,
     bool? isFavorite,
+    String? category,
   }) {
     return Product(
+      category: category ?? this.category,
       id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
       name: name ?? this.name,
       brand: brand ?? this.brand,
+      description: description ?? this.description,
       price: price ?? this.price,
       originalPrice: originalPrice ?? this.originalPrice,
       imageUrl: imageUrl ?? this.imageUrl,

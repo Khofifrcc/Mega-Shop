@@ -5,6 +5,7 @@ import '../../../../shared/state/cart_state.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../../home/domain/entities/product.dart';
 import '../../../home/presentation/widgets/product_card.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Search page with recent search chips, interactive cursors, and a working filter sheet.
 class SearchPage extends StatefulWidget {
@@ -15,65 +16,18 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final _searchCtrl = TextEditingController(text: 'Jacket');
+  final _searchCtrl = TextEditingController();
   final _focusNode = FocusNode();
-  final List<String> _recentSearches = ['Streetwear', 'Sneakers 2024', 'Oversized Hoodie'];
+  final List<String> _recentSearches = [
+    'Streetwear',
+    'Sneakers 2024',
+    'Oversized Hoodie'
+  ];
 
   // Filter States
   String _selectedSort = 'Latest';
   String _selectedCategory = 'All';
   String _selectedPriceRange = 'All';
-
-
-
-  final List<Product> _allProducts = [
-    const Product(
-      id: 's1',
-      name: 'Urban Leather Jacket',
-      brand: 'Brand X',
-      price: 129,
-      badge: 'SALE',
-      originalPrice: 160.00,
-      imageUrl: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80',
-    ),
-    const Product(
-      id: 's2',
-      name: 'Tech Windbreaker Jacket',
-      brand: 'Aero Wear',
-      price: 89,
-      imageUrl: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&q=80',
-    ),
-    const Product(
-      id: 's3',
-      name: 'Classic Denim Jacket',
-      brand: 'Vintage Co.',
-      price: 110,
-      badge: 'NEW',
-      imageUrl: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&q=80',
-    ),
-    const Product(
-      id: 's4',
-      name: 'Puffer Winter Jacket V2',
-      brand: 'Alpine',
-      price: 145,
-      originalPrice: 190.00,
-      imageUrl: 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=400&q=80',
-    ),
-    const Product(
-      id: 's5',
-      name: 'Ultra Boost Runner Sneakers',
-      brand: 'Adidas',
-      price: 159,
-      imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
-    ),
-    const Product(
-      id: 's6',
-      name: 'Titanium Smartwatch Pro',
-      brand: 'Aura',
-      price: 299,
-      imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80',
-    ),
-  ];
 
   @override
   void dispose() {
@@ -83,40 +37,53 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   // Filter and sort products dynamically based on search controller + filter state
-  List<Product> get _filteredResults {
+  List<Product> _filterProducts(List<Product> products) {
     final query = _searchCtrl.text.toLowerCase().trim();
-    List<Product> list = _allProducts.where((p) {
-      // 1. Search Query filter
-      final matchesQuery = p.name.toLowerCase().contains(query) || p.brand.toLowerCase().contains(query);
+
+    List<Product> list = products.where((p) {
+      final matchesQuery = query.isEmpty ||
+          p.name.toLowerCase().contains(query) ||
+          p.brand.toLowerCase().contains(query);
+// 1. search query
       if (!matchesQuery) return false;
-
-      // 2. Category filter
+//2. category
       if (_selectedCategory != 'All') {
+        final name = p.name.toLowerCase();
+
         if (_selectedCategory == 'Clothing' &&
-            !p.name.toLowerCase().contains('jacket') &&
-            !p.name.toLowerCase().contains('windbreaker') &&
-            !p.name.toLowerCase().contains('denim')) {
+            !name.contains('jacket') &&
+            !name.contains('hoodie') &&
+            !name.contains('shirt') &&
+            !name.contains('dress')) {
           return false;
         }
-        if (_selectedCategory == 'Shoes' && !p.name.toLowerCase().contains('sneakers')) {
+
+        if (_selectedCategory == 'Shoes' &&
+            !name.contains('shoe') &&
+            !name.contains('sneaker')) {
           return false;
         }
-        if (_selectedCategory == 'Watches' && !p.name.toLowerCase().contains('watch')) {
+
+        if (_selectedCategory == 'Watches' && !name.contains('watch')) {
           return false;
         }
       }
-
-      // 3. Price Range filter
-      if (_selectedPriceRange != 'All') {
-        if (_selectedPriceRange == 'Under \$100' && p.price >= 100) return false;
-        if (_selectedPriceRange == '\$100 - \$200' && (p.price < 100 || p.price > 200)) return false;
-        if (_selectedPriceRange == 'Above \$200' && p.price <= 200) return false;
+// price
+      if (_selectedPriceRange == 'Under \$100' && p.price >= 100) {
+        return false;
       }
 
+      if (_selectedPriceRange == '\$100 - \$200' &&
+          (p.price < 100 || p.price > 200)) {
+        return false;
+      }
+
+      if (_selectedPriceRange == 'Above \$200' && p.price <= 200) {
+        return false;
+      }
       return true;
     }).toList();
 
-    // 4. Sort results
     if (_selectedSort == 'Price: Low to High') {
       list.sort((a, b) => a.price.compareTo(b.price));
     } else if (_selectedSort == 'Price: High to Low') {
@@ -149,8 +116,6 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final results = _filteredResults;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -177,159 +142,229 @@ class _SearchPageState extends State<SearchPage> {
             child: IconButton(
               onPressed: _showFilterSheet,
               icon: Icon(Icons.tune_rounded,
-                  color: (_selectedSort != 'Latest' || _selectedCategory != 'All' || _selectedPriceRange != 'All')
+                  color: (_selectedSort != 'Latest' ||
+                          _selectedCategory != 'All' ||
+                          _selectedPriceRange != 'All')
                       ? AppColors.primary
                       : AppColors.textPrimary),
             ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Recent searches
-            if (_recentSearches.isNotEmpty) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Recent Searches',
-                      style: AppTextStyles.productName.copyWith(fontSize: 15)),
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _recentSearches.clear()),
-                      child: Text('CLEAR ALL',
-                          style: AppTextStyles.buttonOutlined
-                              .copyWith(fontSize: 12, color: AppColors.primary)),
-                    ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('products')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final firebaseProducts = (snapshot.data?.docs ?? []).map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+
+            return Product(
+              id: doc.id,
+              name: data['name'] ?? '',
+              brand: data['ownerUsername'] ?? data['ownerEmail'] ?? 'Seller',
+              description: data['description'] ?? '',
+              price: (data['price'] ?? 0).toDouble(),
+              originalPrice: null,
+              imageUrl: data['imageUrl'] ?? '',
+              badge: data['mediaType'] == 'Photo' ? 'NEW' : null,
+              isFavorite: false,
+            );
+          }).toList();
+
+          final results = _filterProducts(firebaseProducts);
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_recentSearches.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Recent Searches',
+                        style: AppTextStyles.productName.copyWith(fontSize: 15),
+                      ),
+                      GestureDetector(
+                        onTap: () => setState(() => _recentSearches.clear()),
+                        child: Text(
+                          'CLEAR ALL',
+                          style: AppTextStyles.buttonOutlined.copyWith(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _recentSearches
+                        .map(
+                          (s) => _RecentChip(
+                            label: s,
+                            onTap: () {
+                              setState(() {
+                                _searchCtrl.text = s;
+                              });
+                            },
+                            onRemove: () =>
+                                setState(() => _recentSearches.remove(s)),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 20),
                 ],
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _recentSearches
-                    .map((s) => _RecentChip(
-                          label: s,
-                          onTap: () {
-                            setState(() {
-                              _searchCtrl.text = s;
-                            });
-                          },
-                          onRemove: () =>
-                              setState(() => _recentSearches.remove(s)),
-                        ))
-                    .toList(),
-              ),
-              const SizedBox(height: 20),
-            ],
-            
-            // Search filters active indicators
-            if (_selectedCategory != 'All' || _selectedPriceRange != 'All' || _selectedSort != 'Latest') ...[
-              Row(
-                children: [
-                  Text('Filters:', style: AppTextStyles.brandName.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
+                if (_selectedCategory != 'All' ||
+                    _selectedPriceRange != 'All' ||
+                    _selectedSort != 'Latest') ...[
+                  Row(
+                    children: [
+                      Text(
+                        'Filters:',
+                        style: AppTextStyles.brandName.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              if (_selectedSort != 'Latest')
+                                _ActiveFilterChip(
+                                  label: _selectedSort,
+                                  onRemove: () =>
+                                      setState(() => _selectedSort = 'Latest'),
+                                ),
+                              if (_selectedCategory != 'All')
+                                _ActiveFilterChip(
+                                  label: _selectedCategory,
+                                  onRemove: () =>
+                                      setState(() => _selectedCategory = 'All'),
+                                ),
+                              if (_selectedPriceRange != 'All')
+                                _ActiveFilterChip(
+                                  label: _selectedPriceRange,
+                                  onRemove: () => setState(
+                                      () => _selectedPriceRange = 'All'),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  'Search Results (${results.length})',
+                  style: AppTextStyles.sectionTitle.copyWith(fontSize: 18),
+                ),
+                const SizedBox(height: 12),
+                if (results.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: Column(
                         children: [
-                          if (_selectedSort != 'Latest')
-                            _ActiveFilterChip(label: _selectedSort, onRemove: () => setState(() => _selectedSort = 'Latest')),
-                          if (_selectedCategory != 'All')
-                            _ActiveFilterChip(label: _selectedCategory, onRemove: () => setState(() => _selectedCategory = 'All')),
-                          if (_selectedPriceRange != 'All')
-                            _ActiveFilterChip(label: _selectedPriceRange, onRemove: () => setState(() => _selectedPriceRange = 'All')),
+                          Icon(
+                            Icons.search_off_rounded,
+                            size: 48,
+                            color: AppColors.iconMuted.withAlpha(120),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No products found matching filters.',
+                            style: AppTextStyles.brandName,
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            Text('Search Results (${results.length})',
-                style: AppTextStyles.sectionTitle.copyWith(fontSize: 18)),
-            const SizedBox(height: 12),
-            
-            if (results.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(Icons.search_off_rounded, size: 48, color: AppColors.iconMuted.withAlpha(120)),
-                      const SizedBox(height: 12),
-                      Text('No products found matching filters.',
-                          style: AppTextStyles.brandName),
-                    ],
-                  ),
-                ),
-              )
-            else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.58,
-                ),
-                itemCount: results.length,
-                itemBuilder: (context, i) {
-                  final prod = results[i];
-                  return MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/product',
-                          arguments: prod),
-                      child: ProductCard(
-                        product: prod,
-                        onAddToCart: () {
-                          CartStateProvider.of(context).addItem(
-                            productId: prod.id,
-                            name: prod.name,
-                            variant: 'Default',
-                            price: prod.price,
-                            imageUrl: prod.imageUrl,
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Added to cart!',
-                                  style: AppTextStyles.brandName
-                                      .copyWith(color: Colors.white)),
-                              backgroundColor: AppColors.primary,
-                              behavior: SnackBarBehavior.floating,
-                              margin: const EdgeInsets.all(16),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        onBuyNow: () {
-                          CartStateProvider.of(context).addItem(
-                            productId: prod.id,
-                            name: prod.name,
-                            variant: 'Default',
-                            price: prod.price,
-                            imageUrl: prod.imageUrl,
-                          );
-                          Navigator.pushNamed(context, '/checkout');
-                        },
-                      ),
+                  )
+                else
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.58,
                     ),
-                  );
-                },
-              ),
-          ],
-        ),
+                    itemCount: results.length,
+                    itemBuilder: (context, i) {
+                      final prod = results[i];
+
+                      return GestureDetector(
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/product',
+                          arguments: prod,
+                        ),
+                        child: ProductCard(
+                          product: prod,
+                          onAddToCart: () async {
+                            await CartStateProvider.of(context).addItem(
+                              productId: prod.id,
+                              name: prod.name,
+                              variant: 'Default',
+                              price: prod.price,
+                              imageUrl: prod.imageUrl,
+                            );
+
+                            if (!context.mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Added to cart!',
+                                  style: AppTextStyles.brandName
+                                      .copyWith(color: Colors.white),
+                                ),
+                                backgroundColor: AppColors.primary,
+                                behavior: SnackBarBehavior.floating,
+                                margin: const EdgeInsets.all(16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          onBuyNow: () async {
+                            await CartStateProvider.of(context).addItem(
+                              productId: prod.id,
+                              name: prod.name,
+                              variant: 'Default',
+                              price: prod.price,
+                              imageUrl: prod.imageUrl,
+                            );
+
+                            if (context.mounted) {
+                              Navigator.pushNamed(context, '/checkout');
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          );
+        },
       ),
       bottomNavigationBar: MegaBottomNav(
         currentIndex: 0,
@@ -359,7 +394,8 @@ class _SearchBar extends StatelessWidget {
   final FocusNode focusNode;
   final ValueChanged<String>? onChanged;
 
-  const _SearchBar({required this.controller, required this.focusNode, this.onChanged});
+  const _SearchBar(
+      {required this.controller, required this.focusNode, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -402,7 +438,8 @@ class _RecentChip extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onRemove;
 
-  const _RecentChip({required this.label, required this.onTap, required this.onRemove});
+  const _RecentChip(
+      {required this.label, required this.onTap, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -424,7 +461,8 @@ class _RecentChip extends StatelessWidget {
                   size: 14, color: AppColors.iconMuted),
               const SizedBox(width: 6),
               Text(label,
-                  style: AppTextStyles.brandName.copyWith(fontSize: 13, color: AppColors.textPrimary)),
+                  style: AppTextStyles.brandName
+                      .copyWith(fontSize: 13, color: AppColors.textPrimary)),
               const SizedBox(width: 6),
               GestureDetector(
                 onTap: () {
@@ -460,13 +498,16 @@ class _ActiveFilterChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AppTextStyles.brandName.copyWith(color: AppColors.primary, fontSize: 11)),
+          Text(label,
+              style: AppTextStyles.brandName
+                  .copyWith(color: AppColors.primary, fontSize: 11)),
           const SizedBox(width: 4),
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
               onTap: onRemove,
-              child: const Icon(Icons.close_rounded, size: 12, color: AppColors.primary),
+              child: const Icon(Icons.close_rounded,
+                  size: 12, color: AppColors.primary),
             ),
           ),
         ],
@@ -474,8 +515,6 @@ class _ActiveFilterChip extends StatelessWidget {
     );
   }
 }
-
-
 
 // ── Filter Sheet Bottom Sheet ──────────────────────────────────────────────────
 
@@ -522,7 +561,8 @@ class _FilterSheetState extends State<_FilterSheet> {
         color: Color(0xFF1E1E1E),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
-          BoxShadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, -4))
+          BoxShadow(
+              color: Colors.black54, blurRadius: 16, offset: Offset(0, -4))
         ],
       ),
       child: Column(
@@ -550,7 +590,8 @@ class _FilterSheetState extends State<_FilterSheet> {
 
           // Sort Section
           Text('Sort By',
-              style: AppTextStyles.productName.copyWith(color: Colors.white70, fontSize: 14)),
+              style: AppTextStyles.productName
+                  .copyWith(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -562,11 +603,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                 child: GestureDetector(
                   onTap: () => setState(() => _sort = opt),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: active ? AppColors.primary : Colors.white10,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: active ? Colors.transparent : Colors.white24),
+                      border: Border.all(
+                          color: active ? Colors.transparent : Colors.white24),
                     ),
                     child: Text(opt,
                         style: AppTextStyles.brandName.copyWith(
@@ -581,7 +624,8 @@ class _FilterSheetState extends State<_FilterSheet> {
 
           // Category Section
           Text('Category',
-              style: AppTextStyles.productName.copyWith(color: Colors.white70, fontSize: 14)),
+              style: AppTextStyles.productName
+                  .copyWith(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -593,11 +637,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                 child: GestureDetector(
                   onTap: () => setState(() => _category = opt),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: active ? AppColors.primary : Colors.white10,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: active ? Colors.transparent : Colors.white24),
+                      border: Border.all(
+                          color: active ? Colors.transparent : Colors.white24),
                     ),
                     child: Text(opt,
                         style: AppTextStyles.brandName.copyWith(
@@ -612,7 +658,8 @@ class _FilterSheetState extends State<_FilterSheet> {
 
           // Price Section
           Text('Price Range',
-              style: AppTextStyles.productName.copyWith(color: Colors.white70, fontSize: 14)),
+              style: AppTextStyles.productName
+                  .copyWith(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -624,11 +671,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                 child: GestureDetector(
                   onTap: () => setState(() => _priceRange = opt),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: active ? AppColors.primary : Colors.white10,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: active ? Colors.transparent : Colors.white24),
+                      border: Border.all(
+                          color: active ? Colors.transparent : Colors.white24),
                     ),
                     child: Text(opt,
                         style: AppTextStyles.brandName.copyWith(
@@ -658,9 +707,12 @@ class _FilterSheetState extends State<_FilterSheet> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.white30),
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
                     ),
-                    child: Text('Reset', style: AppTextStyles.buttonOutlined.copyWith(color: Colors.white)),
+                    child: Text('Reset',
+                        style: AppTextStyles.buttonOutlined
+                            .copyWith(color: Colors.white)),
                   ),
                 ),
               ),
@@ -677,9 +729,12 @@ class _FilterSheetState extends State<_FilterSheet> {
                       backgroundColor: AppColors.primary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
                     ),
-                    child: Text('Apply Filters', style: AppTextStyles.buttonFilled.copyWith(color: Colors.white)),
+                    child: Text('Apply Filters',
+                        style: AppTextStyles.buttonFilled
+                            .copyWith(color: Colors.white)),
                   ),
                 ),
               ),

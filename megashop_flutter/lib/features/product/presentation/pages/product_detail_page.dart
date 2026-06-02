@@ -5,6 +5,8 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
 import '../../../home/domain/entities/product.dart';
 import 'seller_profile_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Product Detail page — Shopee-style layout.
 ///
@@ -30,12 +32,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     'https://images.unsplash.com/photo-1434056886845-dac89ffe9b56?w=600&q=80',
   ];
 
-  static const _description =
-      'Experience the future on your wrist with the Aura Titanium Series X. '
-      'Forged from aerospace-grade titanium, it offers unparalleled durability '
-      'without compromising on its feather-light feel. Features advanced biometric '
-      'tracking, 14-day battery life, and an edge-to-edge sapphire crystal display.';
-
   // ── Navigate to seller profile ────────────────────────────────────────────
 
   void _openSeller(Product product) {
@@ -60,20 +56,86 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   // ── Chat to seller ────────────────────────────────────────────────────────
+  Future<void> _chatSeller(Product product) async {
+    final user = FirebaseAuth.instance.currentUser;
 
-  void _chatSeller(Product product) {
-    Navigator.pushNamed(
-      context,
-      '/chat',
-      arguments: {
-        'sellerId': 'seller_${product.id}',
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login first.')),
+      );
+      return;
+    }
+
+    if (product.ownerId == user.uid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This is your own product.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final sellerId = product.ownerId;
+      final ids = [user.uid, sellerId]..sort();
+      final chatId = '${ids[0]}_${ids[1]}';
+
+      final chatRef =
+          FirebaseFirestore.instance.collection('chats').doc(chatId);
+
+      final chatDoc = await chatRef.get();
+      final isNewChat = !chatDoc.exists;
+
+      final buyerDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final buyerData = buyerDoc.data();
+
+      await chatRef.set({
+        'members': [user.uid, sellerId],
+        'buyerId': user.uid,
+        'buyerName':
+            buyerData?['username'] ?? user.email?.split('@')[0] ?? 'Buyer',
+        'buyerAvatar': buyerData?['profileImageUrl'] ?? '',
+        'sellerId': sellerId,
         'sellerName': product.brand,
-        'productId': product.id,
-        'productName': product.name,
-        'productImage': product.imageUrl,
-        'productPrice': product.price,
-      },
-    );
+        'sellerAvatar': product.imageUrl,
+        'lastMessage': 'Hi! I am interested in ${product.name}.',
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (isNewChat) {
+        await chatRef.collection('messages').add({
+          'senderId': user.uid,
+          'type': 'product',
+          'text': 'Hi! I am interested in this product. Is it still available?',
+          'productId': product.id,
+          'productName': product.name,
+          'productPrice': product.price,
+          'productImage': product.imageUrl,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (!mounted) return;
+
+      Navigator.pushNamed(
+        context,
+        '/conversation',
+        arguments: {
+          'id': chatId,
+          'name': product.brand,
+          'avatar': product.imageUrl,
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Chat failed: $e')),
+      );
+    }
   }
 
   @override
@@ -81,91 +143,99 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final product = (ModalRoute.of(context)?.settings.arguments is Product)
         ? ModalRoute.of(context)!.settings.arguments as Product
         : _mockProduct;
+    final isMyProduct =
+        product.ownerId == FirebaseAuth.instance.currentUser?.uid;
 
     final images = [product.imageUrl, ..._extraImages];
+    final desc = product.description.isNotEmpty
+        ? product.description
+        : 'No description provided.';
 
     return Scaffold(
       backgroundColor: AppColors.background,
 
       // ── FIXED bottom bar — never moves, always at bottom ─────────────────
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        padding: EdgeInsets.fromLTRB(
-            0, 8, 12, MediaQuery.of(context).padding.bottom + 8),
-        child: Row(
-          children: [
-            // 🛒 Cart
-            _BottomIconBtn(
-              icon: Icons.shopping_cart_outlined,
-              label: 'Cart',
-              color: AppColors.primary,
-              onTap: () {
-                CartStateProvider.of(context).addItem(
-                  productId: product.id,
-                  name: product.name,
-                  variant: 'Default',
-                  price: product.price,
-                  imageUrl: product.imageUrl,
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Added to cart!',
-                        style: AppTextStyles.brandName
-                            .copyWith(color: Colors.white)),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.all(16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    duration: const Duration(seconds: 2),
+      bottomNavigationBar: isMyProduct
+          ? _OwnerBottomBar(product: product)
+          : Container(
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
                   ),
-                );
-              },
-            ),
-
-            Container(width: 1, height: 36, color: AppColors.divider),
-
-            // 💬 Chat
-            _BottomIconBtn(
-              icon: Icons.chat_bubble_outline_rounded,
-              label: 'Chat',
-              color: AppColors.textPrimary,
-              onTap: () => _chatSeller(product),
-            ),
-
-            const SizedBox(width: 10),
-
-            // Buy Now (wider)
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pushNamed(context, '/checkout'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24)),
-                    elevation: 0,
-                    padding: EdgeInsets.zero,
+                ],
+              ),
+              padding: EdgeInsets.fromLTRB(
+                  0, 8, 12, MediaQuery.of(context).padding.bottom + 8),
+              child: Row(
+                children: [
+                  // 🛒 Cart
+                  _BottomIconBtn(
+                    icon: Icons.shopping_cart_outlined,
+                    label: 'Cart',
+                    color: AppColors.primary,
+                    onTap: () {
+                      CartStateProvider.of(context).addItem(
+                        productId: product.id,
+                        name: product.name,
+                        variant: 'Default',
+                        price: product.price,
+                        imageUrl: product.imageUrl,
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Added to cart!',
+                              style: AppTextStyles.brandName
+                                  .copyWith(color: Colors.white)),
+                          backgroundColor: AppColors.primary,
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.all(16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
                   ),
-                  child: Text('Buy Now',
-                      style:
-                          AppTextStyles.buttonFilled.copyWith(fontSize: 15)),
-                ),
+
+                  Container(width: 1, height: 36, color: AppColors.divider),
+
+                  // 💬 Chat
+                  _BottomIconBtn(
+                    icon: Icons.chat_bubble_outline_rounded,
+                    label: 'Chat',
+                    color: AppColors.textPrimary,
+                    onTap: () => _chatSeller(product),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  // Buy Now (wider)
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/checkout'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24)),
+                          elevation: 0,
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: Text('Buy Now',
+                            style: AppTextStyles.buttonFilled
+                                .copyWith(fontSize: 15)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
 
       // ── Scrollable body ───────────────────────────────────────────────────
       body: SingleChildScrollView(
@@ -195,8 +265,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 children: [
                   // Product name
                   Text(product.name,
-                      style:
-                          AppTextStyles.sectionTitle.copyWith(fontSize: 22)),
+                      style: AppTextStyles.sectionTitle.copyWith(fontSize: 22)),
                   const SizedBox(height: 8),
 
                   // Price + free shipping
@@ -255,7 +324,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('TechHaven Official',
+                                  Text(product.brand,
                                       style: AppTextStyles.productName),
                                   const SizedBox(height: 2),
                                   Row(
@@ -308,29 +377,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
                   // Description
                   Text('Product Details',
-                      style:
-                          AppTextStyles.sectionTitle.copyWith(fontSize: 17)),
+                      style: AppTextStyles.sectionTitle.copyWith(fontSize: 17)),
                   const SizedBox(height: 8),
                   Text(
-                    _isExpanded
-                        ? _description
-                        : '${_description.substring(0, 120)}...',
+                    desc.length <= 120 || _isExpanded
+                        ? desc
+                        : '${desc.substring(0, 120)}...',
                     style: AppTextStyles.brandName
                         .copyWith(fontSize: 13, height: 1.6),
                   ),
                   const SizedBox(height: 6),
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: () =>
-                          setState(() => _isExpanded = !_isExpanded),
-                      child: Text(
-                        _isExpanded ? 'Show less' : 'Read more',
-                        style:
-                            AppTextStyles.buttonOutlined.copyWith(fontSize: 13),
+                  if (desc.length > 120)
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isExpanded = !_isExpanded),
+                        child: Text(
+                          _isExpanded ? 'Show less' : 'Read more',
+                          style: AppTextStyles.buttonOutlined
+                              .copyWith(fontSize: 13),
+                        ),
                       ),
                     ),
-                  ),
+                  const SizedBox(height: 6),
                 ],
               ),
             ),
@@ -396,7 +465,8 @@ class _HeroImageSection extends StatelessWidget {
                   height: 6,
                   margin: const EdgeInsets.symmetric(horizontal: 2),
                   decoration: BoxDecoration(
-                    color: i == currentIndex ? AppColors.surface : Colors.white54,
+                    color:
+                        i == currentIndex ? AppColors.surface : Colors.white54,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -406,13 +476,11 @@ class _HeroImageSection extends StatelessWidget {
           // Back / Share / Heart buttons
           SafeArea(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _CircleIconBtn(
-                      icon: Icons.arrow_back_rounded, onTap: onBack),
+                  _CircleIconBtn(icon: Icons.arrow_back_rounded, onTap: onBack),
                   Row(
                     children: [
                       _CircleIconBtn(
@@ -526,6 +594,92 @@ class _BottomIconBtn extends StatelessWidget {
   }
 }
 
+//edit delete
+class _OwnerBottomBar extends StatelessWidget {
+  final Product product;
+
+  const _OwnerBottomBar({
+    required this.product,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        12,
+        8,
+        12,
+        MediaQuery.of(context).padding.bottom + 8,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/edit-product',
+                  arguments: product,
+                );
+              },
+              icon: const Icon(Icons.edit),
+              label: const Text('Edit Product'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Delete Product'),
+                    content: const Text(
+                      'Are you sure you want to delete this product?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.badgeSale,
+                        ),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm != true) return;
+
+                await FirebaseFirestore.instance
+                    .collection('products')
+                    .doc(product.id)
+                    .delete();
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Product deleted successfully'),
+                      backgroundColor: AppColors.primary,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.delete),
+              label: const Text('Delete Product'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 // ── Mock product fallback ─────────────────────────────────────────────────────
 
 final _mockProduct = Product(

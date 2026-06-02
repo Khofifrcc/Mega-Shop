@@ -5,12 +5,15 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Cart page matching the mockup.
 ///
 /// Shows list of cart items with qty controls, promo code input,
 /// order summary, and a sticky "Checkout →" amber button.
 /// Bottom nav is preserved so the user is never stranded.
+
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
 
@@ -31,252 +34,208 @@ class _CartPageState extends State<CartPage> {
   @override
   Widget build(BuildContext context) {
     final cart = CartStateProvider.of(context);
-    return ListenableBuilder(
-      listenable: cart,
-      builder: (context, _) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text('Please login first.')),
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('carts')
+          .doc(user.uid)
+          .collection('items')
+          .orderBy('updatedAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final items = snapshot.data?.docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+
+              return CartEntry(
+                id: doc.id,
+                productId: data['productId'] ?? doc.id,
+                name: data['name'] ?? '',
+                variant: data['variant'] ?? 'Default',
+                price: (data['price'] ?? 0).toDouble(),
+                quantity: data['quantity'] ?? 1,
+                imageUrl: data['imageUrl'] ?? '',
+              );
+            }).toList() ??
+            [];
+
+        final subtotal =
+            items.fold<double>(0, (total, e) => total + e.price * e.quantity);
+        final tax = subtotal * 0.08;
+        final total = subtotal + tax;
+
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
             backgroundColor: AppColors.background,
             elevation: 0,
             automaticallyImplyLeading: false,
-            title: Text('Cart',
-                style: AppTextStyles.sectionTitle
-                    .copyWith(color: AppColors.primary)),
+            title: Text(
+              'Cart',
+              style: AppTextStyles.sectionTitle.copyWith(
+                color: AppColors.primary,
+              ),
+            ),
             centerTitle: true,
             actions: [
-              if (cart.items.isNotEmpty)
+              if (items.isNotEmpty)
                 TextButton(
                   onPressed: () {
                     showDialog(
                       context: context,
                       builder: (_) => AlertDialog(
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        title: Text('Clear Cart',
-                            style: AppTextStyles.sectionTitle
-                                .copyWith(fontSize: 18)),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: Text(
+                          'Clear Cart',
+                          style: AppTextStyles.sectionTitle.copyWith(
+                            fontSize: 18,
+                          ),
+                        ),
                         content: Text(
-                            'Remove all items from cart?',
-                            style: AppTextStyles.brandName),
+                          'Remove all items from cart?',
+                          style: AppTextStyles.brandName,
+                        ),
                         actions: [
                           TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text('Cancel',
-                                  style: AppTextStyles.brandName
-                                      .copyWith(color: AppColors.iconMuted))),
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              'Cancel',
+                              style: AppTextStyles.brandName.copyWith(
+                                color: AppColors.iconMuted,
+                              ),
+                            ),
+                          ),
                           TextButton(
-                              onPressed: () {
-                                cart.clear();
-                                Navigator.pop(context);
-                              },
-                              child: Text('Clear',
-                                  style: AppTextStyles.brandName.copyWith(
-                                      color: AppColors.badgeSale))),
+                            onPressed: () async {
+                              await cart.clear();
+                              if (context.mounted) Navigator.pop(context);
+                            },
+                            child: Text(
+                              'Clear',
+                              style: AppTextStyles.brandName.copyWith(
+                                color: AppColors.badgeSale,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     );
                   },
-                  child: Text('Clear',
-                      style: AppTextStyles.brandName
-                          .copyWith(color: AppColors.badgeSale, fontSize: 13)),
+                  child: Text(
+                    'Clear',
+                    style: AppTextStyles.brandName.copyWith(
+                      color: AppColors.badgeSale,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               const SizedBox(width: 4),
             ],
           ),
-          body: cart.items.isEmpty
-              ? _EmptyCart(
-                  onShop: () => Navigator.pushReplacementNamed(context, '/home'))
-              : Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                        child: Column(
-                          children: [
-                            // Items
-                            ...cart.items.map((item) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _CartItemCard(
-                                    item: item,
-                                    onIncrement: () =>
-                                        cart.increment(item.id),
-                                    onDecrement: () =>
-                                        cart.decrement(item.id),
-                                    onRemove: () => cart.remove(item.id),
-                                  ),
-                                )),
-                            const SizedBox(height: 8),
-                            // Promo
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _promoApplied
-                                    ? AppColors.primarySurface
-                                    : AppColors.surface,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: _promoApplied
-                                      ? AppColors.primary
-                                      : AppColors.divider,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    CupertinoIcons.tag,
-                                    color: _promoApplied
-                                        ? AppColors.primary
-                                        : AppColors.iconMuted,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _promoCtrl,
-                                      decoration: InputDecoration(
-                                        hintText: _promoApplied
-                                            ? 'MEGA10 applied ✓'
-                                            : 'Enter promo code',
-                                        hintStyle: AppTextStyles.brandName
-                                            .copyWith(
-                                          color: _promoApplied
-                                              ? AppColors.primary
-                                              : null,
-                                        ),
-                                        border: InputBorder.none,
-                                      ),
-                                      style: AppTextStyles.productName
-                                          .copyWith(fontSize: 14),
+          body: snapshot.connectionState == ConnectionState.waiting
+              ? const Center(child: CircularProgressIndicator())
+              : items.isEmpty
+                  ? _EmptyCart(
+                      onShop: () =>
+                          Navigator.pushReplacementNamed(context, '/home'),
+                    )
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                            child: Column(
+                              children: [
+                                ...items.map(
+                                  (item) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _CartItemCard(
+                                      item: item,
+                                      onIncrement: () =>
+                                          cart.increment(item.id),
+                                      onDecrement: () =>
+                                          cart.decrement(item.id),
+                                      onRemove: () => cart.remove(item.id),
                                     ),
                                   ),
-                                  TextButton(
-                                    onPressed: () {
-                                      if (_promoCtrl.text.isNotEmpty) {
-                                        setState(
-                                            () => _promoApplied = true);
-                                      }
-                                    },
-                                    child: Text('Apply',
-                                        style:
-                                            AppTextStyles.buttonOutlined),
-                                  ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(height: 8),
+                                _PromoBox(
+                                  promoCtrl: _promoCtrl,
+                                  promoApplied: _promoApplied,
+                                  onApply: () {
+                                    if (_promoCtrl.text.isNotEmpty) {
+                                      setState(() => _promoApplied = true);
+                                    }
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                _OrderSummary(
+                                  itemCount: items.length,
+                                  subtotal: subtotal,
+                                  tax: tax,
+                                  total: total,
+                                  promoApplied: _promoApplied,
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 16),
-                            // Order summary
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: const [
-                                  BoxShadow(
-                                      color: AppColors.shadow,
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2))
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text('Order Summary',
-                                      style: AppTextStyles.sectionTitle
-                                          .copyWith(fontSize: 18)),
-                                  const SizedBox(height: 16),
-                                  _SummaryRow(
-                                      label:
-                                          'Subtotal (${cart.items.length} items)',
-                                      value:
-                                          '\$${cart.subtotal.toStringAsFixed(2)}'),
-                                  const SizedBox(height: 10),
-                                  _SummaryRow(
-                                      label: 'Shipping',
-                                      value: 'Free',
-                                      valueColor: AppColors.primary),
-                                  const SizedBox(height: 10),
-                                  _SummaryRow(
-                                      label: 'Tax (8%)',
-                                      value:
-                                          '\$${cart.tax.toStringAsFixed(2)}'),
-                                  if (_promoApplied) ...[
-                                    const SizedBox(height: 10),
-                                    _SummaryRow(
-                                        label: 'Promo (MEGA10)',
-                                        value:
-                                            '-\$${(cart.subtotal * 0.10).toStringAsFixed(2)}',
-                                        valueColor: AppColors.primary),
-                                  ],
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        vertical: 12),
-                                    child:
-                                        Divider(color: AppColors.divider),
-                                  ),
-                                  _SummaryRow(
-                                    label: 'Total',
-                                    value:
-                                        '\$${cart.total.toStringAsFixed(2)}',
-                                    labelStyle:
-                                        AppTextStyles.sectionTitle
-                                            .copyWith(fontSize: 17),
-                                    valueStyle: AppTextStyles.price
-                                        .copyWith(
-                                            fontSize: 22,
-                                            color: AppColors.primary),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Checkout button — sits ABOVE bottom nav, never overlapping
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        boxShadow: const [
-                          BoxShadow(
-                              color: AppColors.shadow,
-                              blurRadius: 8,
-                              offset: Offset(0, -2)),
-                        ],
-                      ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/checkout'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28)),
-                            elevation: 0,
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Checkout',
-                                  style: AppTextStyles.buttonFilled
-                                      .copyWith(fontSize: 16)),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.arrow_forward_rounded,
-                                  color: AppColors.textOnPrimary,
-                                  size: 20),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                          decoration: const BoxDecoration(
+                            color: AppColors.background,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.shadow,
+                                blurRadius: 8,
+                                offset: Offset(0, -2),
+                              ),
                             ],
                           ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/checkout'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.accent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(28),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Checkout',
+                                    style: AppTextStyles.buttonFilled.copyWith(
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: AppColors.textOnPrimary,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-          // ← Bottom nav preserved
           bottomNavigationBar: MegaBottomNav(
             currentIndex: 3,
             onTap: (i) {
@@ -298,6 +257,140 @@ class _CartPageState extends State<CartPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _PromoBox extends StatelessWidget {
+  final TextEditingController promoCtrl;
+  final bool promoApplied;
+  final VoidCallback onApply;
+
+  const _PromoBox({
+    required this.promoCtrl,
+    required this.promoApplied,
+    required this.onApply,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: promoApplied ? AppColors.primarySurface : AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: promoApplied ? AppColors.primary : AppColors.divider,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            CupertinoIcons.tag,
+            color: promoApplied ? AppColors.primary : AppColors.iconMuted,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: promoCtrl,
+              decoration: InputDecoration(
+                hintText:
+                    promoApplied ? 'MEGA10 applied ✓' : 'Enter promo code',
+                hintStyle: AppTextStyles.brandName.copyWith(
+                  color: promoApplied ? AppColors.primary : null,
+                ),
+                border: InputBorder.none,
+              ),
+              style: AppTextStyles.productName.copyWith(fontSize: 14),
+            ),
+          ),
+          TextButton(
+            onPressed: onApply,
+            child: Text('Apply', style: AppTextStyles.buttonOutlined),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderSummary extends StatelessWidget {
+  final int itemCount;
+  final double subtotal;
+  final double tax;
+  final double total;
+  final bool promoApplied;
+
+  const _OrderSummary({
+    required this.itemCount,
+    required this.subtotal,
+    required this.tax,
+    required this.total,
+    required this.promoApplied,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Order Summary',
+            style: AppTextStyles.sectionTitle.copyWith(fontSize: 18),
+          ),
+          const SizedBox(height: 16),
+          _SummaryRow(
+            label: 'Subtotal ($itemCount items)',
+            value: '\$${subtotal.toStringAsFixed(2)}',
+          ),
+          const SizedBox(height: 10),
+          _SummaryRow(
+            label: 'Shipping',
+            value: 'Free',
+            valueColor: AppColors.primary,
+          ),
+          const SizedBox(height: 10),
+          _SummaryRow(
+            label: 'Tax (8%)',
+            value: '\$${tax.toStringAsFixed(2)}',
+          ),
+          if (promoApplied) ...[
+            const SizedBox(height: 10),
+            _SummaryRow(
+              label: 'Promo (MEGA10)',
+              value: '-\$${(subtotal * 0.10).toStringAsFixed(2)}',
+              valueColor: AppColors.primary,
+            ),
+          ],
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: AppColors.divider),
+          ),
+          _SummaryRow(
+            label: 'Total',
+            value: '\$${total.toStringAsFixed(2)}',
+            labelStyle: AppTextStyles.sectionTitle.copyWith(fontSize: 17),
+            valueStyle: AppTextStyles.price.copyWith(
+              fontSize: 22,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -324,9 +417,7 @@ class _CartItemCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 8,
-              offset: Offset(0, 2))
+              color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2))
         ],
       ),
       child: Row(
@@ -376,16 +467,14 @@ class _CartItemCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(item.variant,
-                    style: AppTextStyles.brandName),
+                Text(item.variant, style: AppTextStyles.brandName),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                        '\$${item.price.toStringAsFixed(2)}',
-                        style: AppTextStyles.price.copyWith(
-                            fontSize: 17, color: AppColors.primary)),
+                    Text('\$${item.price.toStringAsFixed(2)}',
+                        style: AppTextStyles.price
+                            .copyWith(fontSize: 17, color: AppColors.primary)),
                     _QtyControl(
                       qty: item.quantity,
                       onMinus: onDecrement,
@@ -480,13 +569,12 @@ class _SummaryRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style: labelStyle ??
-                AppTextStyles.brandName.copyWith(fontSize: 13)),
+            style:
+                labelStyle ?? AppTextStyles.brandName.copyWith(fontSize: 13)),
         Text(value,
             style: valueStyle ??
                 AppTextStyles.productName.copyWith(
-                    fontSize: 14,
-                    color: valueColor ?? AppColors.textPrimary)),
+                    fontSize: 14, color: valueColor ?? AppColors.textPrimary)),
       ],
     );
   }
@@ -524,14 +612,12 @@ class _EmptyCart extends StatelessWidget {
             onPressed: onShop,
             icon: const Icon(CupertinoIcons.compass,
                 color: AppColors.textOnPrimary),
-            label: Text('Browse Products',
-                style: AppTextStyles.buttonFilled),
+            label: Text('Browse Products', style: AppTextStyles.buttonFilled),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accent,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// 3-step checkout flow: Address → Payment → Done.
 ///
@@ -17,26 +19,68 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   int _step = 0; // 0 = Address, 1 = Payment, 2 = Complete
   int _selectedAddress = 0;
+  bool _isPlacingOrder = false;
   final _cardCtrl = TextEditingController();
   final _cvvCtrl = TextEditingController();
   final _expiryCtrl = TextEditingController();
+// Load saved addresses when checkout page opens
+  @override
+  void initState() {
+    super.initState();
+    _loadAddresses();
+  }
 
-  final List<_Address> _addresses = [
-    const _Address(
-      label: 'Home',
-      tag: 'DEFAULT',
-      name: 'Budi Santoso',
-      phone: '0812-3456-7890',
-      address: '123 Main Street, New York, NY 10001',
-    ),
-    const _Address(
-      label: 'Office',
-      tag: null,
-      name: 'Budi Santoso',
-      phone: '0812-3456-7890',
-      address: '456 Business Ave, New York, NY 10002',
-    ),
-  ];
+  // Load all saved addresses from Firestore
+  Future<void> _loadAddresses() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    // Stop if user not logged in
+    if (user == null) return;
+    // Get latest user profile data from Firestore
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final userData = userDoc.data();
+
+    final latestUsername =
+        userData?['username'] ?? user.email?.split('@')[0] ?? 'User';
+
+    // Get addresses collection
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('addresses')
+        .get();
+
+    setState(() {
+      // Clear old local list
+      _addresses.clear();
+
+      // Convert Firestore documents into Address objects
+      _addresses.addAll(
+        snapshot.docs.map((doc) {
+          final data = doc.data();
+
+          return _Address(
+            label: data['label'] ?? '',
+            tag: null,
+            name: latestUsername,
+            phone: '-',
+            address: data['detail'] ?? '',
+          );
+        }),
+      );
+
+      // Prevent invalid selected index
+      if (_selectedAddress >= _addresses.length) {
+        _selectedAddress = 0;
+      }
+    });
+  }
+
+  final List<_Address> _addresses = [];
 
   @override
   void dispose() {
@@ -48,17 +92,116 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   String get _ctaLabel {
     if (_step == 0) return 'Continue to Payment';
-    if (_step == 1) return 'Confirm Order';
-    return 'Complete';
+    return 'Confirm Order';
+  }
+
+// ──────────────────────────────────────────────────────────────────
+// Create order in Firestore
+//
+// Flow:
+// 1. Get current user
+// 2. Read cart items from Firestore
+// 3. Create order document
+// 4. Clear cart after order is created
+// 5. Move to order status page
+// ──────────────────────────────────────────────────────────────────
+  Future<void> _createOrder() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    // Get latest user profile data from Firestore
+
+    try {
+      setState(() => _isPlacingOrder = true);
+
+      final cartSnapshot = await FirebaseFirestore.instance
+          .collection('carts')
+          .doc(user.uid)
+          .collection('items')
+          .get();
+      if (!mounted) return;
+
+      if (cartSnapshot.docs.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Your cart is empty.')),
+        );
+        return;
+      }
+
+      final items = cartSnapshot.docs.map((doc) {
+        final data = doc.data();
+
+        return {
+          'productId': data['productId'],
+          'name': data['name'],
+          'variant': data['variant'],
+          'price': data['price'],
+          'quantity': data['quantity'],
+          'imageUrl': data['imageUrl'],
+        };
+      }).toList();
+
+      final subtotal = items.fold<double>(0, (total, item) {
+        final price = (item['price'] ?? 0).toDouble();
+        final quantity = item['quantity'] ?? 1;
+        return total + (price * quantity);
+      });
+
+      final tax = subtotal * 0.08;
+      final total = subtotal + tax;
+
+      await FirebaseFirestore.instance.collection('orders').add({
+        'buyerId': user.uid,
+        'buyerEmail': user.email,
+        'items': items,
+        'subtotal': subtotal,
+        'tax': tax,
+        'total': total,
+        'status': 'pending',
+        'shippingAddress': {
+          'label': _addresses[_selectedAddress].label,
+          'name': _addresses[_selectedAddress].name,
+          'phone': _addresses[_selectedAddress].phone,
+          'address': _addresses[_selectedAddress].address,
+        },
+        'paymentMethod': 'Credit/Debit Card',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      for (final doc in cartSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      if (!mounted) return;
+
+      Navigator.pushReplacementNamed(
+        context,
+        '/order-status',
+        arguments: true,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Order failed: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isPlacingOrder = false);
+      }
+    }
   }
 
   void _advance() {
-    if (_step < 2) {
-      setState(() => _step++);
-    } else {
-      // Navigate to order success
-      Navigator.pushReplacementNamed(context, '/order-status',
-          arguments: true);
+    if (_step == 0) {
+      // Prevent checkout without address
+      if (_addresses.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please add an address first.')),
+        );
+        return;
+      }
+
+      setState(() => _step = 1);
+    } else if (_step == 1) {
+      _createOrder();
     }
   }
 
@@ -70,7 +213,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          onPressed: () {
+          onPressed: () async {
             if (_step > 0) {
               setState(() => _step--);
             } else {
@@ -80,7 +223,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           icon: const Icon(Icons.arrow_back_rounded,
               color: AppColors.textPrimary),
         ),
-        title: Text('Checkout', style: AppTextStyles.productName.copyWith(fontSize: 18)),
+        title: Text('Checkout',
+            style: AppTextStyles.productName.copyWith(fontSize: 18)),
         centerTitle: true,
       ),
       body: Stack(
@@ -119,9 +263,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         borderRadius: BorderRadius.circular(28)),
                     elevation: 0,
                   ),
-                  child: Text(_ctaLabel,
-                      style:
-                          AppTextStyles.buttonFilled.copyWith(fontSize: 16)),
+                  child: _isPlacingOrder
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          _ctaLabel,
+                          style:
+                              AppTextStyles.buttonFilled.copyWith(fontSize: 16),
+                        ),
                 ),
               ),
             ),
@@ -133,8 +288,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   void _openAddAddressSheet() {
     final labelCtrl = TextEditingController();
-    final nameCtrl = TextEditingController(text: 'Budi Santoso');
-    final phoneCtrl = TextEditingController(text: '0812-3456-7890');
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
     final addressCtrl = TextEditingController();
 
     showModalBottomSheet(
@@ -183,7 +338,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 decoration: InputDecoration(
                   hintText: 'Label (e.g., Home, Office)',
                   hintStyle: AppTextStyles.brandName.copyWith(fontSize: 13),
-                  prefixIcon: const Icon(Icons.label_outline_rounded, color: AppColors.iconMuted, size: 20),
+                  prefixIcon: const Icon(Icons.label_outline_rounded,
+                      color: AppColors.iconMuted, size: 20),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -198,7 +354,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 decoration: InputDecoration(
                   hintText: 'Recipient Name',
                   hintStyle: AppTextStyles.brandName.copyWith(fontSize: 13),
-                  prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.iconMuted, size: 20),
+                  prefixIcon: const Icon(Icons.person_outline_rounded,
+                      color: AppColors.iconMuted, size: 20),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -213,7 +370,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 decoration: InputDecoration(
                   hintText: 'Phone Number',
                   hintStyle: AppTextStyles.brandName.copyWith(fontSize: 13),
-                  prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.iconMuted, size: 20),
+                  prefixIcon: const Icon(Icons.phone_outlined,
+                      color: AppColors.iconMuted, size: 20),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -229,7 +387,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 decoration: InputDecoration(
                   hintText: 'Full Address details',
                   hintStyle: AppTextStyles.brandName.copyWith(fontSize: 13),
-                  prefixIcon: const Icon(Icons.place_rounded, color: AppColors.iconMuted, size: 20),
+                  prefixIcon: const Icon(Icons.place_rounded,
+                      color: AppColors.iconMuted, size: 20),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -251,14 +410,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: Text('Cancel',
-                          style: AppTextStyles.productName
-                              .copyWith(fontSize: 14)),
+                          style:
+                              AppTextStyles.productName.copyWith(fontSize: 14)),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         final label = labelCtrl.text.trim();
                         final name = nameCtrl.text.trim();
                         final phone = phoneCtrl.text.trim();
@@ -279,17 +438,28 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           );
                           return;
                         }
-                        setState(() {
-                          _addresses.add(_Address(
-                            label: label,
-                            tag: null,
-                            name: name,
-                            phone: phone,
-                            address: address,
-                          ));
-                          _selectedAddress = _addresses.length - 1;
+
+// Save new checkout address to Firestore
+// Get current logged-in user
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user == null) return;
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .collection('addresses')
+                            .add({
+                          'label': label,
+                          'detail': address,
+                          'createdAt': FieldValue.serverTimestamp(),
                         });
-                        Navigator.pop(context);
+
+// Reload address list from Firestore
+                        await _loadAddresses();
+
+// Close bottom sheet after saving
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -319,6 +489,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
         Text('Select Shipping Address',
             style: AppTextStyles.sectionTitle.copyWith(fontSize: 22)),
         const SizedBox(height: 16),
+        // Show message if no address exists
+        if (_addresses.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              'No address yet. Please add an address first.',
+              style: AppTextStyles.brandName,
+            ),
+          ),
         ..._addresses.asMap().entries.map((e) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _AddressCard(
@@ -331,13 +510,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
         OutlinedButton.icon(
           onPressed: _openAddAddressSheet,
           icon: const Icon(Icons.add_rounded, color: AppColors.primary),
-          label: Text('Add New Address',
-              style: AppTextStyles.buttonOutlined),
+          label: Text('Add New Address', style: AppTextStyles.buttonOutlined),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(double.infinity, 52),
             side: const BorderSide(color: AppColors.primary, width: 1.5),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
       ],
@@ -381,14 +559,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
           child: Column(
             children: [
-              _SummaryRow2('Subtotal', '\$${CartStateProvider.of(context).subtotal.toStringAsFixed(2)}'),
+              _SummaryRow2('Subtotal',
+                  '\$${CartStateProvider.of(context).subtotal.toStringAsFixed(2)}'),
               const SizedBox(height: 8),
-              _SummaryRow2('Shipping', 'Free',
-                  valueColor: AppColors.primary),
+              _SummaryRow2('Shipping', 'Free', valueColor: AppColors.primary),
               const SizedBox(height: 8),
-              _SummaryRow2('Tax', '\$${CartStateProvider.of(context).tax.toStringAsFixed(2)}'),
+              _SummaryRow2('Tax',
+                  '\$${CartStateProvider.of(context).tax.toStringAsFixed(2)}'),
               const Divider(height: 20, color: AppColors.divider),
-              _SummaryRow2('Total', '\$${CartStateProvider.of(context).total.toStringAsFixed(2)}',
+              _SummaryRow2('Total',
+                  '\$${CartStateProvider.of(context).total.toStringAsFixed(2)}',
                   bold: true, valueColor: AppColors.primary),
             ],
           ),
@@ -454,7 +634,9 @@ class _StepIndicator extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: isActive ? AppColors.primary : AppColors.primarySurface,
+                      color: isActive
+                          ? AppColors.primary
+                          : AppColors.primarySurface,
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -482,9 +664,8 @@ class _StepIndicator extends StatelessWidget {
                   child: Container(
                     height: 2,
                     margin: const EdgeInsets.only(bottom: 18),
-                    color: i < currentStep
-                        ? AppColors.primary
-                        : AppColors.divider,
+                    color:
+                        i < currentStep ? AppColors.primary : AppColors.divider,
                   ),
                 ),
             ],
@@ -549,8 +730,8 @@ class _AddressCard extends StatelessWidget {
                   if (address.tag != null) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: AppColors.primarySurface,
                         borderRadius: BorderRadius.circular(8),
@@ -637,11 +818,9 @@ class _SummaryRow2 extends StatelessWidget {
         Text(value,
             style: bold
                 ? AppTextStyles.price.copyWith(
-                    fontSize: 18,
-                    color: valueColor ?? AppColors.textPrimary)
+                    fontSize: 18, color: valueColor ?? AppColors.textPrimary)
                 : AppTextStyles.productName.copyWith(
-                    fontSize: 14,
-                    color: valueColor ?? AppColors.textPrimary)),
+                    fontSize: 14, color: valueColor ?? AppColors.textPrimary)),
       ],
     );
   }

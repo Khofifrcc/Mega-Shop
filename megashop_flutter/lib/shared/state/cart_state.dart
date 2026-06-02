@@ -1,87 +1,143 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Shared cart state passed between pages via constructor / InheritedWidget-lite.
 /// In production this would be replaced by Riverpod or BLoC.
 class CartState extends ChangeNotifier {
-  final List<CartEntry> _items = [
-    CartEntry(
-      id: 'c1',
-      productId: 'p_shoe',
-      name: 'Aero Glide Pro 3',
-      variant: 'Size 10 • Crimson Red',
-      price: 145.00,
-      quantity: 1,
-      imageUrl:
-          'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80',
-    ),
-    CartEntry(
-      id: 'c2',
-      productId: 'p_watch',
-      name: 'Tempo Smartwatch...',
-      variant: '42mm • Frost White',
-      price: 299.00,
-      quantity: 1,
-      imageUrl:
-          'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80',
-    ),
-  ];
+  final List<CartEntry> _items = [];
 
   List<CartEntry> get items => List.unmodifiable(_items);
 
-  int get itemCount => _items.fold(0, (sum, e) => sum + e.quantity);
+  int get itemCount => _items.fold(0, (total, e) => total + e.quantity);
 
-  double get subtotal => _items.fold(0, (sum, e) => sum + e.price * e.quantity);
+  double get subtotal =>
+      _items.fold(0, (total, e) => total + e.price * e.quantity);
   double get tax => subtotal * 0.08;
   double get total => subtotal + tax;
 
-  void increment(String id) {
-    final idx = _items.indexWhere((e) => e.id == id);
-    if (idx >= 0) {
-      _items[idx] = _items[idx].copyWith(quantity: _items[idx].quantity + 1);
-      notifyListeners();
+  // ── Increment cart item quantity in Firestore ─────────────────────────────
+  Future<void> increment(String id) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final ref = FirebaseFirestore.instance
+        .collection('carts')
+        .doc(user.uid)
+        .collection('items')
+        .doc(id);
+
+    await ref.update({
+      'quantity': FieldValue.increment(1),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // ── Decrement cart item quantity in Firestore ─────────────────────────────
+  //
+  // If quantity becomes 0, the item is removed from cart.
+  //
+  Future<void> decrement(String id) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final ref = FirebaseFirestore.instance
+        .collection('carts')
+        .doc(user.uid)
+        .collection('items')
+        .doc(id);
+
+    final doc = await ref.get();
+    final qty = doc.data()?['quantity'] ?? 1;
+
+    if (qty > 1) {
+      await ref.update({
+        'quantity': qty - 1,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      await ref.delete();
     }
   }
 
-  void decrement(String id) {
-    final idx = _items.indexWhere((e) => e.id == id);
-    if (idx >= 0 && _items[idx].quantity > 1) {
-      _items[idx] = _items[idx].copyWith(quantity: _items[idx].quantity - 1);
-      notifyListeners();
+  // ── Remove single item from Firestore cart ────────────────────────────────
+  Future<void> remove(String id) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('carts')
+        .doc(user.uid)
+        .collection('items')
+        .doc(id)
+        .delete();
+  }
+
+  // ── Clear all cart items for current user ─────────────────────────────────
+  Future<void> clear() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final items = await FirebaseFirestore.instance
+        .collection('carts')
+        .doc(user.uid)
+        .collection('items')
+        .get();
+
+    for (final doc in items.docs) {
+      await doc.reference.delete();
     }
   }
 
-  void remove(String id) {
-    _items.removeWhere((e) => e.id == id);
-    notifyListeners();
-  }
-
-  void addItem({
+  // ── Add product to Firestore cart ─────────────────────────────────────────
+  //
+  // Cart is stored per user:
+  //
+  // carts
+  //   userId
+  //     items
+  //       productId
+  //
+  // If the item already exists, only quantity is increased.
+  //
+  Future<void> addItem({
     required String productId,
     required String name,
     required String variant,
     required double price,
     required String imageUrl,
-  }) {
-    final existing = _items.indexWhere((e) => e.productId == productId);
-    if (existing >= 0) {
-      _items[existing] = _items[existing]
-          .copyWith(quantity: _items[existing].quantity + 1);
-    } else {
-      _items.add(CartEntry(
-        id: 'c_${DateTime.now().millisecondsSinceEpoch}',
-        productId: productId,
-        name: name,
-        variant: variant,
-        price: price,
-        quantity: 1,
-        imageUrl: imageUrl,
-      ));
-    }
-    notifyListeners();
-  }
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  void clear() {
-    _items.clear();
+    final cartRef = FirebaseFirestore.instance
+        .collection('carts')
+        .doc(user.uid)
+        .collection('items')
+        .doc(productId);
+
+    final doc = await cartRef.get();
+
+    if (doc.exists) {
+      final currentQty = doc.data()?['quantity'] ?? 1;
+
+      await cartRef.update({
+        'quantity': currentQty + 1,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      await cartRef.set({
+        'productId': productId,
+        'name': name,
+        'variant': variant,
+        'price': price,
+        'imageUrl': imageUrl,
+        'quantity': 1,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
     notifyListeners();
   }
 }

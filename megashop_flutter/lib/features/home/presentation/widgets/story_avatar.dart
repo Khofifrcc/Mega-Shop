@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -61,8 +60,8 @@ class StoryAvatar extends StatelessWidget {
 
     // Ring colour: grey if viewed, purple if not
     final ringColor = isViewed
-        ? const Color(0xFFBDBDBD)   // grey
-        : AppColors.storyRing;      // purple (original)
+        ? const Color(0xFFBDBDBD) // grey
+        : AppColors.storyRing; // purple (original)
 
     return Container(
       width: _avatarSize + 4,
@@ -116,16 +115,11 @@ class _OwnStoryButton extends StatelessWidget {
             ),
           ),
           child: ClipOval(
-            child: hasImage
-                ? Image.file(
-                    File(localImagePath!),
-                    fit: BoxFit.cover,
-                  )
-                : Icon(
-                    Icons.camera_alt_rounded,
-                    color: AppColors.primary,
-                    size: 28,
-                  ),
+            child: Icon(
+              Icons.camera_alt_rounded,
+              color: AppColors.primary,
+              size: 28,
+            ),
           ),
         ),
         // "+" badge at bottom-right

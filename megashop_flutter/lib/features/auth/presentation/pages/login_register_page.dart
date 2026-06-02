@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -8,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Login / Register page.
 ///
@@ -37,8 +35,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
 
   // ── Helper: styled snackbar ──────────────────────────────────────────────────
 
-  void _showSnackBar(String message,
-      {bool isError = true, IconData? icon}) {
+  void _showSnackBar(String message, {bool isError = true, IconData? icon}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -46,9 +43,8 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         duration: const Duration(seconds: 4),
-        backgroundColor: isError
-            ? const Color(0xFFD32F2F)
-            : const Color(0xFF2E7D32),
+        backgroundColor:
+            isError ? const Color(0xFFD32F2F) : const Color(0xFF2E7D32),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         content: Row(
           children: [
@@ -161,23 +157,20 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
 
       switch (e.code) {
         case 'user-not-found':
-          message =
-              'No account found with this email. Please register first.';
+          message = 'No account found with this email. Please register first.';
           break;
         case 'wrong-password':
           message = 'Incorrect password. Please try again.';
           break;
         case 'invalid-email':
-          message =
-              'Invalid email format. Please check your email address.';
+          message = 'Invalid email format. Please check your email address.';
           break;
         case 'invalid-credential':
           message =
               'Incorrect email or password. Please double-check and try again.';
           break;
         case 'user-disabled':
-          message =
-              'This account has been disabled. Please contact support.';
+          message = 'This account has been disabled. Please contact support.';
           break;
         case 'too-many-requests':
           message =
@@ -196,7 +189,6 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   // ── Register ─────────────────────────────────────────────────────────────────
 
   Future<void> register() async {
-    // Client-side validation first
     final validationError = _validateFields();
     if (validationError != null) {
       _showSnackBar(validationError);
@@ -215,28 +207,24 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
       final user = userCredential.user;
 
       if (user != null) {
-        // Try to sync user to backend (non-blocking — failure is ignored)
-        try {
-          await http.post(
-            Uri.parse('http://127.0.0.1:8000/users/'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'firebase_uid': user.uid,
-              'username': _emailCtrl.text.split('@')[0],
-              'email': _emailCtrl.text.trim(),
-              'bio': '',
-              'profile_photo': '',
-            }),
-          ).timeout(const Duration(seconds: 5));
-        } catch (_) {
-          // Backend unreachable — not a blocker for the user
-        }
+        // ── Create user profile in Firestore ──────────────────────
+        //
+        // Firebase Auth stores email/password.
+        // Firestore stores social-commerce profile data.
+        //
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'username': _emailCtrl.text.trim().split('@')[0],
+          'email': _emailCtrl.text.trim(),
+          'bio': '',
+          'profilePhoto': '',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
 
         // Sign out so user must log in manually
         await FirebaseAuth.instance.signOut();
 
         if (mounted) {
-          // Keep email, clear password, switch to Login tab
           _passCtrl.clear();
           setState(() => _tabIndex = 0);
 
@@ -252,20 +240,16 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
 
       switch (e.code) {
         case 'email-already-in-use':
-          message =
-              'This email is already registered. Try logging in instead.';
+          message = 'This email is already registered. Try logging in instead.';
           break;
         case 'weak-password':
-          message =
-              'Password is too weak. Use at least 6 characters with a mix of letters and numbers.';
+          message = 'Password is too weak. Use at least 6 characters.';
           break;
         case 'invalid-email':
-          message =
-              'Invalid email format. Please enter a valid email address.';
+          message = 'Invalid email format.';
           break;
         case 'operation-not-allowed':
-          message =
-              'Email/password registration is not enabled. Please contact support.';
+          message = 'Email/password registration is not enabled.';
           break;
         default:
           message = 'Registration failed. Please try again later.';
@@ -405,7 +389,8 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                         height: 20,
                         color: AppColors.textPrimary,
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => const Icon(
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
                           Icons.apple,
                           size: 20,
                           color: AppColors.textPrimary,
@@ -542,17 +527,13 @@ class _FormCard extends StatelessWidget {
           const SizedBox(height: 12),
           _AuthField(
             controller: passCtrl,
-            hint: isRegister
-                ? 'Password (min. 6 characters)'
-                : 'Password',
+            hint: isRegister ? 'Password (min. 6 characters)' : 'Password',
             icon: CupertinoIcons.lock,
             obscure: obscurePass,
             suffix: IconButton(
               onPressed: onTogglePass,
               icon: Icon(
-                obscurePass
-                    ? CupertinoIcons.eye_slash
-                    : CupertinoIcons.eye,
+                obscurePass ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
                 color: AppColors.iconMuted,
                 size: 20,
               ),
@@ -611,7 +592,8 @@ class _FormCard extends StatelessWidget {
               onPressed: isLoading ? null : onCta,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
-                disabledBackgroundColor: AppColors.accent.withValues(alpha: 0.6),
+                disabledBackgroundColor:
+                    AppColors.accent.withValues(alpha: 0.6),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28)),
                 elevation: 0,
@@ -622,8 +604,7 @@ class _FormCard extends StatelessWidget {
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
                   : Row(

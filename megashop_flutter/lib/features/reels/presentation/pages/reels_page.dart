@@ -10,6 +10,8 @@ import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../domain/entities/reel.dart';
 import '../../../home/domain/entities/product.dart';
 import '../../../product/presentation/pages/seller_profile_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Full-screen vertical Reels — Instagram-style.
 ///
@@ -29,9 +31,12 @@ class ReelsPage extends StatefulWidget {
 }
 
 class _ReelsPageState extends State<ReelsPage> {
-  final _reels = _mockReels;
+  // Local fallback reels used only when Firestore has no reel data
+  final _fallbackReels = _mockReels;
   final _likedIds = <String>{};
+
   int _currentIndex = 0;
+  final String _searchQuery = '';
 
   // Track comments per reel ID so they persist during the session and update the count
   final Map<String, List<_Comment>> _reelComments = {};
@@ -40,7 +45,7 @@ class _ReelsPageState extends State<ReelsPage> {
   void initState() {
     super.initState();
     // Initialize mock comments for each reel
-    for (var reel in _reels) {
+    for (var reel in _fallbackReels) {
       _reelComments[reel.id] = [
         const _Comment(
             author: 'diana_v',
@@ -80,47 +85,94 @@ class _ReelsPageState extends State<ReelsPage> {
       body: Stack(
         children: [
           // Swipeable reels feed
-          PageView.builder(
-            scrollDirection: Axis.vertical,
-            itemCount: _reels.length,
-            onPageChanged: _handlePageChange,
-            itemBuilder: (context, index) {
-              final reel = _reels[index];
-              final currentCommentCount = _reelComments[reel.id]?.length ?? reel.commentCount;
-              return _ReelItem(
-                reel: reel,
-                isActive: index == _currentIndex,
-                isLiked: _likedIds.contains(reel.id),
-                commentCount: currentCommentCount,
-                onLike: () => setState(() {
-                  if (_likedIds.contains(reel.id)) {
-                    _likedIds.remove(reel.id);
-                  } else {
-                    _likedIds.add(reel.id);
-                  }
-                }),
-                onComment: () => _showComments(context, reel),
-                onShare: () => _showShare(context, reel),
-                onAddToCart: () {
-                  CartStateProvider.of(context).addItem(
-                    productId: reel.id,
-                    name: reel.productName,
-                    variant: 'Default',
-                    price: reel.price,
-                    imageUrl: reel.imageUrl,
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Added to cart!',
-                          style: AppTextStyles.brandName
-                              .copyWith(color: Colors.white)),
-                      backgroundColor: AppColors.primary,
-                      behavior: SnackBarBehavior.floating,
-                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      duration: const Duration(seconds: 2),
-                    ),
+          // Read reels from Firestore in realtime
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('reels')
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              // Show loading while fetching reels
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                );
+              }
+
+              // Convert Firestore documents to Reel objects
+              final firestoreReels = snapshot.data?.docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+
+                    return Reel(
+                      id: doc.id,
+                      ownerId: data['ownerId'] ?? '',
+                      username: data['username'] ?? '@seller',
+                      userAvatar: data['userAvatar'] ?? '',
+                      caption: data['caption'] ?? '',
+                      productName: data['productName'] ?? 'Product',
+                      price: (data['price'] ?? 0).toDouble(),
+                      originalPrice: data['originalPrice'] == null
+                          ? null
+                          : (data['originalPrice']).toDouble(),
+                      imageUrl: data['imageUrl'] ?? '',
+                      videoUrl: data['videoUrl'] ?? '',
+                      likeCount: data['likeCount'] ?? 0,
+                      commentCount: data['commentCount'] ?? 0,
+                    );
+                  }).toList() ??
+                  [];
+
+              // show empty message if firestore has no reels
+              if (firestoreReels.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No Reels uploaded yet',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                );
+              }
+              final reels = firestoreReels.where((reel) {
+                final q = _searchQuery.toLowerCase();
+
+                return reel.productName.toLowerCase().contains(q) ||
+                    reel.caption.toLowerCase().contains(q) ||
+                    reel.username.toLowerCase().contains(q);
+              }).toList();
+
+// Use normal vertical PageView.
+// Do not use Listener / PageController because it can block swipe.
+              return PageView.builder(
+                scrollDirection: Axis.vertical,
+                itemCount: reels.length,
+                onPageChanged: _handlePageChange,
+                itemBuilder: (context, index) {
+                  final reel = reels[index];
+                  final currentCommentCount =
+                      _reelComments[reel.id]?.length ?? reel.commentCount;
+
+                  return _ReelItem(
+                    reel: reel,
+                    isActive: index == _currentIndex,
+                    isLiked: _likedIds.contains(reel.id),
+                    commentCount: currentCommentCount,
+                    onLike: () => setState(() {
+                      if (_likedIds.contains(reel.id)) {
+                        _likedIds.remove(reel.id);
+                      } else {
+                        _likedIds.add(reel.id);
+                      }
+                    }),
+                    onComment: () => _showComments(context, reel),
+                    onShare: () => _showShare(context, reel),
+                    onAddToCart: () {
+                      CartStateProvider.of(context).addItem(
+                        productId: reel.id,
+                        name: reel.productName,
+                        variant: 'Default',
+                        price: reel.price,
+                        imageUrl: reel.imageUrl,
+                      );
+                    },
                   );
                 },
               );
@@ -177,20 +229,23 @@ class _ReelsPageState extends State<ReelsPage> {
       bottomNavigationBar: MegaBottomNav(
         currentIndex: 1,
         onTap: (i) {
-          SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-              overlays: SystemUiOverlay.values);
+          SystemChrome.setEnabledSystemUIMode(
+            SystemUiMode.manual,
+            overlays: SystemUiOverlay.values,
+          );
+
           switch (i) {
             case 0:
               Navigator.pushReplacementNamed(context, '/home');
               break;
             case 2:
-              Navigator.pushNamed(context, '/post');
+              Navigator.pushReplacementNamed(context, '/post');
               break;
             case 3:
-              Navigator.pushNamed(context, '/cart');
+              Navigator.pushReplacementNamed(context, '/cart');
               break;
             case 4:
-              Navigator.pushNamed(context, '/profile');
+              Navigator.pushReplacementNamed(context, '/profile');
               break;
           }
         },
@@ -314,16 +369,10 @@ class _ReelItemState extends State<_ReelItem>
 
   @override
   void dispose() {
+    _controller.pause();
     _controller.dispose();
     _heartAnim.dispose();
     super.dispose();
-  }
-
-  void _togglePlay() {
-    setState(() {
-      _isPaused = !_isPaused;
-      _isPaused ? _controller.pause() : _controller.play();
-    });
   }
 
   void _doubleTapLike() {
@@ -340,6 +389,8 @@ class _ReelItemState extends State<_ReelItem>
       '/product',
       arguments: Product(
         id: widget.reel.id,
+        ownerId: widget.reel.ownerId,
+        description: widget.reel.caption,
         name: widget.reel.productName,
         brand: widget.reel.username,
         price: widget.reel.price,
@@ -360,7 +411,8 @@ class _ReelItemState extends State<_ReelItem>
         name: widget.reel.username,
         tagline: '🏆 Top Rated Seller · Premium Products',
         avatarUrl: widget.reel.userAvatar,
-        coverUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
+        coverUrl:
+            'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
         isVerified: true,
         productCount: 45,
         followersStr: '12.4K',
@@ -381,12 +433,16 @@ class _ReelItemState extends State<_ReelItem>
 
   @override
   Widget build(BuildContext context) {
+    // Check if current reel belongs to logged-in user
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isMyReel = widget.reel.ownerId == currentUserId;
     return Stack(
       fit: StackFit.expand,
       children: [
-        // ── Background: Pure video experience with circular loader ──────
+        // Keep tap and double tap, but do not force translucent hit testing.
+// This keeps PageView vertical swipe working normally.
         GestureDetector(
-          onTap: _togglePlay,
+          behavior: HitTestBehavior.deferToChild,
           onDoubleTap: _doubleTapLike,
           child: Container(
             color: Colors.black,
@@ -494,8 +550,8 @@ class _ReelItemState extends State<_ReelItem>
                                     width: 48,
                                     height: 48,
                                     fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(
-                                        color: Colors.white24),
+                                    placeholder: (_, __) =>
+                                        Container(color: Colors.white24),
                                     errorWidget: (_, __, ___) =>
                                         Container(color: Colors.white24),
                                   ),
@@ -503,11 +559,13 @@ class _ReelItemState extends State<_ReelItem>
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         widget.reel.productName,
-                                        style: AppTextStyles.productName.copyWith(
+                                        style:
+                                            AppTextStyles.productName.copyWith(
                                           color: Colors.white,
                                           fontSize: 13,
                                         ),
@@ -519,13 +577,15 @@ class _ReelItemState extends State<_ReelItem>
                                         children: [
                                           Text(
                                             '\$${widget.reel.price.toStringAsFixed(2)}',
-                                            style: AppTextStyles.price.copyWith(fontSize: 14),
+                                            style: AppTextStyles.price
+                                                .copyWith(fontSize: 14),
                                           ),
                                           if (widget.reel.isOnSale) ...[
                                             const SizedBox(width: 6),
                                             Text(
                                               '\$${widget.reel.originalPrice!.toStringAsFixed(2)}',
-                                              style: AppTextStyles.originalPrice.copyWith(
+                                              style: AppTextStyles.originalPrice
+                                                  .copyWith(
                                                 color: Colors.white54,
                                                 fontSize: 11,
                                               ),
@@ -538,64 +598,79 @@ class _ReelItemState extends State<_ReelItem>
                                 ),
                                 const SizedBox(width: 8),
                                 // Buttons area
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Add to Cart: logo only, no text
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: GestureDetector(
-                                        onTap: widget.onAddToCart,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white24,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: Colors.white30),
-                                          ),
-                                          child: const Icon(
-                                            Icons.add_shopping_cart_rounded,
-                                            color: Colors.white,
-                                            size: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    // Buy Now: pill button with text
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          CartStateProvider.of(context).addItem(
-                                            productId: widget.reel.id,
-                                            name: widget.reel.productName,
-                                            variant: 'Default',
-                                            price: widget.reel.price,
-                                            imageUrl: widget.reel.imageUrl,
-                                          );
-                                          SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-                                              overlays: SystemUiOverlay.values);
-                                          Navigator.pushNamed(context, '/checkout');
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.accent,
-                                            borderRadius: BorderRadius.circular(16),
-                                          ),
-                                          child: Text(
-                                            'Buy Now',
-                                            style: AppTextStyles.buttonFilled.copyWith(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
+
+                                // Hide Cart and Buy Now for user's own reel
+                                if (!isMyReel)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Add to Cart button
+                                      MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: GestureDetector(
+                                          onTap: widget.onAddToCart,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white24,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                  color: Colors.white30),
+                                            ),
+                                            child: const Icon(
+                                              Icons.add_shopping_cart_rounded,
+                                              color: Colors.white,
+                                              size: 16,
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+
+                                      const SizedBox(width: 6),
+
+                                      // Buy Now button
+                                      MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            CartStateProvider.of(context)
+                                                .addItem(
+                                              productId: widget.reel.id,
+                                              name: widget.reel.productName,
+                                              variant: 'Default',
+                                              price: widget.reel.price,
+                                              imageUrl: widget.reel.imageUrl,
+                                            );
+
+                                            SystemChrome.setEnabledSystemUIMode(
+                                              SystemUiMode.manual,
+                                              overlays: SystemUiOverlay.values,
+                                            );
+
+                                            Navigator.pushNamed(
+                                                context, '/checkout');
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.accent,
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                            child: Text(
+                                              'Buy Now',
+                                              style: AppTextStyles.buttonFilled
+                                                  .copyWith(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                               ],
                             ),
                           ),
@@ -616,8 +691,8 @@ class _ReelItemState extends State<_ReelItem>
                                   width: 40,
                                   height: 40,
                                   fit: BoxFit.cover,
-                                  placeholder: (_, __) => Container(
-                                      color: Colors.white24),
+                                  placeholder: (_, __) =>
+                                      Container(color: Colors.white24),
                                   errorWidget: (_, __, ___) =>
                                       Container(color: Colors.white24),
                                 ),
@@ -642,33 +717,33 @@ class _ReelItemState extends State<_ReelItem>
                             ),
                           ),
                           const SizedBox(width: 10),
-                          MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: GestureDetector(
-                              onTap: () => setState(
-                                  () => _isFollowing = !_isFollowing),
-                              child: AnimatedContainer(
-                                duration:
-                                    const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: _isFollowing
-                                      ? Colors.white24
-                                      : AppColors.primary,
-                                  borderRadius:
-                                      BorderRadius.circular(20),
-                                  border: Border.all(
-                                      color: Colors.white38, width: 1),
-                                ),
-                                child: Text(
-                                  _isFollowing ? 'Following' : 'Follow',
-                                  style: AppTextStyles.badge
-                                      .copyWith(fontSize: 12),
+                          // Hide Follow button for user's own reel
+                          if (!isMyReel)
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () => setState(
+                                    () => _isFollowing = !_isFollowing),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: _isFollowing
+                                        ? Colors.white24
+                                        : AppColors.primary,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                        color: Colors.white38, width: 1),
+                                  ),
+                                  child: Text(
+                                    _isFollowing ? 'Following' : 'Follow',
+                                    style: AppTextStyles.badge
+                                        .copyWith(fontSize: 12),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -677,9 +752,7 @@ class _ReelItemState extends State<_ReelItem>
                       Text(
                         widget.reel.caption,
                         style: AppTextStyles.brandName.copyWith(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            height: 1.4),
+                            color: Colors.white70, fontSize: 13, height: 1.4),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -697,11 +770,10 @@ class _ReelItemState extends State<_ReelItem>
                       icon: widget.isLiked
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
-                      iconColor: widget.isLiked
-                          ? Colors.redAccent
-                          : Colors.white,
-                      label: _fmt(widget.reel.likeCount +
-                          (widget.isLiked ? 1 : 0)),
+                      iconColor:
+                          widget.isLiked ? Colors.redAccent : Colors.white,
+                      label: _fmt(
+                          widget.reel.likeCount + (widget.isLiked ? 1 : 0)),
                       onTap: widget.onLike,
                     ),
                     const SizedBox(height: 18),
@@ -723,8 +795,7 @@ class _ReelItemState extends State<_ReelItem>
                     const SizedBox(height: 18),
 
                     // Video progress ring (mini)
-                    if (_initialized)
-                      _VideoProgress(controller: _controller),
+                    if (_initialized) _VideoProgress(controller: _controller),
                   ],
                 ),
               ],
@@ -735,8 +806,7 @@ class _ReelItemState extends State<_ReelItem>
     );
   }
 
-  String _fmt(int n) =>
-      n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
+  String _fmt(int n) => n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
 }
 
 // ── Action button (Like / Comment / Share) ────────────────────────────────────
@@ -775,8 +845,8 @@ class _ActionBtn extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: AppTextStyles.brandName.copyWith(
-                  color: Colors.white, fontSize: 12),
+              style: AppTextStyles.brandName
+                  .copyWith(color: Colors.white, fontSize: 12),
             ),
           ],
         ),
@@ -882,8 +952,8 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             const SizedBox(height: 12),
             Text(
               '${widget.comments.length} Comments',
-              style: AppTextStyles.sectionTitle.copyWith(
-                  color: Colors.white, fontSize: 16),
+              style: AppTextStyles.sectionTitle
+                  .copyWith(color: Colors.white, fontSize: 16),
             ),
             const Divider(color: Colors.white12, height: 20),
 
@@ -913,8 +983,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                   Expanded(
                     child: TextField(
                       controller: _ctrl,
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 14),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Add a comment…',
                         hintStyle: const TextStyle(color: Colors.white38),
@@ -971,8 +1040,7 @@ class _CommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-              radius: 18, backgroundImage: NetworkImage(c.avatar)),
+          CircleAvatar(radius: 18, backgroundImage: NetworkImage(c.avatar)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -981,8 +1049,8 @@ class _CommentTile extends StatelessWidget {
                 Row(
                   children: [
                     Text('@${c.author}',
-                        style: AppTextStyles.productName.copyWith(
-                            color: Colors.white, fontSize: 13)),
+                        style: AppTextStyles.productName
+                            .copyWith(color: Colors.white, fontSize: 13)),
                     const SizedBox(width: 8),
                     Text(c.time,
                         style: AppTextStyles.brandName
@@ -1068,7 +1136,8 @@ class _ShareSheetState extends State<_ShareSheet> {
           // Send to Friends horizontal list
           Text(
             'Send to Friends',
-            style: AppTextStyles.productName.copyWith(color: Colors.white, fontSize: 14),
+            style: AppTextStyles.productName
+                .copyWith(color: Colors.white, fontSize: 14),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -1086,12 +1155,14 @@ class _ShareSheetState extends State<_ShareSheet> {
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundImage: CachedNetworkImageProvider(f.avatarUrl),
+                        backgroundImage:
+                            CachedNetworkImageProvider(f.avatarUrl),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         f.name.split(' ').first,
-                        style: AppTextStyles.brandName.copyWith(color: Colors.white70, fontSize: 11),
+                        style: AppTextStyles.brandName
+                            .copyWith(color: Colors.white70, fontSize: 11),
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1123,18 +1194,23 @@ class _ShareSheetState extends State<_ShareSheet> {
                                       behavior: SnackBarBehavior.floating,
                                       margin: const EdgeInsets.all(16),
                                       shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12)),
+                                          borderRadius:
+                                              BorderRadius.circular(12)),
                                       duration: const Duration(seconds: 2),
                                     ),
                                   );
                                 },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isSent ? Colors.white10 : AppColors.primary,
+                              color:
+                                  isSent ? Colors.white10 : AppColors.primary,
                               borderRadius: BorderRadius.circular(12),
-                              border: isSent ? Border.all(color: Colors.white24) : null,
+                              border: isSent
+                                  ? Border.all(color: Colors.white24)
+                                  : null,
                             ),
                             child: Text(
                               isSent ? 'Sent' : 'Send',
@@ -1173,7 +1249,8 @@ class _ShareSheetState extends State<_ShareSheet> {
                           .copyWith(color: Colors.white, fontSize: 15)),
                   onTap: () {
                     if (opt.$2 == 'Copy Link') {
-                      Clipboard.setData(ClipboardData(text: widget.reel.videoUrl));
+                      Clipboard.setData(
+                          ClipboardData(text: widget.reel.videoUrl));
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -1207,7 +1284,8 @@ class _ShareSheetState extends State<_ShareSheet> {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Thank you for reporting. We will review this Reel.',
+                          content: Text(
+                              'Thank you for reporting. We will review this Reel.',
                               style: AppTextStyles.brandName
                                   .copyWith(color: Colors.white)),
                           backgroundColor: Colors.redAccent,
@@ -1254,7 +1332,8 @@ final _mockReels = [
     username: '@style_guru',
     userAvatar:
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80',
-    caption: 'Summer collection just dropped 🌊 This dress is everything! #fashion #ootd',
+    caption:
+        'Summer collection just dropped 🌊 This dress is everything! #fashion #ootd',
     productName: 'Vibrant Summer Flow Dress',
     price: 89.99,
     originalPrice: 120.00,
@@ -1270,7 +1349,8 @@ final _mockReels = [
     username: '@sneaker_king',
     userAvatar:
         'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
-    caption: 'These Ultra Boost runners are next level 🔥 Copped mine last week 👟',
+    caption:
+        'These Ultra Boost runners are next level 🔥 Copped mine last week 👟',
     productName: 'Ultra Boost Runner X',
     price: 159.00,
     imageUrl:
@@ -1285,7 +1365,8 @@ final _mockReels = [
     username: '@tech_vibes',
     userAvatar:
         'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
-    caption: 'The Pro Series Smartwatch tracks everything ⌚ 14-day battery is insane',
+    caption:
+        'The Pro Series Smartwatch tracks everything ⌚ 14-day battery is insane',
     productName: 'Pro Series Smartwatch',
     price: 299.00,
     imageUrl:

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'shared/state/cart_state.dart';
+import 'features/product/presentation/pages/edit_product_page.dart';
 
 // Auth
 import 'features/auth/presentation/pages/login_register_page.dart';
@@ -65,6 +66,7 @@ class MegaShopApp extends StatelessWidget {
         initialRoute:
             FirebaseAuth.instance.currentUser != null ? '/home' : '/login',
         routes: {
+          '/edit-product': (_) => const EditProductPage(),
           '/login': (_) => const LoginRegisterPage(),
           '/otp': (_) => const OtpPage(),
           '/home': (_) => const HomePage(),

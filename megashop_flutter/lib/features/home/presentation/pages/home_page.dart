@@ -14,6 +14,8 @@ import '../widgets/story_viewer.dart';
 import '../widgets/trending_grid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:typed_data';
+import 'package:firebase_storage/firebase_storage.dart';
 
 /// Main Home screen of MegaShop.
 ///
@@ -41,7 +43,8 @@ class _HomePageState extends State<HomePage> {
 
   // ── Story state ───────────────────────────────────────────────────────────
   final Set<String> _viewedStoryIds = {};
-  String? _ownStoryImagePath;
+  String _selectedCategory = 'All';
+//category
 
   @override
   void initState() {
@@ -159,10 +162,15 @@ class _HomePageState extends State<HomePage> {
               onTap: () async {
                 Navigator.pop(context);
                 final file = await picker.pickImage(
-                    source: ImageSource.camera, imageQuality: 85);
-                if (file != null && mounted) {
-                  setState(() => _ownStoryImagePath = file.path);
-                }
+                  source: ImageSource.gallery,
+                  imageQuality: 85,
+                );
+
+                if (file == null) return;
+
+                final bytes = await file.readAsBytes();
+
+                await _uploadStoryToFirebase(bytes);
               },
             ),
             ListTile(
@@ -180,10 +188,15 @@ class _HomePageState extends State<HomePage> {
               onTap: () async {
                 Navigator.pop(context);
                 final file = await picker.pickImage(
-                    source: ImageSource.gallery, imageQuality: 85);
-                if (file != null && mounted) {
-                  setState(() => _ownStoryImagePath = file.path);
-                }
+                  source: ImageSource.camera,
+                  imageQuality: 85,
+                );
+
+                if (file == null) return;
+
+                final bytes = await file.readAsBytes();
+
+                await _uploadStoryToFirebase(bytes);
               },
             ),
             const SizedBox(height: 8),
@@ -191,6 +204,71 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  //upload to firebase
+  Future<void> _uploadStoryToFirebase(Uint8List bytes) async {
+    debugPrint('STORY UPLOAD START');
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('stories')
+          .child('${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      debugPrint('STORY STORAGE UPLOAD...');
+
+      await ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+
+      final imageUrl = await ref.getDownloadURL();
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final userData = userDoc.data();
+
+      final username = userData?['username'] ?? user.email ?? 'User';
+      final profileImageUrl = userData?['profileImageUrl'] ?? '';
+
+      await FirebaseFirestore.instance.collection('stories').add({
+        'ownerId': user.uid,
+        'username': username,
+        'userAvatar': profileImageUrl,
+        'imageUrl': imageUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('STORY FIRESTORE SAVED');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Story uploaded successfully!'),
+            ],
+          ),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('STORY ERROR: $e');
+    }
   }
 
   void _openStory(int index) {
@@ -318,15 +396,65 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 12),
                 CategoryFilterBar(
                   categories: _categories,
-                  onCategoryChanged: (_) {},
+                  onCategoryChanged: (category) {
+                    setState(() {
+                      _selectedCategory = category;
+                    });
+                  },
                 ),
                 const SizedBox(height: 20),
-                StoriesRow(
-                  stories: _stories,
-                  viewedStoryIds: _viewedStoryIds,
-                  ownStoryImagePath: _ownStoryImagePath,
-                  onStoryTap: _openStory,
-                  onOwnStoryTap: _openOwnStory,
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('stories')
+                      .orderBy('createdAt', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    final firebaseStories = snapshot.data?.docs.map((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+
+                          return Story(
+                            id: doc.id,
+                            username: data['username'] ?? 'User',
+                            imageUrl: data['imageUrl'],
+                          );
+                        }).toList() ??
+                        [];
+
+                    final storiesToShow = [
+                      const Story(
+                        id: 'own_story',
+                        username: 'Your Story',
+                        isOwnStory: true,
+                      ),
+                      ...firebaseStories,
+                    ];
+
+                    return StoriesRow(
+                      stories: storiesToShow,
+                      viewedStoryIds: _viewedStoryIds,
+                      ownStoryImagePath: null,
+                      onStoryTap: (index) {
+                        if (index == 0) return;
+
+                        final realIndex = index - 1;
+
+                        Navigator.of(context).push(
+                          PageRouteBuilder(
+                            opaque: false,
+                            barrierColor: Colors.black87,
+                            pageBuilder: (_, __, ___) => StoryViewer(
+                              stories: firebaseStories,
+                              initialIndex: realIndex,
+                            ),
+                            transitionsBuilder: (_, animation, __, child) =>
+                                FadeTransition(
+                                    opacity: animation, child: child),
+                          ),
+                        );
+                      },
+                      onOwnStoryTap: _openOwnStory,
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
                 Padding(
@@ -375,9 +503,26 @@ class _HomePageState extends State<HomePage> {
                         isFavorite: false,
                       );
                     }).toList();
+                    final filteredProducts = _selectedCategory == 'All'
+                        ? firebaseProducts
+                        : firebaseProducts.where((product) {
+                            final brand = product.brand.toLowerCase();
 
+                            switch (_selectedCategory) {
+                              case 'Fashion':
+                                return true; // sementara semua masuk fashion
+                              case 'Tech':
+                                return brand.contains('tech');
+                              case 'Home':
+                                return brand.contains('home');
+                              case 'Beauty':
+                                return brand.contains('beauty');
+                              default:
+                                return true;
+                            }
+                          }).toList();
                     return TrendingGrid(
-                      products: firebaseProducts,
+                      products: filteredProducts,
                       onAddToCart: _handleAddToCart,
                       onBuyNow: _handleBuyNow,
                       onFavoriteToggle: (product, isFav) {},

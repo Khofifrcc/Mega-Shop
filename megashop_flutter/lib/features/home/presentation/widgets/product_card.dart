@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -187,8 +186,8 @@ class _ProductImage extends StatelessWidget {
                   width: double.infinity,
                   height: double.infinity,
                   errorBuilder: (context, error, stackTrace) {
-                    print('IMAGE ERROR: $error');
-                    print('IMAGE URL: ${product.imageUrl}');
+                    debugPrint('IMAGE ERROR: $error');
+                    debugPrint('IMAGE URL: ${product.imageUrl}');
                     return Container(
                       color: AppColors.primarySurface,
                       child: const Icon(

@@ -34,7 +34,6 @@ class _HomePageState extends State<HomePage> {
   int _navIndex = 0;
 
   late final List<Product> _products;
-  late final List<Story> _stories;
   late final List<String> _categories;
 
   // ── Address state ─────────────────────────────────────────────────────────
@@ -50,7 +49,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _products = _dataSource.getTrendingProducts();
-    _stories = _dataSource.getStories().cast<Story>();
+
     _categories = _dataSource.getCategories();
     _loadAddresses();
   }
@@ -269,29 +268,6 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       debugPrint('STORY ERROR: $e');
     }
-  }
-
-  void _openStory(int index) {
-    final storyId = _stories[index].id;
-    Navigator.of(context)
-        .push(
-      PageRouteBuilder(
-        opaque: false,
-        barrierColor: Colors.black87,
-        pageBuilder: (_, __, ___) => StoryViewer(
-          stories: _stories,
-          initialIndex: index,
-        ),
-        transitionsBuilder: (_, animation, __, child) =>
-            FadeTransition(opacity: animation, child: child),
-      ),
-    )
-        .then((_) {
-      // Mark as viewed when the viewer closes
-      if (mounted) {
-        setState(() => _viewedStoryIds.add(storyId));
-      }
-    });
   }
 
   // ── Address bottom sheet ──────────────────────────────────────────────────

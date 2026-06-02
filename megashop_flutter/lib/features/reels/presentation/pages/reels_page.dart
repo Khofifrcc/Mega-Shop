@@ -375,13 +375,6 @@ class _ReelItemState extends State<_ReelItem>
     super.dispose();
   }
 
-  void _togglePlay() {
-    setState(() {
-      _isPaused = !_isPaused;
-      _isPaused ? _controller.pause() : _controller.play();
-    });
-  }
-
   void _doubleTapLike() {
     if (!widget.isLiked) widget.onLike();
     setState(() => _showHeart = true);

@@ -497,37 +497,3 @@ class _InlineField extends StatelessWidget {
     );
   }
 }
-
-class _ExtraButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _ExtraButton({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () {},
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.divider),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 14, color: AppColors.iconMuted),
-              const SizedBox(width: 4),
-              Text(label,
-                  style: AppTextStyles.brandName.copyWith(fontSize: 12)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

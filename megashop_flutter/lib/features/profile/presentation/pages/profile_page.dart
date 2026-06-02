@@ -33,14 +33,6 @@ class _ProfilePageState extends State<ProfilePage>
   String profileImageUrl = '';
   bool _isUploadingPhoto = false;
 
-  final _feedImages = [
-    'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=300&q=80',
-    'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=300&q=80',
-    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80',
-    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80',
-    'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=300&q=80',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -712,64 +704,6 @@ class _MyReelsGrid extends StatelessWidget {
                 ),
               );
             });
-      },
-    );
-  }
-}
-
-class _FeedGrid extends StatelessWidget {
-  final List<String> images;
-  final bool isReels;
-
-  const _FeedGrid({required this.images, this.isReels = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(1),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 2,
-        crossAxisSpacing: 2,
-      ),
-      itemCount: images.length,
-      itemBuilder: (context, i) {
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            CachedNetworkImage(
-              imageUrl: images[i],
-              fit: BoxFit.cover,
-              placeholder: (ctx, url) =>
-                  Container(color: AppColors.primarySurface),
-              errorWidget: (ctx, url, err) =>
-                  Container(color: AppColors.primarySurface),
-            ),
-            if (isReels)
-              const Positioned(
-                bottom: 8,
-                left: 8,
-                child: Row(
-                  children: [
-                    Icon(
-                      CupertinoIcons.play_fill,
-                      color: Colors.white,
-                      size: 12,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      '1.2k',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        );
       },
     );
   }

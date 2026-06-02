@@ -118,6 +118,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           .doc(user.uid)
           .collection('items')
           .get();
+      if (!mounted) return;
 
       if (cartSnapshot.docs.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -139,10 +140,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         };
       }).toList();
 
-      final subtotal = items.fold<double>(0, (sum, item) {
+      final subtotal = items.fold<double>(0, (total, item) {
         final price = (item['price'] ?? 0).toDouble();
         final quantity = item['quantity'] ?? 1;
-        return sum + (price * quantity);
+        return total + (price * quantity);
       });
 
       final tax = subtotal * 0.08;

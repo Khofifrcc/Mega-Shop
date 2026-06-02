@@ -9,9 +9,10 @@ class CartState extends ChangeNotifier {
 
   List<CartEntry> get items => List.unmodifiable(_items);
 
-  int get itemCount => _items.fold(0, (sum, e) => sum + e.quantity);
+  int get itemCount => _items.fold(0, (total, e) => total + e.quantity);
 
-  double get subtotal => _items.fold(0, (sum, e) => sum + e.price * e.quantity);
+  double get subtotal =>
+      _items.fold(0, (total, e) => total + e.price * e.quantity);
   double get tax => subtotal * 0.08;
   double get total => subtotal + tax;
 

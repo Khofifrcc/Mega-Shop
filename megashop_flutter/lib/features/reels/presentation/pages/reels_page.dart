@@ -36,7 +36,7 @@ class _ReelsPageState extends State<ReelsPage> {
   final _likedIds = <String>{};
 
   int _currentIndex = 0;
-  String _searchQuery = '';
+  final String _searchQuery = '';
 
   // Track comments per reel ID so they persist during the session and update the count
   final Map<String, List<_Comment>> _reelComments = {};

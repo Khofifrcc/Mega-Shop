@@ -69,17 +69,18 @@ class _SearchPageState extends State<SearchPage> {
         }
       }
 // price
-      if (_selectedPriceRange != 'All') {
-        if (_selectedPriceRange == 'Under \$100' && p.price >= 100)
-          return false;
-        if (_selectedPriceRange == '\$100 - \$200' &&
-            (p.price < 100 || p.price > 200)) {
-          return false;
-        }
-        if (_selectedPriceRange == 'Above \$200' && p.price <= 200)
-          return false;
+      if (_selectedPriceRange == 'Under \$100' && p.price >= 100) {
+        return false;
       }
 
+      if (_selectedPriceRange == '\$100 - \$200' &&
+          (p.price < 100 || p.price > 200)) {
+        return false;
+      }
+
+      if (_selectedPriceRange == 'Above \$200' && p.price <= 200) {
+        return false;
+      }
       return true;
     }).toList();
 

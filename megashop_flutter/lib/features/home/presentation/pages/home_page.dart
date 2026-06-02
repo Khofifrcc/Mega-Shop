@@ -62,6 +62,7 @@ class _HomePageState extends State<HomePage> {
       price: product.price,
       imageUrl: product.imageUrl,
     );
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -298,7 +299,7 @@ class _HomePageState extends State<HomePage> {
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-          await _loadAddresses();
+          if (!context.mounted) return;
           Navigator.pop(context);
         },
         onDelete: (i) async {

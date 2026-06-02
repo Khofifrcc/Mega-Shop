@@ -66,7 +66,7 @@ class _CartPageState extends State<CartPage> {
             [];
 
         final subtotal =
-            items.fold<double>(0, (sum, e) => sum + e.price * e.quantity);
+            items.fold<double>(0, (total, e) => total + e.price * e.quantity);
         final tax = subtotal * 0.08;
         final total = subtotal + tax;
 

@@ -56,7 +56,7 @@ class _ConversationPageState extends State<ConversationPage> {
     final args = ModalRoute.of(context)?.settings.arguments;
 
     String chatId = 'default';
-    print('CHAT OPENED: $chatId');
+    debugPrint('CHAT OPENED: $chatId');
     String name = 'MegaShop User';
     String avatar =
         'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80';
@@ -66,14 +66,14 @@ class _ConversationPageState extends State<ConversationPage> {
       avatar = args['avatar']?.toString() ??
           'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80';
 
-      print('CHAT OPENED: $chatId');
+      debugPrint('CHAT OPENED: $chatId');
     } else if (args != null) {
       final dynamic dynamicArgs = args;
       chatId = dynamicArgs.id as String;
       name = dynamicArgs.name as String;
       avatar = dynamicArgs.avatarUrl as String;
 
-      print('CHAT OPENED: $chatId');
+      debugPrint('CHAT OPENED: $chatId');
     }
 
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';

@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/story.dart';
@@ -10,11 +12,13 @@ import '../../domain/entities/story.dart';
 class StoryViewer extends StatefulWidget {
   final List<Story> stories;
   final int initialIndex;
+  final ValueChanged<String>? onStoryViewed;
 
   const StoryViewer({
     super.key,
     required this.stories,
     required this.initialIndex,
+    this.onStoryViewed,
   });
 
   @override
@@ -26,17 +30,19 @@ class _StoryViewerState extends State<StoryViewer>
   static const _storyDuration = Duration(seconds: 5);
 
   late int _currentIndex;
+  late final List<Story> _viewerStories;
   late AnimationController _progressController;
 
   @override
   void initState() {
     super.initState();
+    _viewerStories = List.from(widget.stories);
     _currentIndex = widget.initialIndex;
 
     // Skip the "Your Story" add button if tapped
-    if (widget.stories[_currentIndex].isOwnStory) {
+    if (_viewerStories[_currentIndex].isOwnStory) {
       final next =
-          widget.stories.indexWhere((s) => !s.isOwnStory, _currentIndex + 1);
+          _viewerStories.indexWhere((s) => !s.isOwnStory, _currentIndex + 1);
       if (next != -1) _currentIndex = next;
     }
 
@@ -48,6 +54,7 @@ class _StoryViewerState extends State<StoryViewer>
       });
 
     _startStory();
+    _notifyViewed();
   }
 
   @override
@@ -56,24 +63,32 @@ class _StoryViewerState extends State<StoryViewer>
     super.dispose();
   }
 
+  void _notifyViewed() {
+    if (_currentIndex >= 0 && _currentIndex < _viewerStories.length) {
+      final story = _viewerStories[_currentIndex];
+      widget.onStoryViewed?.call(story.id);
+    }
+  }
+
   void _startStory() => _progressController.forward(from: 0);
 
   void _goNext() {
     int next = _currentIndex + 1;
-    while (next < widget.stories.length && widget.stories[next].isOwnStory) {
+    while (next < _viewerStories.length && _viewerStories[next].isOwnStory) {
       next++;
     }
-    if (next >= widget.stories.length) {
+    if (next >= _viewerStories.length) {
       Navigator.of(context).pop();
       return;
     }
     setState(() => _currentIndex = next);
     _startStory();
+    _notifyViewed();
   }
 
   void _goPrev() {
     int prev = _currentIndex - 1;
-    while (prev >= 0 && widget.stories[prev].isOwnStory) {
+    while (prev >= 0 && _viewerStories[prev].isOwnStory) {
       prev--;
     }
     if (prev < 0) {
@@ -82,13 +97,68 @@ class _StoryViewerState extends State<StoryViewer>
     }
     setState(() => _currentIndex = prev);
     _startStory();
+    _notifyViewed();
+  }
+
+  Future<void> _deleteStory(Story story) async {
+    // Pause progress indicator during deletion confirmation
+    _progressController.stop();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text('Delete Story', style: TextStyle(color: Colors.white)),
+        content: const Text('Are you sure you want to delete this story?',
+            style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.badgeSale),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('stories')
+            .doc(story.id)
+            .delete();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Story deleted successfully'),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        debugPrint('Failed to delete story: $e');
+        if (mounted) {
+          _progressController.forward(); // resume
+        }
+      }
+    } else {
+      if (mounted) {
+        _progressController.forward(); // resume
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final story = widget.stories[_currentIndex];
+    final story = _viewerStories[_currentIndex];
     final viewableStories =
-        widget.stories.where((s) => !s.isOwnStory).toList();
+        _viewerStories.where((s) => !s.isOwnStory).toList();
     final viewableIndex =
         viewableStories.indexWhere((s) => s.id == story.id);
 
@@ -231,6 +301,12 @@ class _StoryViewerState extends State<StoryViewer>
                                 color: Colors.white, fontSize: 14),
                           ),
                         ),
+                        if (story.ownerId == FirebaseAuth.instance.currentUser?.uid)
+                          IconButton(
+                            onPressed: () => _deleteStory(story),
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                color: Colors.redAccent, size: 24),
+                          ),
                         IconButton(
                           onPressed: () => Navigator.of(context).pop(),
                           icon: const Icon(Icons.close_rounded,

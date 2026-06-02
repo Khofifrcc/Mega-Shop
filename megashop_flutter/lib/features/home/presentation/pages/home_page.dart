@@ -393,9 +393,18 @@ class _HomePageState extends State<HomePage> {
                             id: doc.id,
                             username: data['username'] ?? 'User',
                             imageUrl: data['imageUrl'],
+                            ownerId: data['ownerId'] ?? '',
                           );
                         }).toList() ??
                         [];
+
+                    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+                    // Sort so user's own uploaded stories are on the far left, right after the "Your Story" add button
+                    final ownStories = firebaseStories.where((s) => s.ownerId == currentUserId).toList();
+                    final otherStories = firebaseStories.where((s) => s.ownerId != currentUserId).toList();
+
+                    final viewableStories = [...ownStories, ...otherStories];
 
                     final storiesToShow = [
                       const Story(
@@ -403,7 +412,7 @@ class _HomePageState extends State<HomePage> {
                         username: 'Your Story',
                         isOwnStory: true,
                       ),
-                      ...firebaseStories,
+                      ...viewableStories,
                     ];
 
                     return StoriesRow(
@@ -420,7 +429,7 @@ class _HomePageState extends State<HomePage> {
                             opaque: false,
                             barrierColor: Colors.black87,
                             pageBuilder: (_, __, ___) => StoryViewer(
-                              stories: firebaseStories,
+                              stories: viewableStories,
                               initialIndex: realIndex,
                             ),
                             transitionsBuilder: (_, animation, __, child) =>

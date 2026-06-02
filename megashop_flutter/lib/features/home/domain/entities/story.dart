@@ -12,10 +12,14 @@ class Story {
   /// True when this is the current user's own story slot (shows a '+' button)
   final bool isOwnStory;
 
+  /// Firebase UID of the user who posted this story
+  final String? ownerId;
+
   const Story({
     required this.id,
     required this.username,
     this.imageUrl,
     this.isOwnStory = false,
+    this.ownerId,
   });
 }

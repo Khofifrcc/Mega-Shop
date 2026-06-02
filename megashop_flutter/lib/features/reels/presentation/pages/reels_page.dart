@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:video_player/video_player.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -41,9 +42,18 @@ class _ReelsPageState extends State<ReelsPage> {
   // Track comments per reel ID so they persist during the session and update the count
   final Map<String, List<_Comment>> _reelComments = {};
 
+  late final Stream<QuerySnapshot> _reelsStream;
+  late final PageController _pageController;
+
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: _currentIndex);
+    _reelsStream = FirebaseFirestore.instance
+        .collection('reels')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+
     // Initialize mock comments for each reel
     for (var reel in _fallbackReels) {
       _reelComments[reel.id] = [
@@ -69,6 +79,12 @@ class _ReelsPageState extends State<ReelsPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _handlePageChange(int index) {
     setState(() => _currentIndex = index);
   }
@@ -87,51 +103,43 @@ class _ReelsPageState extends State<ReelsPage> {
           // Swipeable reels feed
           // Read reels from Firestore in realtime
           StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('reels')
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
+            stream: _reelsStream,
             builder: (context, snapshot) {
-              // Show loading while fetching reels
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              // Show loading while fetching reels if we don't have error or data
+              if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasError) {
                 return const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 );
               }
 
               // Convert Firestore documents to Reel objects
-              final firestoreReels = snapshot.data?.docs.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
+              final firestoreReels = (snapshot.hasData && snapshot.data != null)
+                  ? snapshot.data!.docs.map((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
 
-                    return Reel(
-                      id: doc.id,
-                      ownerId: data['ownerId'] ?? '',
-                      username: data['username'] ?? '@seller',
-                      userAvatar: data['userAvatar'] ?? '',
-                      caption: data['caption'] ?? '',
-                      productName: data['productName'] ?? 'Product',
-                      price: (data['price'] ?? 0).toDouble(),
-                      originalPrice: data['originalPrice'] == null
-                          ? null
-                          : (data['originalPrice']).toDouble(),
-                      imageUrl: data['imageUrl'] ?? '',
-                      videoUrl: data['videoUrl'] ?? '',
-                      likeCount: data['likeCount'] ?? 0,
-                      commentCount: data['commentCount'] ?? 0,
-                    );
-                  }).toList() ??
-                  [];
+                      return Reel(
+                        id: doc.id,
+                        ownerId: data['ownerId'] ?? '',
+                        username: data['username'] ?? '@seller',
+                        userAvatar: data['userAvatar'] ?? '',
+                        caption: data['caption'] ?? '',
+                        productName: data['productName'] ?? 'Product',
+                        price: (data['price'] ?? 0).toDouble(),
+                        originalPrice: data['originalPrice'] == null
+                            ? null
+                            : (data['originalPrice']).toDouble(),
+                        imageUrl: data['imageUrl'] ?? '',
+                        videoUrl: data['videoUrl'] ?? '',
+                        likeCount: data['likeCount'] ?? 0,
+                        commentCount: data['commentCount'] ?? 0,
+                      );
+                    }).toList()
+                  : <Reel>[];
 
-              // show empty message if firestore has no reels
-              if (firestoreReels.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No Reels uploaded yet',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                );
-              }
-              final reels = firestoreReels.where((reel) {
+              // Fallback to local mock reels if Firestore has no reels uploaded or has error/is empty
+              final displayReels = firestoreReels.isEmpty ? _fallbackReels : firestoreReels;
+
+              final reels = displayReels.where((reel) {
                 final q = _searchQuery.toLowerCase();
 
                 return reel.productName.toLowerCase().contains(q) ||
@@ -139,42 +147,58 @@ class _ReelsPageState extends State<ReelsPage> {
                     reel.username.toLowerCase().contains(q);
               }).toList();
 
+              if (reels.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No Reels found',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                );
+              }
+
 // Use normal vertical PageView.
 // Do not use Listener / PageController because it can block swipe.
-              return PageView.builder(
-                scrollDirection: Axis.vertical,
-                itemCount: reels.length,
-                onPageChanged: _handlePageChange,
-                itemBuilder: (context, index) {
-                  final reel = reels[index];
-                  final currentCommentCount =
-                      _reelComments[reel.id]?.length ?? reel.commentCount;
+              return ScrollConfiguration(
+                behavior: const _ReelsScrollBehavior(),
+                child: PageView.builder(
+                  controller: _pageController,
+                  scrollDirection: Axis.vertical,
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+                  itemCount: reels.length,
+                  onPageChanged: _handlePageChange,
+                  itemBuilder: (context, index) {
+                    final reel = reels[index];
+                    final currentCommentCount =
+                        _reelComments[reel.id]?.length ?? reel.commentCount;
 
-                  return _ReelItem(
-                    reel: reel,
-                    isActive: index == _currentIndex,
-                    isLiked: _likedIds.contains(reel.id),
-                    commentCount: currentCommentCount,
-                    onLike: () => setState(() {
-                      if (_likedIds.contains(reel.id)) {
-                        _likedIds.remove(reel.id);
-                      } else {
-                        _likedIds.add(reel.id);
-                      }
-                    }),
-                    onComment: () => _showComments(context, reel),
-                    onShare: () => _showShare(context, reel),
-                    onAddToCart: () {
-                      CartStateProvider.of(context).addItem(
-                        productId: reel.id,
-                        name: reel.productName,
-                        variant: 'Default',
-                        price: reel.price,
-                        imageUrl: reel.imageUrl,
-                      );
-                    },
-                  );
-                },
+                    return _ReelItem(
+                      reel: reel,
+                      isActive: index == _currentIndex,
+                      isLiked: _likedIds.contains(reel.id),
+                      commentCount: currentCommentCount,
+                      onLike: () => setState(() {
+                        if (_likedIds.contains(reel.id)) {
+                          _likedIds.remove(reel.id);
+                        } else {
+                          _likedIds.add(reel.id);
+                        }
+                      }),
+                      onComment: () => _showComments(context, reel),
+                      onShare: () => _showShare(context, reel),
+                      onAddToCart: () {
+                        CartStateProvider.of(context).addItem(
+                          productId: reel.id,
+                          name: reel.productName,
+                          variant: 'Default',
+                          price: reel.price,
+                          imageUrl: reel.imageUrl,
+                        );
+                      },
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -326,9 +350,56 @@ class _ReelItemState extends State<_ReelItem>
   bool _isPaused = false;
   bool _isFollowing = false;
 
+  // Double-tap and skip gesture variables
+  TapDownDetails? _doubleTapDetails;
+  bool _showRewind = false;
+  bool _showForward = false;
+
   // Double-tap heart animation
   late AnimationController _heartAnim;
   bool _showHeart = false;
+
+  void _showRewindIndicator() {
+    setState(() => _showRewind = true);
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) setState(() => _showRewind = false);
+    });
+  }
+
+  void _showForwardIndicator() {
+    setState(() => _showForward = true);
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) setState(() => _showForward = false);
+    });
+  }
+
+  void _rewind() {
+    if (!_initialized) return;
+    final newPos = _controller.value.position - const Duration(seconds: 5);
+    _controller.seekTo(newPos < Duration.zero ? Duration.zero : newPos);
+    _showRewindIndicator();
+  }
+
+  void _fastForward() {
+    if (!_initialized) return;
+    final newPos = _controller.value.position + const Duration(seconds: 5);
+    final maxDur = _controller.value.duration;
+    _controller.seekTo(newPos > maxDur ? maxDur : newPos);
+    _showForwardIndicator();
+  }
+
+  void _togglePlay() {
+    if (!_initialized) return;
+    setState(() {
+      if (_controller.value.isPlaying) {
+        _controller.pause();
+        _isPaused = true;
+      } else {
+        _controller.play();
+        _isPaused = false;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -442,8 +513,26 @@ class _ReelItemState extends State<_ReelItem>
         // Keep tap and double tap, but do not force translucent hit testing.
 // This keeps PageView vertical swipe working normally.
         GestureDetector(
-          behavior: HitTestBehavior.deferToChild,
-          onDoubleTap: _doubleTapLike,
+          behavior: HitTestBehavior.opaque,
+          onTap: _togglePlay,
+          onDoubleTapDown: (details) {
+            _doubleTapDetails = details;
+          },
+          onDoubleTap: () {
+            if (_doubleTapDetails != null) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final localX = _doubleTapDetails!.localPosition.dx;
+              if (localX < screenWidth * 0.3) {
+                _rewind();
+              } else if (localX > screenWidth * 0.7) {
+                _fastForward();
+              } else {
+                _doubleTapLike();
+              }
+            } else {
+              _doubleTapLike();
+            }
+          },
           child: Container(
             color: Colors.black,
             child: _initialized
@@ -486,37 +575,104 @@ class _ReelItemState extends State<_ReelItem>
 
         // ── Pause indicator ─────────────────────────────────────────────
         if (_isPaused)
-          Center(
-            child: Container(
-              width: 72,
-              height: 72,
-              decoration: const BoxDecoration(
-                color: Colors.black45,
-                shape: BoxShape.circle,
+          IgnorePointer(
+            child: Center(
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: Colors.black45,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.play_arrow_rounded,
+                    color: Colors.white, size: 40),
               ),
-              child: const Icon(Icons.play_arrow_rounded,
-                  color: Colors.white, size: 40),
             ),
           ),
 
         // ── Double-tap heart animation ─────────────────────────────────
         if (_showHeart)
-          Center(
-            child: ScaleTransition(
-              scale: CurvedAnimation(
-                parent: _heartAnim,
-                curve: Curves.elasticOut,
+          IgnorePointer(
+            child: Center(
+              child: ScaleTransition(
+                scale: CurvedAnimation(
+                  parent: _heartAnim,
+                  curve: Curves.elasticOut,
+                ),
+                child: const Icon(Icons.favorite_rounded,
+                    color: Colors.redAccent, size: 100),
               ),
-              child: const Icon(Icons.favorite_rounded,
-                  color: Colors.redAccent, size: 100),
             ),
+          ),
+
+        // ── Rewind Indicator Overlay ──────────────────────────────────
+        if (_showRewind)
+          Positioned(
+            left: 50,
+            top: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.fast_rewind_rounded, color: Colors.white, size: 36),
+                      SizedBox(height: 4),
+                      Text('-5s', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // ── Forward Indicator Overlay ─────────────────────────────────
+        if (_showForward)
+          Positioned(
+            right: 50,
+            top: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.fast_forward_rounded, color: Colors.white, size: 36),
+                      SizedBox(height: 4),
+                      Text('+5s', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // ── Video seek slider ───────────────────────────────────────────
+        if (_initialized)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 68,
+            child: _ReelVideoSlider(controller: _controller),
           ),
 
         // ── Bottom overlay ─────────────────────────────────────────────
         Positioned(
           left: 0,
           right: 0,
-          bottom: 80,
+          bottom: 96,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
@@ -1377,3 +1533,73 @@ final _mockReels = [
     commentCount: 321,
   ),
 ];
+
+/// Seekable interactive progress bar for Reels videos
+class _ReelVideoSlider extends StatefulWidget {
+  final VideoPlayerController controller;
+  const _ReelVideoSlider({required this.controller});
+
+  @override
+  State<_ReelVideoSlider> createState() => _ReelVideoSliderState();
+}
+
+class _ReelVideoSliderState extends State<_ReelVideoSlider> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTick);
+  }
+
+  void _onTick() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTick);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.controller.value.isInitialized) {
+      return const SizedBox.shrink();
+    }
+    final dur = widget.controller.value.duration.inMilliseconds.toDouble();
+    final pos = widget.controller.value.position.inMilliseconds.toDouble();
+    return SizedBox(
+      height: 24,
+      child: SliderTheme(
+        data: SliderTheme.of(context).copyWith(
+          trackHeight: 3,
+          activeTrackColor: AppColors.primary,
+          inactiveTrackColor: Colors.white30,
+          thumbColor: AppColors.primary,
+          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+          overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+        ),
+        child: Slider(
+          value: pos.clamp(0.0, dur),
+          min: 0.0,
+          max: dur > 0 ? dur : 1.0,
+          onChanged: (val) {
+            widget.controller.seekTo(Duration(milliseconds: val.toInt()));
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// Custom scroll behavior to enable click-and-drag scrolling via mouse (essential for Windows desktop/Web browsers).
+class _ReelsScrollBehavior extends MaterialScrollBehavior {
+  const _ReelsScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.trackpad,
+      };
+}

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>MegaShop - Catatan Orang 3 Home & Stories</title>
+  <style>
+    @page { size: A4; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #171717;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      line-height: 1.32;
+    }
+    h1 { margin: 0 0 4px; font-size: 23px; line-height: 1.12; letter-spacing: 0; }
+    h2 {
+      margin: 16px 0 7px;
+      padding-top: 2px;
+      border-top: 1px solid #d7dbe0;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+    p { margin: 0 0 6px; }
+    ul { margin: 0 0 8px 18px; padding: 0; }
+    li { margin: 0 0 3px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 5px 0 11px;
+      table-layout: fixed;
+      page-break-inside: auto;
+    }
+    tr { page-break-inside: avoid; }
+    th, td {
+      border: 1px solid #d7dbe0;
+      padding: 5px 6px;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+    th { background: #f1f3f4; text-align: left; font-weight: 700; }
+    code, .code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      color: #184b7a;
+      font-size: 10px;
+    }
+    .subtitle { color: #555; font-size: 12px; margin-bottom: 12px; }
+    .callout {
+      border-left: 4px solid #6c2bd9;
+      background: #f6f3ff;
+      padding: 8px 10px;
+      margin: 8px 0 12px;
+      font-size: 11px;
+    }
+    .warn {
+      border-left: 4px solid #d4891a;
+      background: #fff8e8;
+      padding: 8px 10px;
+      margin: 8px 0 12px;
+      font-size: 11px;
+    }
+    .small { font-size: 10px; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>MegaShop - Orang 3: Beranda & Stories Interaction</h1>
+  <p class="subtitle">Cheat sheet presentasi: HomePage, local data source, stories row, story viewer, kategori produk, app bar, dan bottom navigation.</p>
+
+  <h2>1. Jawaban Inti Bagian Orang 3</h2>
+  <ul>
+    <li>Orang 3 menguasai fitur <strong>Home / Beranda</strong>: kategori, product grid, stories horizontal, story viewer full screen, app bar, dan bottom nav global.</li>
+    <li><span class="code">HomePage</span> bertugas sebagai orkestrator: ambil data, pegang state, lalu kirim data/callback ke widget kecil.</li>
+    <li>Produk dan story realtime diambil dari Firestore memakai <span class="code">StreamBuilder</span> dan <span class="code">.snapshots()</span>.</li>
+    <li>Data lokal di <span class="code">HomeLocalDataSource</span> dipakai sebagai fallback/mock data ketika Firestore belum ada data.</li>
+    <li>Story viewer memakai <span class="code">AnimationController</span> 5 detik untuk progress bar dan auto-next.</li>
+    <li>Bottom nav global ada di <span class="code">shared/widgets/mega_bottom_nav.dart</span>, termasuk badge cart realtime.</li>
+  </ul>
+  <div class="callout"><strong>Kalimat siap jawab:</strong> Bagian Home dibagi menjadi page utama dan reusable widgets. HomePage mengelola state dan data, sedangkan widget seperti StoriesRow, StoryAvatar, TrendingGrid, ProductCard, dan MegaBottomNav bertanggung jawab untuk tampilan dan interaksi spesifik.</div>
+
+  <h2>2. File Penting dan Search Keyword</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 20%">Topik</th>
+        <th style="width: 31%">File</th>
+        <th style="width: 24%">Search keyword</th>
+        <th style="width: 25%">Yang dijelaskan</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Page utama Home</td><td><span class="code">home_page.dart</span></td><td><span class="code">class HomePage</span></td><td>Orkestrator beranda, state kategori, address, story, produk.</td></tr>
+      <tr><td>State story dilihat</td><td><span class="code">home_page.dart</span></td><td><span class="code">_viewedStoryIds</span></td><td>Set ID story yang sudah dilihat.</td></tr>
+      <tr><td>Stream stories</td><td><span class="code">home_page.dart</span></td><td><span class="code">collection('stories')</span></td><td>Ambil story realtime dari Firestore.</td></tr>
+      <tr><td>Stream products</td><td><span class="code">home_page.dart</span></td><td><span class="code">collection('products')</span></td><td>Ambil produk realtime dari Firestore.</td></tr>
+      <tr><td>Filter kategori</td><td><span class="code">home_page.dart</span></td><td><span class="code">_selectedCategory</span></td><td>Filter produk berdasarkan kategori.</td></tr>
+      <tr><td>Upload story</td><td><span class="code">home_page.dart</span></td><td><span class="code">_uploadStoryToFirebase</span></td><td>Upload gambar ke Storage, simpan URL ke Firestore.</td></tr>
+      <tr><td>Popup add story</td><td><span class="code">home_page.dart</span></td><td><span class="code">showModalBottomSheet</span></td><td>Pilih kamera atau gallery.</td></tr>
+      <tr><td>Horizontal story row</td><td><span class="code">stories_row.dart</span></td><td><span class="code">ListView.separated</span></td><td>Scroll horizontal story avatar.</td></tr>
+      <tr><td>Story avatar</td><td><span class="code">story_avatar.dart</span></td><td><span class="code">isViewed</span></td><td>Ring ungu/abu-abu berdasarkan status ditonton.</td></tr>
+      <tr><td>Story viewer</td><td><span class="code">story_viewer.dart</span></td><td><span class="code">AnimationController</span></td><td>Progress bar 5 detik dan auto next.</td></tr>
+      <tr><td>Delete story</td><td><span class="code">story_viewer.dart</span></td><td><span class="code">_deleteStory</span></td><td>Dialog konfirmasi dan delete Firestore document.</td></tr>
+      <tr><td>Category bar</td><td><span class="code">category_filter_bar.dart</span></td><td><span class="code">_selectedIndex</span></td><td>Pill kategori horizontal dan callback ke HomePage.</td></tr>
+      <tr><td>Product grid</td><td><span class="code">trending_grid.dart</span></td><td><span class="code">GridView.builder</span></td><td>Grid 2 kolom phone, 3 kolom tablet.</td></tr>
+      <tr><td>Product card</td><td><span class="code">product_card.dart</span></td><td><span class="code">_toggleFavorite</span></td><td>Card produk, favorite animation, add/buy action.</td></tr>
+      <tr><td>App bar</td><td><span class="code">app_bar_widget.dart</span></td><td><span class="code">MegaShopAppBar</span></td><td>Search, chat, notification icon dengan dot.</td></tr>
+      <tr><td>Bottom nav global</td><td><span class="code">mega_bottom_nav.dart</span></td><td><span class="code">MegaBottomNav</span></td><td>Home, Reels, Post, Cart, Profile.</td></tr>
+      <tr><td>Cart badge realtime</td><td><span class="code">mega_bottom_nav.dart</span></td><td><span class="code">_CartNavItemWithStream</span></td><td>Badge cart dari <span class="code">carts/{uid}/items</span>.</td></tr>
+      <tr><td>Local mock data</td><td><span class="code">home_local_data_source.dart</span></td><td><span class="code">getTrendingProducts / getCategories</span></td><td>Fallback produk dan kategori.</td></tr>
+      <tr><td>Entity Product</td><td><span class="code">product.dart</span></td><td><span class="code">class Product</span></td><td>Model product murni Dart.</td></tr>
+      <tr><td>Entity Story</td><td><span class="code">story.dart</span></td><td><span class="code">class Story</span></td><td>Model story murni Dart.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. Alur HomePage</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%">Bagian</th>
+        <th style="width: 45%">Alur</th>
+        <th style="width: 30%">Kode kunci</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Init state</td><td>Ambil local products dan categories, lalu load address user dari Firestore.</td><td><span class="code">initState()</span>, <span class="code">_loadAddresses()</span></td></tr>
+      <tr><td>Address bar</td><td>Menampilkan alamat terpilih; ketika diklik membuka bottom sheet alamat.</td><td><span class="code">_openAddressSheet</span></td></tr>
+      <tr><td>Category filter</td><td>CategoryFilterBar mengubah state <span class="code">_selectedCategory</span> di HomePage.</td><td><span class="code">onCategoryChanged</span></td></tr>
+      <tr><td>Stories</td><td>Stream Firestore stories, mapping document menjadi entity Story, lalu tampilkan di StoriesRow.</td><td><span class="code">collection('stories').orderBy(...).snapshots()</span></td></tr>
+      <tr><td>Products</td><td>Stream Firestore products, mapping document menjadi Product, filter berdasarkan kategori, lalu tampilkan di TrendingGrid.</td><td><span class="code">productFromFirestore</span></td></tr>
+      <tr><td>Navigation</td><td>Bottom nav mengubah route ke Reels, Post, Cart, Profile.</td><td><span class="code">Navigator.pushNamed</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Stories Interaction</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 24%">Fitur</th>
+        <th style="width: 46%">Cara kerja</th>
+        <th style="width: 30%">Search keyword</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Story row horizontal</td><td><span class="code">StoriesRow</span> menggunakan <span class="code">ListView.separated</span> horizontal, item-nya adalah <span class="code">StoryAvatar</span>.</td><td><span class="code">ListView.separated</span></td></tr>
+      <tr><td>Your Story</td><td>Item pertama adalah story khusus dengan <span class="code">isOwnStory: true</span>. Ketika diklik membuka bottom sheet kamera/gallery.</td><td><span class="code">id: 'own_story'</span></td></tr>
+      <tr><td>Upload story</td><td>ImagePicker memilih gambar, upload ke Firebase Storage, ambil download URL, simpan ke Firestore collection <span class="code">stories</span>.</td><td><span class="code">_uploadStoryToFirebase</span></td></tr>
+      <tr><td>Open story viewer</td><td>Tap story membuat <span class="code">PageRouteBuilder</span> transparan dengan <span class="code">FadeTransition</span> ke <span class="code">StoryViewer</span>.</td><td><span class="code">PageRouteBuilder</span></td></tr>
+      <tr><td>Progress bar</td><td><span class="code">AnimationController</span> berjalan 5 detik. <span class="code">AnimatedBuilder</span> menggambar progress bar.</td><td><span class="code">_storyDuration</span>, <span class="code">AnimatedBuilder</span></td></tr>
+      <tr><td>Auto next</td><td><span class="code">addStatusListener</span> memanggil <span class="code">_goNext()</span> saat <span class="code">AnimationStatus.completed</span>.</td><td><span class="code">AnimationStatus.completed</span></td></tr>
+      <tr><td>Manual next/prev</td><td>Layar dibagi dua tap zone: kiri <span class="code">_goPrev</span>, kanan <span class="code">_goNext</span>.</td><td><span class="code">Tap zones</span></td></tr>
+      <tr><td>Close viewer</td><td>Swipe down atau tombol close memanggil <span class="code">Navigator.pop</span>.</td><td><span class="code">onVerticalDragEnd</span></td></tr>
+      <tr><td>Delete own story</td><td>Kalau ownerId sama dengan current user, muncul tombol delete; konfirmasi lewat AlertDialog lalu delete doc Firestore.</td><td><span class="code">_deleteStory</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Catatan Penting: Viewed Story</h2>
+  <div class="warn">
+    <strong>Update kode sekarang:</strong> <span class="code">HomePage</span> punya <span class="code">Set&lt;String&gt; _viewedStoryIds</span>, <span class="code">StoryViewer</span> sudah menerima callback <span class="code">onStoryViewed</span>, lalu ID story yang dibuka dimasukkan ke set tersebut. Setelah itu <span class="code">StoriesRow</span> mengirim <span class="code">isViewed</span> ke <span class="code">StoryAvatar</span>, dan ring story berubah abu-abu jika <span class="code">isViewed == true</span>.
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 28%">Kondisi</th>
+        <th style="width: 72%">Jawaban aman</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Kalau ditanya kode sekarang</td><td>Story milik sendiri diprioritaskan di depan setelah Your Story. Story user lain dipisah menjadi <span class="code">otherUnviewedStories</span> dan <span class="code">otherViewedStories</span>. Urutannya: <span class="code">[Your Story, ...ownStories, ...otherUnviewedStories, ...otherViewedStories]</span>.</td></tr>
+      <tr><td>Bagaimana status viewed disimpan?</td><td>Saat story dibuka, <span class="code">StoryViewer</span> memanggil <span class="code">onStoryViewed(storyId)</span>. Di <span class="code">HomePage</span>, callback itu menjalankan <span class="code">setState(() =&gt; _viewedStoryIds.add(storyId))</span>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. Bottom Navigation Global</h2>
+  <ul>
+    <li>Widget global: <span class="code">MegaBottomNav</span> di <span class="code">lib/shared/widgets/mega_bottom_nav.dart</span>.</li>
+    <li>Item: Home, Reels, Post, Cart, Profile.</li>
+    <li>Post dibuat sebagai tombol tengah berbentuk lingkaran dengan gradient ungu.</li>
+    <li>Cart punya badge realtime dari Firestore: <span class="code">carts/{uid}/items</span>.</li>
+    <li><span class="code">HomePage</span> memakai <span class="code">currentIndex: _navIndex</span> dan <span class="code">onTap</span> untuk route.</li>
+  </ul>
+  <p class="code">Search: MegaBottomNav, _CartNavItemWithStream, Navigator.pushNamed, CupertinoIcons.cart</p>
+
+  <h2>7. Simulasi Pertanyaan Hoca</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 34%">Pertanyaan</th>
+        <th style="width: 66%">Jawaban singkat</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Bagaimana Home mengambil produk?</td><td>Home memakai <span class="code">StreamBuilder</span> ke Firestore collection <span class="code">products</span>, diurutkan berdasarkan <span class="code">createdAt</span>. Document Firestore diubah menjadi entity <span class="code">Product</span> lewat <span class="code">productFromFirestore</span>.</td></tr>
+      <tr><td>Kenapa ada local data source?</td><td><span class="code">HomeLocalDataSource</span> menyediakan data mock/fallback untuk kategori dan produk awal. Kalau Firestore belum punya data, UI tetap bisa menampilkan produk contoh.</td></tr>
+      <tr><td>Bagaimana kategori bekerja?</td><td><span class="code">CategoryFilterBar</span> menyimpan index terpilih secara lokal, lalu mengirim label kategori ke HomePage lewat callback <span class="code">onCategoryChanged</span>. HomePage menyimpan label itu di <span class="code">_selectedCategory</span> dan memfilter list produk.</td></tr>
+      <tr><td>Bagaimana story horizontal dibuat?</td><td><span class="code">StoriesRow</span> memakai <span class="code">ListView.separated</span> dengan arah horizontal. Setiap item adalah <span class="code">StoryAvatar</span>, dan ada jarak antar item lewat <span class="code">separatorBuilder</span>.</td></tr>
+      <tr><td>Bagaimana auto slide Story Viewer?</td><td><span class="code">StoryViewer</span> memakai <span class="code">AnimationController</span> berdurasi 5 detik. Saat animasi selesai, <span class="code">addStatusListener</span> memanggil <span class="code">_goNext()</span> untuk pindah story berikutnya.</td></tr>
+      <tr><td>Bagaimana ring story abu-abu?</td><td><span class="code">StoryAvatar</span> menerima <span class="code">isViewed</span>. Jika true, <span class="code">ringColor</span> menjadi abu-abu <span class="code">Color(0xFFBDBDBD)</span>; jika false, memakai <span class="code">AppColors.storyRing</span>.</td></tr>
+      <tr><td>Bagaimana story yang sudah dilihat disimpan?</td><td>Di <span class="code">HomePage</span> ada <span class="code">_viewedStoryIds</span>. Saat <span class="code">StoryViewer</span> membuka story, callback <span class="code">onStoryViewed</span> menambahkan ID story ke set tersebut.</td></tr>
+      <tr><td>Bagaimana add story?</td><td>Klik Your Story membuka <span class="code">showModalBottomSheet</span>, user pilih kamera atau gallery via <span class="code">ImagePicker</span>, lalu gambar diupload ke Firebase Storage dan metadata story disimpan ke Firestore.</td></tr>
+      <tr><td>Bagaimana bottom nav cart badge realtime?</td><td><span class="code">MegaBottomNav</span> punya <span class="code">_CartNavItemWithStream</span> yang listen ke <span class="code">carts/{uid}/items.snapshots()</span>, lalu menjumlahkan quantity untuk badge.</td></tr>
+      <tr><td>Stateful dan Stateless di bagian Home?</td><td><span class="code">HomePage</span>, <span class="code">CategoryFilterBar</span>, <span class="code">StoryViewer</span>, dan <span class="code">ProductCard</span> Stateful karena punya state/animation/controller. <span class="code">StoriesRow</span>, <span class="code">StoryAvatar</span>, <span class="code">TrendingGrid</span>, <span class="code">MegaBottomNav</span> Stateless karena menerima data dan callback dari luar.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>8. Potongan Kode Viewed Story yang Sudah Aktif</h2>
+  <p>Sorting unviewed/viewed dan callback <span class="code">onStoryViewed</span> sekarang sudah aktif di <span class="code">HomePage</span>.</p>
+  <p class="code">final otherUnviewed = otherStories.where((s) =&gt; !_viewedStoryIds.contains(s.id)).toList();</p>
+  <p class="code">final otherViewed = otherStories.where((s) =&gt; _viewedStoryIds.contains(s.id)).toList();</p>
+  <p class="code">final viewableStories = [...ownStories, ...otherUnviewed, ...otherViewed];</p>
+  <p class="code">onStoryViewed: (id) =&gt; setState(() =&gt; _viewedStoryIds.add(id)),</p>
+
+  <h2>9. Search Cepat di VS Code</h2>
+  <table>
+    <tbody>
+      <tr>
+        <td class="code">HomePage</td>
+        <td class="code">_viewedStoryIds</td>
+        <td class="code">collection('stories')</td>
+      </tr>
+      <tr>
+        <td class="code">collection('products')</td>
+        <td class="code">StoriesRow</td>
+        <td class="code">StoryAvatar</td>
+      </tr>
+      <tr>
+        <td class="code">AnimationController</td>
+        <td class="code">AnimationStatus.completed</td>
+        <td class="code">ListView.separated</td>
+      </tr>
+      <tr>
+        <td class="code">CategoryFilterBar</td>
+        <td class="code">TrendingGrid</td>
+        <td class="code">MegaBottomNav</td>
+      </tr>
+      <tr>
+        <td class="code">_CartNavItemWithStream</td>
+        <td class="code">showModalBottomSheet</td>
+        <td class="code">_uploadStoryToFirebase</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="small">Catatan: untuk presentasi, fokuskan source pada <span class="code">megashop_flutter/lib/features/home</span> dan <span class="code">megashop_flutter/lib/shared/widgets/mega_bottom_nav.dart</span>.</p>
+</body>
+</html>

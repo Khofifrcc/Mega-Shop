@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>MegaShop - Rangkuman Backend Firebase</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: #171717;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      line-height: 1.32;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 24px;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 16px 0 7px;
+      padding-top: 2px;
+      border-top: 1px solid #d7dbe0;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    h3 {
+      margin: 10px 0 5px;
+      font-size: 12px;
+    }
+
+    p {
+      margin: 0 0 6px;
+    }
+
+    ul {
+      margin: 0 0 8px 18px;
+      padding: 0;
+    }
+
+    li {
+      margin: 0 0 3px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 5px 0 11px;
+      table-layout: fixed;
+      page-break-inside: auto;
+    }
+
+    tr {
+      page-break-inside: avoid;
+    }
+
+    th,
+    td {
+      border: 1px solid #d7dbe0;
+      padding: 5px 6px;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      background: #f1f3f4;
+      text-align: left;
+      font-weight: 700;
+    }
+
+    code,
+    .code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      color: #184b7a;
+      font-size: 10px;
+    }
+
+    .subtitle {
+      color: #555;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .callout {
+      border-left: 4px solid #6c2bd9;
+      background: #f6f3ff;
+      padding: 8px 10px;
+      margin: 8px 0 12px;
+      font-size: 11px;
+    }
+
+    .small {
+      font-size: 10px;
+      color: #555;
+    }
+
+    .page-break {
+      break-before: page;
+    }
+  </style>
+</head>
+<body>
+  <h1>MegaShop - Rangkuman Backend Firebase</h1>
+  <p class="subtitle">Cheat sheet presentasi: file mana, search keyword apa, dan jawaban kalau ditanya backend/API.</p>
+
+  <h2>1. Jawaban Inti Backend/API</h2>
+  <ul>
+    <li>Backend aktif MegaShop adalah <strong>Firebase full</strong>, bukan folder <span class="code">megashop_backend</span> FastAPI lama.</li>
+    <li>Flutter berkomunikasi ke backend lewat Firebase SDK: Auth, Firestore, Storage, Messaging.</li>
+    <li>API layer-nya bukan REST endpoint manual, tapi Firebase SDK calls seperti <span class="code">FirebaseAuth</span>, <span class="code">FirebaseFirestore</span>, <span class="code">FirebaseStorage</span>, dan <span class="code">FirebaseMessaging</span>.</li>
+    <li><span class="code">await</span> = request sekali jalan ke backend; <span class="code">StreamBuilder</span> + <span class="code">.snapshots()</span> = data realtime dari Firestore.</li>
+  </ul>
+  <div class="callout"><strong>Kalimat siap jawab:</strong> Backend project ini memakai Firebase Backend-as-a-Service. Flutter tidak memanggil REST API manual, tetapi memakai Firebase SDK untuk authentication, database, file storage, realtime stream, dan notification.</div>
+
+  <h2>2. File Backend Penting dan Search Keyword</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 17%">Topik</th>
+        <th style="width: 27%">File</th>
+        <th style="width: 24%">Search keyword</th>
+        <th style="width: 32%">Yang dijelaskan</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Init Firebase</td><td><span class="code">lib/main.dart</span></td><td><span class="code">Firebase.initializeApp</span></td><td>Koneksi awal app ke Firebase sebelum <span class="code">runApp</span>.</td></tr>
+      <tr><td>Session user</td><td><span class="code">lib/main.dart</span></td><td><span class="code">currentUser</span></td><td>Kalau user sudah login langsung ke <span class="code">/home</span>.</td></tr>
+      <tr><td>Login email</td><td><span class="code">login_register_page.dart</span></td><td><span class="code">signInWithEmailAndPassword</span></td><td>Login ke Firebase Auth.</td></tr>
+      <tr><td>Register</td><td><span class="code">login_register_page.dart</span></td><td><span class="code">createUserWithEmailAndPassword</span></td><td>Buat akun di Firebase Auth.</td></tr>
+      <tr><td>Profile user</td><td><span class="code">login_register_page.dart</span></td><td><span class="code">collection('users')</span></td><td>Simpan uid, username, email, bio ke Firestore.</td></tr>
+      <tr><td>Google login</td><td><span class="code">login_register_page.dart</span></td><td><span class="code">signInWithPopup</span> / <span class="code">signInWithCredential</span></td><td>Google provider untuk web/mobile.</td></tr>
+      <tr><td>Produk realtime</td><td><span class="code">home_page.dart</span> / <span class="code">search_page.dart</span></td><td><span class="code">collection('products')</span></td><td>Ambil daftar produk realtime.</td></tr>
+      <tr><td>Story realtime</td><td><span class="code">home_page.dart</span></td><td><span class="code">collection('stories')</span></td><td>Ambil story realtime.</td></tr>
+      <tr><td>Upload story</td><td><span class="code">home_page.dart</span></td><td><span class="code">FirebaseStorage</span> / <span class="code">putData</span></td><td>Upload gambar lalu simpan URL ke Firestore.</td></tr>
+      <tr><td>Create product/reel</td><td><span class="code">post_creation_page.dart</span></td><td><span class="code">putData</span> / <span class="code">putFile</span> / <span class="code">products</span> / <span class="code">reels</span></td><td>Upload media dan buat document produk/reel.</td></tr>
+      <tr><td>Cart</td><td><span class="code">shared/state/cart_state.dart</span></td><td><span class="code">carts</span> / <span class="code">items</span> / <span class="code">addItem</span></td><td>Cart per user di Firestore.</td></tr>
+      <tr><td>Checkout order</td><td><span class="code">checkout_page.dart</span></td><td><span class="code">collection('orders').add</span></td><td>Buat order dari isi cart.</td></tr>
+      <tr><td>Chat</td><td><span class="code">conversation_page.dart</span></td><td><span class="code">chats</span> / <span class="code">messages</span></td><td>Subcollection messages dan unread count.</td></tr>
+      <tr><td>Notification</td><td><span class="code">notification_service.dart</span></td><td><span class="code">FirebaseMessaging</span> / <span class="code">fcmTokens</span></td><td>Token FCM dan listener chat/order.</td></tr>
+      <tr><td>Profile photo</td><td><span class="code">profile_page.dart</span></td><td><span class="code">profile_photos</span> / <span class="code">profileImageUrl</span></td><td>Upload foto profil dan update referensi.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. Database Firestore Schema</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%">Collection</th>
+        <th style="width: 43%">Isi utama</th>
+        <th style="width: 32%">Dipakai untuk</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="code">users</span></td><td>uid, username, email, bio, profileImageUrl, fcmTokens</td><td>Auth profile, profile page, notification token.</td></tr>
+      <tr><td><span class="code">users/{uid}/addresses</span></td><td>label, detail, createdAt</td><td>Alamat delivery di home dan checkout.</td></tr>
+      <tr><td><span class="code">products</span></td><td>ownerId, name, price, description, imageUrl, createdAt</td><td>Home, search, product detail, seller/profile grid.</td></tr>
+      <tr><td><span class="code">reels</span></td><td>ownerId, username, videoUrl, caption, price, likeCount</td><td>Reels page dan profile reels.</td></tr>
+      <tr><td><span class="code">stories</span></td><td>ownerId, username, imageUrl, createdAt</td><td>Story row dan story viewer.</td></tr>
+      <tr><td><span class="code">carts/{uid}/items</span></td><td>productId, name, price, quantity, imageUrl, ownerId</td><td>Cart dan checkout.</td></tr>
+      <tr><td><span class="code">orders</span></td><td>buyerId, sellerIds, participants, items, subtotal, tax, total, status</td><td>Checkout, notifications, order status.</td></tr>
+      <tr><td><span class="code">chats/{chatId}/messages</span></td><td>senderId, text, createdAt</td><td>Realtime conversation.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Alur Backend per Fitur</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 16%">Fitur</th>
+        <th style="width: 53%">Alur backend singkat</th>
+        <th style="width: 31%">Kode kunci</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Login</td><td>Validasi form -> Firebase Auth -> route ke Home -> error ditampilkan lewat SnackBar.</td><td><span class="code">await FirebaseAuth.instance.signInWithEmailAndPassword(...)</span></td></tr>
+      <tr><td>Register</td><td>Buat akun Auth -> buat dokumen <span class="code">users/{uid}</span> di Firestore -> sign out -> user login manual.</td><td><span class="code">createUserWithEmailAndPassword + collection('users').doc(uid).set(...)</span></td></tr>
+      <tr><td>Home produk</td><td>UI subscribe ke products order by createdAt. Kalau Firestore berubah, UI ikut update.</td><td><span class="code">collection('products').orderBy(...).snapshots()</span></td></tr>
+      <tr><td>Upload produk</td><td>Pilih file -> upload ke Storage -> ambil downloadURL -> simpan metadata ke products/reels.</td><td><span class="code">await ref.putData(bytes); await ref.getDownloadURL();</span></td></tr>
+      <tr><td>Cart</td><td>Cart disimpan per user. Product id dipakai sebagai document id. Kalau sudah ada, quantity naik.</td><td><span class="code">carts/{uid}/items/{productId}</span></td></tr>
+      <tr><td>Checkout</td><td>Ambil cart -> hitung subtotal/tax/total -> add ke orders -> hapus cart item.</td><td><span class="code">collection('orders').add({...})</span></td></tr>
+      <tr><td>Chat</td><td>Pesan disimpan di <span class="code">chats/{chatId}/messages</span>. Parent chat menyimpan lastMessage dan unreadBy.</td><td><span class="code">chatRef.collection('messages').add({...})</span></td></tr>
+      <tr><td>Notification</td><td>FCM token disimpan di users. App listen chats/orders untuk local notification.</td><td><span class="code">FirebaseMessaging.instance.getToken()</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Bedanya await dan StreamBuilder</h2>
+  <ul>
+    <li><strong>await</strong> dipakai untuk operasi satu kali: login, register, upload, add cart, checkout, delete item, update profile.</li>
+    <li><strong>StreamBuilder</strong> dipakai untuk realtime data: products, stories, cart list, chat messages, notifications.</li>
+  </ul>
+  <p class="code">await FirebaseFirestore.instance.collection('orders').add({...});  // write sekali jalan</p>
+  <p class="code">FirebaseFirestore.instance.collection('products').snapshots();    // realtime stream</p>
+
+  <h2>6. Error Handling yang Bisa Ditunjukkan</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 20%">Bagian</th>
+        <th style="width: 30%">Search keyword</th>
+        <th style="width: 50%">Bentuk handling</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Login</td><td><span class="code">FirebaseAuthException</span></td><td>Switch <span class="code">e.code</span>: user-not-found, wrong-password, invalid-email, too-many-requests.</td></tr>
+      <tr><td>Form auth</td><td><span class="code">_validateFields</span></td><td>Validasi email/password sebelum request backend.</td></tr>
+      <tr><td>Upload post</td><td><span class="code">catch (e)</span> / Upload failed</td><td>Kalau Storage/Firestore gagal, tampil SnackBar.</td></tr>
+      <tr><td>Checkout</td><td>Your cart is empty / Order failed</td><td>Cek cart kosong dan catch error order.</td></tr>
+      <tr><td>Profile photo</td><td>Profile photo upload failed</td><td>Catch error upload dan feedback merah.</td></tr>
+      <tr><td>Notification</td><td>FCM token error / permission error</td><td>Try/catch saat permission dan token FCM.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>7. Demo Cepat untuk Nilai Backend 10/10</h2>
+  <ul>
+    <li>Register user baru, lalu tunjukkan document baru di collection <span class="code">users</span>.</li>
+    <li>Login, tutup app atau refresh, lalu tunjukkan session tetap masuk Home.</li>
+    <li>Upload produk foto, lalu tunjukkan file masuk Storage dan document masuk <span class="code">products</span>.</li>
+    <li>Add to cart, lalu tunjukkan <span class="code">carts/{uid}/items</span> bertambah.</li>
+    <li>Checkout, lalu tunjukkan document baru di <span class="code">orders</span> dan cart kosong.</li>
+    <li>Kirim chat, lalu tunjukkan <span class="code">chats/{chatId}/messages</span> update realtime.</li>
+  </ul>
+
+  <h2>8. Jawaban Q&A yang Aman</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 30%">Pertanyaan dosen</th>
+        <th style="width: 70%">Jawaban pendek</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>API-nya mana?</td><td>API layer-nya Firebase SDK. Flutter akses backend via FirebaseAuth, Firestore, Storage, Messaging, bukan REST endpoint manual.</td></tr>
+      <tr><td>Backend-nya apa?</td><td>Firebase Backend-as-a-Service: Auth untuk login, Firestore untuk database, Storage untuk file, Messaging untuk notifikasi.</td></tr>
+      <tr><td>Data exchange buktinya?</td><td>Ada <span class="code">await</span> untuk write/read sekali jalan dan <span class="code">StreamBuilder .snapshots()</span> untuk realtime Firestore.</td></tr>
+      <tr><td>Error handling ada?</td><td>Ada <span class="code">FirebaseAuthException</span>, try/catch, form validation, loading state, empty state, dan SnackBar feedback.</td></tr>
+      <tr><td>FastAPI folder itu apa?</td><td>Itu backend lama/legacy. Versi project sekarang sudah migrasi ke Firebase full.</td></tr>
+      <tr><td>Realtime-nya dari mana?</td><td>Dari Firestore <span class="code">.snapshots()</span>, contohnya products, stories, cart, dan chat messages.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>9. Search Command Cepat di VS Code</h2>
+  <table>
+    <tbody>
+      <tr>
+        <td class="code">Firebase.initializeApp</td>
+        <td class="code">FirebaseAuth.instance</td>
+        <td class="code">FirebaseFirestore.instance</td>
+      </tr>
+      <tr>
+        <td class="code">FirebaseStorage.instance</td>
+        <td class="code">FirebaseMessaging</td>
+        <td class="code">collection('orders').add</td>
+      </tr>
+      <tr>
+        <td class="code">collection('chats')</td>
+        <td class="code">.snapshots()</td>
+        <td class="code">FirebaseAuthException</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="small">Catatan: gunakan folder <span class="code">megashop_flutter/lib</span> sebagai source utama. Folder <span class="code">megashop_backend</span> adalah legacy FastAPI dan tidak perlu dijadikan backend aktif saat presentasi.</p>
+</body>
+</html>

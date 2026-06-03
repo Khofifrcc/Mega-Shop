@@ -4,3 +4,5 @@ __pycache__
 .dart_tool
 build
 google-services.jsongit 
+.DS_Store
+docs_output/

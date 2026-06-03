@@ -408,7 +408,8 @@ class _HomePageState extends State<HomePage> {
                     final currentUserId =
                         FirebaseAuth.instance.currentUser?.uid;
 
-                    // Sort so user's own uploaded stories are on the far left, right after the "Your Story" add button
+                    // Sort so user's own uploaded stories are on the far left,
+                    // then unseen stories, then already viewed stories.
                     final ownStories = firebaseStories
                         .where((s) => s.ownerId == currentUserId)
                         .toList();
@@ -416,7 +417,18 @@ class _HomePageState extends State<HomePage> {
                         .where((s) => s.ownerId != currentUserId)
                         .toList();
 
-                    final viewableStories = [...ownStories, ...otherStories];
+                    final otherUnviewedStories = otherStories
+                        .where((s) => !_viewedStoryIds.contains(s.id))
+                        .toList();
+                    final otherViewedStories = otherStories
+                        .where((s) => _viewedStoryIds.contains(s.id))
+                        .toList();
+
+                    final viewableStories = [
+                      ...ownStories,
+                      ...otherUnviewedStories,
+                      ...otherViewedStories,
+                    ];
 
                     final storiesToShow = [
                       const Story(
@@ -443,6 +455,10 @@ class _HomePageState extends State<HomePage> {
                             pageBuilder: (_, __, ___) => StoryViewer(
                               stories: viewableStories,
                               initialIndex: realIndex,
+                              onStoryViewed: (storyId) {
+                                if (!mounted) return;
+                                setState(() => _viewedStoryIds.add(storyId));
+                              },
                             ),
                             transitionsBuilder: (_, animation, __, child) =>
                                 FadeTransition(

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/state/chat_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -23,25 +22,30 @@ class _ChatListPageState extends State<ChatListPage> {
     super.initState();
   }
 
-  void _onChatServiceChanged() {
-    if (mounted) setState(() {});
-  }
-
   /// Opens/creates a seller conversation when arriving from product detail.
 
-  void _openConversation(_Conversation conv) {
+  Future<void> _openConversation(_Conversation conv) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      await FirebaseFirestore.instance.collection('chats').doc(conv.id).set({
+        'unreadBy': {userId: 0},
+      }, SetOptions(merge: true));
+    }
+
+    if (!mounted) return;
     Navigator.pushNamed(context, '/conversation', arguments: conv);
   }
 
   @override
   void dispose() {
-    ChatService.instance.removeListener(_onChatServiceChanged);
     _searchCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -100,152 +104,101 @@ class _ChatListPageState extends State<ChatListPage> {
               ),
             ),
           ),
-          // Active stories row
-          SizedBox(
-            height: 90,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _StoryAvatar(
-                    name: 'Your Story',
-                    imageUrl:
-                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80',
-                    isOnline: true),
-                const SizedBox(width: 12),
-                _StoryAvatar(
-                    name: 'Leo',
-                    imageUrl:
-                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
-                    isOnline: true),
-              ],
-            ),
-          ),
-          const Divider(color: AppColors.divider, height: 1),
           // Conversations list
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('chats')
-                  .where(
-                    'members',
-                    arrayContains: FirebaseAuth.instance.currentUser?.uid,
+            child: currentUserId == null
+                ? Center(
+                    child: Text(
+                      'Please login first.',
+                      style: AppTextStyles.brandName,
+                    ),
                   )
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Chat error: ${snapshot.error}',
-                      style: AppTextStyles.brandName,
-                    ),
-                  );
-                }
-                final docs = snapshot.data?.docs ?? [];
+                : StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('chats')
+                        .where(
+                          'members',
+                          arrayContains: currentUserId,
+                        )
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'Chat error: ${snapshot.error}',
+                            style: AppTextStyles.brandName,
+                          ),
+                        );
+                      }
+                      final docs = snapshot.data?.docs ?? [];
 
-                if (docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No messages yet.',
-                      style: AppTextStyles.brandName,
-                    ),
-                  );
-                }
+                      if (docs.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'No messages yet.',
+                            style: AppTextStyles.brandName,
+                          ),
+                        );
+                      }
 
-                return ListView.separated(
-                  itemCount: docs.length,
-                  separatorBuilder: (ctx, i) =>
-                      const Divider(color: AppColors.divider, height: 1),
-                  itemBuilder: (context, i) {
-                    final data = docs[i].data() as Map<String, dynamic>;
-                    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+                      return ListView.separated(
+                        itemCount: docs.length,
+                        separatorBuilder: (ctx, i) =>
+                            const Divider(color: AppColors.divider, height: 1),
+                        itemBuilder: (context, i) {
+                          final data = docs[i].data() as Map<String, dynamic>;
+                          final userId =
+                              FirebaseAuth.instance.currentUser?.uid ?? '';
 
-                    final otherName = data['buyerId'] == userId
-                        ? data['sellerName']
-                        : data['buyerName'];
+                          final otherName = data['buyerId'] == userId
+                              ? data['sellerName']
+                              : data['buyerName'];
 
-                    final otherAvatar = data['buyerId'] == userId
-                        ? data['sellerAvatar']
-                        : data['buyerAvatar'];
+                          final otherAvatar = data['buyerId'] == userId
+                              ? data['sellerAvatar']
+                              : data['buyerAvatar'];
 
-                    final conv = _Conversation(
-                      id: docs[i].id,
-                      name: otherName ?? 'User',
-                      avatarUrl: otherAvatar ?? '',
-                      lastMessage: data['lastMessage'] ?? '',
-                      time: 'Now',
-                    );
+                          final unreadBy =
+                              (data['unreadBy'] as Map<String, dynamic>?) ?? {};
+                          final updatedAt = data['updatedAt'];
 
-                    return _ConversationTile(
-                      conv: conv,
-                      onTap: () => _openConversation(conv),
-                    );
-                  },
-                );
-              },
-            ),
+                          final conv = _Conversation(
+                            id: docs[i].id,
+                            name: otherName ?? 'User',
+                            avatarUrl: otherAvatar ?? '',
+                            lastMessage: data['lastMessage'] ?? '',
+                            time: updatedAt is Timestamp
+                                ? _formatTime(updatedAt)
+                                : '',
+                            unreadCount:
+                                unreadBy[userId] ?? data['unreadCount'] ?? 0,
+                            isTyping: data['isTyping'] ?? false,
+                            isMegaShop: data['isMegaShop'] ?? false,
+                          );
+
+                          return _ConversationTile(
+                            conv: conv,
+                            onTap: () => _openConversation(conv),
+                          );
+                        },
+                      );
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
-}
 
-class _StoryAvatar extends StatelessWidget {
-  final String name;
-  final String imageUrl;
-  final bool isOnline;
-
-  const _StoryAvatar(
-      {required this.name, required this.imageUrl, this.isOnline = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Stack(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [AppColors.primaryLight, AppColors.primary],
-                ),
-              ),
-              child: ClipOval(
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (ctx, url) =>
-                      Container(color: AppColors.primarySurface),
-                  errorWidget: (ctx, url, err) =>
-                      Container(color: AppColors.primarySurface),
-                ),
-              ),
-            ),
-            if (isOnline)
-              Positioned(
-                bottom: 2,
-                right: 2,
-                child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.background, width: 2),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(name, style: AppTextStyles.storyUsername),
-      ],
-    );
+  String _formatTime(Timestamp timestamp) {
+    final date = timestamp.toDate();
+    final now = DateTime.now();
+    if (now.difference(date).inDays == 0) {
+      final hour = date.hour.toString().padLeft(2, '0');
+      final minute = date.minute.toString().padLeft(2, '0');
+      return '$hour:$minute';
+    }
+    return '${date.day}/${date.month}';
   }
 }
 
@@ -298,11 +251,7 @@ class _ConversationTile extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                (ChatService.instance.extraMessages[conv.id]?.isNotEmpty ??
-                        false)
-                    ? ChatService.instance.extraMessages[conv.id]!.last['text']
-                        as String
-                    : conv.lastMessage,
+                conv.lastMessage,
                 style: conv.isTyping
                     ? AppTextStyles.brandName.copyWith(
                         color: AppColors.primary, fontStyle: FontStyle.italic)

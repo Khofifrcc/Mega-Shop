@@ -137,6 +137,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'price': data['price'],
           'quantity': data['quantity'],
           'imageUrl': data['imageUrl'],
+          'ownerId': data['ownerId'] ?? '',
+          'ownerName': data['ownerName'] ?? '',
         };
       }).toList();
 
@@ -148,10 +150,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
       final tax = subtotal * 0.08;
       final total = subtotal + tax;
+      final sellerIds = items
+          .map((item) => item['ownerId'] as String? ?? '')
+          .where((id) => id.isNotEmpty && id != user.uid)
+          .toSet()
+          .toList();
 
       await FirebaseFirestore.instance.collection('orders').add({
         'buyerId': user.uid,
         'buyerEmail': user.email,
+        'sellerIds': sellerIds,
+        'participants': [user.uid, ...sellerIds],
         'items': items,
         'subtotal': subtotal,
         'tax': tax,
@@ -256,7 +265,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _advance,
+                  onPressed: _isPlacingOrder ? null : _advance,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     shape: RoundedRectangleBorder(

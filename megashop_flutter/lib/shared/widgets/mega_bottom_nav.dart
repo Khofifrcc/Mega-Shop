@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -20,6 +22,7 @@ class MegaBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cartState = CartStateProvider.of(context);
+    final userId = FirebaseAuth.instance.currentUser?.uid;
     return ListenableBuilder(
       listenable: cartState,
       builder: (context, _) {
@@ -42,13 +45,17 @@ class MegaBottomNav extends StatelessWidget {
               child: Row(
                 children: [
                   _NavItem(
-                    icon: currentIndex == 0 ? CupertinoIcons.house_fill : CupertinoIcons.house,
+                    icon: currentIndex == 0
+                        ? CupertinoIcons.house_fill
+                        : CupertinoIcons.house,
                     label: 'Home',
                     isActive: currentIndex == 0,
                     onTap: () => onTap?.call(0),
                   ),
                   _NavItem(
-                    icon: currentIndex == 1 ? CupertinoIcons.play_rectangle_fill : CupertinoIcons.play_rectangle,
+                    icon: currentIndex == 1
+                        ? CupertinoIcons.play_rectangle_fill
+                        : CupertinoIcons.play_rectangle,
                     label: 'Reels',
                     isActive: currentIndex == 1,
                     onTap: () => onTap?.call(1),
@@ -96,13 +103,16 @@ class MegaBottomNav extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _CartNavItem(
+                  _CartNavItemWithStream(
+                    userId: userId,
+                    fallbackCount: cartCount,
                     isActive: currentIndex == 3,
-                    count: cartCount,
                     onTap: () => onTap?.call(3),
                   ),
                   _NavItem(
-                    icon: currentIndex == 4 ? CupertinoIcons.person_fill : CupertinoIcons.person,
+                    icon: currentIndex == 4
+                        ? CupertinoIcons.person_fill
+                        : CupertinoIcons.person,
                     label: 'Profile',
                     isActive: currentIndex == 4,
                     onTap: () => onTap?.call(4),
@@ -111,6 +121,52 @@ class MegaBottomNav extends StatelessWidget {
               ),
             ),
           ),
+        );
+      },
+    );
+  }
+}
+
+class _CartNavItemWithStream extends StatelessWidget {
+  final String? userId;
+  final int fallbackCount;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _CartNavItemWithStream({
+    required this.userId,
+    required this.fallbackCount,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (userId == null) {
+      return _CartNavItem(
+        isActive: isActive,
+        count: fallbackCount,
+        onTap: onTap,
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('carts')
+          .doc(userId)
+          .collection('items')
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count = snapshot.data?.docs.fold<int>(0, (total, doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return total + ((data['quantity'] ?? 1) as num).toInt();
+            }) ??
+            fallbackCount;
+
+        return _CartNavItem(
+          isActive: isActive,
+          count: count,
+          onTap: onTap,
         );
       },
     );
@@ -144,8 +200,7 @@ class _NavItem extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: 24),
               const SizedBox(height: 4),
-              Text(label,
-                  style: AppTextStyles.navLabel.copyWith(color: color)),
+              Text(label, style: AppTextStyles.navLabel.copyWith(color: color)),
             ],
           ),
         ),
@@ -177,7 +232,10 @@ class _CartNavItem extends StatelessWidget {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Icon(isActive ? CupertinoIcons.cart_fill : CupertinoIcons.cart, color: color, size: 24),
+                  Icon(
+                      isActive ? CupertinoIcons.cart_fill : CupertinoIcons.cart,
+                      color: color,
+                      size: 24),
                   if (count > 0)
                     Positioned(
                       top: -6,

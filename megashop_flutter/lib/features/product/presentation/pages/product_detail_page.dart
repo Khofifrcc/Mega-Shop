@@ -35,15 +35,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   // ── Navigate to seller profile ────────────────────────────────────────────
 
   void _openSeller(Product product) {
+    final sellerAvatar = product.ownerAvatar.isNotEmpty
+        ? product.ownerAvatar
+        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(product.brand)}&background=6C2BD9&color=fff';
+
     Navigator.pushNamed(
       context,
       '/seller',
       arguments: SellerArgs(
-        id: 'seller_${product.id}',
+        id: product.ownerId.isNotEmpty
+            ? product.ownerId
+            : 'seller_${product.id}',
         name: product.brand,
         tagline: '🏆 Top Rated Seller · Premium Products',
-        avatarUrl:
-            'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=200&q=80',
+        avatarUrl: sellerAvatar,
         coverUrl:
             'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
         isVerified: true,
@@ -102,8 +107,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         'buyerAvatar': buyerData?['profileImageUrl'] ?? '',
         'sellerId': sellerId,
         'sellerName': product.brand,
-        'sellerAvatar': product.imageUrl,
+        'sellerAvatar': product.ownerAvatar,
         'lastMessage': 'Hi! I am interested in ${product.name}.',
+        'unreadBy': {sellerId: isNewChat ? 1 : FieldValue.increment(1)},
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -128,7 +134,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         arguments: {
           'id': chatId,
           'name': product.brand,
-          'avatar': product.imageUrl,
+          'avatar': product.ownerAvatar,
         },
       );
     } catch (e) {
@@ -184,6 +190,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         variant: 'Default',
                         price: product.price,
                         imageUrl: product.imageUrl,
+                        ownerId: product.ownerId,
+                        ownerName: product.brand,
                       );
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -218,8 +226,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     child: SizedBox(
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/checkout'),
+                        onPressed: () async {
+                          await CartStateProvider.of(context).addItem(
+                            productId: product.id,
+                            name: product.name,
+                            variant: 'Default',
+                            price: product.price,
+                            imageUrl: product.imageUrl,
+                            ownerId: product.ownerId,
+                            ownerName: product.brand,
+                          );
+
+                          if (!context.mounted) return;
+                          Navigator.pushNamed(context, '/checkout');
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
                           shape: RoundedRectangleBorder(
@@ -308,11 +328,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           cursor: SystemMouseCursors.click,
                           child: GestureDetector(
                             onTap: () => _openSeller(product),
-                            child: const CircleAvatar(
-                              radius: 24,
-                              backgroundImage: NetworkImage(
-                                  'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80'),
-                            ),
+                            child: _SellerAvatar(product: product),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -404,6 +420,37 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SellerAvatar extends StatelessWidget {
+  final Product product;
+
+  const _SellerAvatar({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = product.ownerAvatar;
+
+    if (avatar.isNotEmpty) {
+      return CircleAvatar(
+        radius: 24,
+        backgroundImage: CachedNetworkImageProvider(avatar),
+        backgroundColor: AppColors.primarySurface,
+      );
+    }
+
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: AppColors.primarySurface,
+      child: Text(
+        product.brand.isNotEmpty ? product.brand[0].toUpperCase() : 'S',
+        style: AppTextStyles.productName.copyWith(
+          color: AppColors.primary,
+          fontSize: 18,
         ),
       ),
     );
@@ -605,6 +652,16 @@ class _OwnerBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 12,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
       padding: EdgeInsets.fromLTRB(
         12,
         8,
@@ -623,7 +680,15 @@ class _OwnerBottomBar extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.edit),
-              label: const Text('Edit Product'),
+              label: const Text('Edit'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary, width: 1.4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -671,8 +736,17 @@ class _OwnerBottomBar extends StatelessWidget {
                   );
                 }
               },
-              icon: const Icon(Icons.delete),
-              label: const Text('Delete Product'),
+              icon: const Icon(Icons.delete_outline_rounded),
+              label: const Text('Delete'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.badgeSale,
+                foregroundColor: AppColors.textOnPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
             ),
           ),
         ],

@@ -115,7 +115,7 @@ class _ProductCardState extends State<ProductCard>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Brand
-                      _BrandRow(brand: widget.product.brand),
+                      _BrandRow(product: widget.product),
                       const SizedBox(height: 3),
                       // Product name
                       Text(
@@ -273,27 +273,60 @@ class _Badge extends StatelessWidget {
 }
 
 class _BrandRow extends StatelessWidget {
-  final String brand;
+  final Product product;
 
-  const _BrandRow({required this.brand});
+  const _BrandRow({required this.product});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.primary, width: 1.5),
-            color: AppColors.primarySurface,
-          ),
+        ClipOval(
+          child: product.ownerAvatar.isEmpty
+              ? Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primary, width: 1.5),
+                    color: AppColors.primarySurface,
+                  ),
+                  child: Center(
+                    child: Text(
+                      product.brand.isNotEmpty
+                          ? product.brand[0].toUpperCase()
+                          : 'S',
+                      style: AppTextStyles.badge.copyWith(
+                        color: AppColors.primary,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ),
+                )
+              : Image.network(
+                  product.ownerAvatar,
+                  width: 18,
+                  height: 18,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 18,
+                    height: 18,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primarySurface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: AppColors.primary,
+                      size: 12,
+                    ),
+                  ),
+                ),
         ),
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            brand,
+            product.brand,
             style: AppTextStyles.brandName,
             overflow: TextOverflow.ellipsis,
           ),

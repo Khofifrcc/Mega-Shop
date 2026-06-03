@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'shared/state/cart_state.dart';
 import 'features/product/presentation/pages/edit_product_page.dart';
@@ -12,6 +14,9 @@ import 'features/auth/presentation/pages/otp_page.dart';
 
 // Home
 import 'features/home/presentation/pages/home_page.dart';
+
+// Onboarding
+import 'features/onboarding/presentation/pages/introduction_page.dart';
 
 // Reels
 import 'features/reels/presentation/pages/reels_page.dart';
@@ -33,6 +38,9 @@ import 'features/search/presentation/pages/search_page.dart';
 // Post
 import 'features/post/presentation/pages/post_creation_page.dart';
 
+// Notifications
+import 'features/notifications/presentation/pages/notifications_page.dart';
+
 // Chat
 import 'features/chat/presentation/pages/chat_list_page.dart';
 import 'features/chat/presentation/pages/conversation_page.dart';
@@ -47,26 +55,45 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const MegaShopApp());
+  await NotificationService.configure();
+
+  final prefs = await SharedPreferences.getInstance();
+  final hasSeenIntroduction = prefs.getBool(IntroductionPage.seenKey) ?? false;
+
+  runApp(MegaShopApp(hasSeenIntroduction: hasSeenIntroduction));
 }
 
 /// Root widget — wraps the entire app with [CartStateProvider] so every
 /// descendant page can access and mutate cart state without prop drilling.
 class MegaShopApp extends StatelessWidget {
-  const MegaShopApp({super.key});
+  final bool hasSeenIntroduction;
+  final String? initialRouteOverride;
+
+  const MegaShopApp({
+    super.key,
+    required this.hasSeenIntroduction,
+    this.initialRouteOverride,
+  });
+
+  String get _initialRoute {
+    if (initialRouteOverride != null) return initialRouteOverride!;
+    if (FirebaseAuth.instance.currentUser != null) return '/home';
+    return hasSeenIntroduction ? '/login' : '/introduction';
+  }
 
   @override
   Widget build(BuildContext context) {
     return CartStateProvider(
       cart: CartState(),
       child: MaterialApp(
+        navigatorKey: NotificationService.navigatorKey,
         title: 'MegaShop',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        initialRoute:
-            FirebaseAuth.instance.currentUser != null ? '/home' : '/login',
+        initialRoute: _initialRoute,
         routes: {
           '/edit-product': (_) => const EditProductPage(),
+          '/introduction': (_) => const IntroductionPage(),
           '/login': (_) => const LoginRegisterPage(),
           '/otp': (_) => const OtpPage(),
           '/home': (_) => const HomePage(),
@@ -78,6 +105,7 @@ class MegaShopApp extends StatelessWidget {
           '/order-status': (_) => const OrderStatusPage(),
           '/search': (_) => const SearchPage(),
           '/post': (_) => const PostCreationPage(),
+          '/notifications': (_) => const NotificationsPage(),
           '/chat': (_) => const ChatListPage(),
           '/conversation': (_) => const ConversationPage(),
           '/profile': (_) => const ProfilePage(),

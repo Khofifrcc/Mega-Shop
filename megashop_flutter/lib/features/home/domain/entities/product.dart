@@ -3,6 +3,7 @@
 class Product {
   final String id;
   final String ownerId;
+  final String ownerAvatar;
   final String name;
   final String brand;
   final String description;
@@ -26,6 +27,7 @@ class Product {
   const Product({
     required this.id,
     this.ownerId = '',
+    this.ownerAvatar = '',
     required this.name,
     required this.brand,
     this.category = 'Fashion',
@@ -43,6 +45,7 @@ class Product {
   Product copyWith({
     String? id,
     String? ownerId,
+    String? ownerAvatar,
     String? name,
     String? brand,
     String? description,
@@ -57,6 +60,7 @@ class Product {
       category: category ?? this.category,
       id: id ?? this.id,
       ownerId: ownerId ?? this.ownerId,
+      ownerAvatar: ownerAvatar ?? this.ownerAvatar,
       name: name ?? this.name,
       brand: brand ?? this.brand,
       description: description ?? this.description,

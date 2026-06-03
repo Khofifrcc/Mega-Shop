@@ -3,6 +3,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
+import '../../../home/data/mappers/product_mapper.dart';
 import '../../../home/domain/entities/product.dart';
 import '../../../home/presentation/widgets/product_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -161,21 +162,8 @@ class _SearchPageState extends State<SearchPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final firebaseProducts = (snapshot.data?.docs ?? []).map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-
-            return Product(
-              id: doc.id,
-              name: data['name'] ?? '',
-              brand: data['ownerUsername'] ?? data['ownerEmail'] ?? 'Seller',
-              description: data['description'] ?? '',
-              price: (data['price'] ?? 0).toDouble(),
-              originalPrice: null,
-              imageUrl: data['imageUrl'] ?? '',
-              badge: data['mediaType'] == 'Photo' ? 'NEW' : null,
-              isFavorite: false,
-            );
-          }).toList();
+          final firebaseProducts =
+              (snapshot.data?.docs ?? []).map(productFromFirestore).toList();
 
           final results = _filterProducts(firebaseProducts);
 
@@ -323,6 +311,8 @@ class _SearchPageState extends State<SearchPage> {
                               variant: 'Default',
                               price: prod.price,
                               imageUrl: prod.imageUrl,
+                              ownerId: prod.ownerId,
+                              ownerName: prod.brand,
                             );
 
                             if (!context.mounted) return;
@@ -351,6 +341,8 @@ class _SearchPageState extends State<SearchPage> {
                               variant: 'Default',
                               price: prod.price,
                               imageUrl: prod.imageUrl,
+                              ownerId: prod.ownerId,
+                              ownerName: prod.brand,
                             );
 
                             if (context.mounted) {

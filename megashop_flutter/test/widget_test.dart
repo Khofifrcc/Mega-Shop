@@ -3,16 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:megashop_flutter/main.dart';
 
 void main() {
-  testWidgets('MegaShop app launches and shows home screen',
+  testWidgets('MegaShop app launches and shows introduction screen',
       (WidgetTester tester) async {
     // Build the app
-    await tester.pumpWidget(const MegaShopApp());
+    await tester.pumpWidget(
+      const MegaShopApp(
+        hasSeenIntroduction: false,
+        initialRouteOverride: '/introduction',
+      ),
+    );
     await tester.pump();
 
-    // Verify the MegaShop title is present
-    expect(find.text('MegaShop'), findsWidgets);
-
-    // Verify the Trending Now section appears
-    expect(find.text('Trending Now'), findsOneWidget);
+    expect(find.text('Welcome to MegaShop'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
   });
 }

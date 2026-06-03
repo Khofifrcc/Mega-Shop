@@ -31,6 +31,7 @@ class CartState extends ChangeNotifier {
       'quantity': FieldValue.increment(1),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    notifyListeners();
   }
 
   // ── Decrement cart item quantity in Firestore ─────────────────────────────
@@ -58,6 +59,7 @@ class CartState extends ChangeNotifier {
     } else {
       await ref.delete();
     }
+    notifyListeners();
   }
 
   // ── Remove single item from Firestore cart ────────────────────────────────
@@ -71,6 +73,7 @@ class CartState extends ChangeNotifier {
         .collection('items')
         .doc(id)
         .delete();
+    notifyListeners();
   }
 
   // ── Clear all cart items for current user ─────────────────────────────────
@@ -87,6 +90,7 @@ class CartState extends ChangeNotifier {
     for (final doc in items.docs) {
       await doc.reference.delete();
     }
+    notifyListeners();
   }
 
   // ── Add product to Firestore cart ─────────────────────────────────────────
@@ -106,6 +110,8 @@ class CartState extends ChangeNotifier {
     required String variant,
     required double price,
     required String imageUrl,
+    String ownerId = '',
+    String ownerName = '',
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -123,6 +129,8 @@ class CartState extends ChangeNotifier {
 
       await cartRef.update({
         'quantity': currentQty + 1,
+        'ownerId': ownerId,
+        'ownerName': ownerName,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } else {
@@ -132,6 +140,8 @@ class CartState extends ChangeNotifier {
         'variant': variant,
         'price': price,
         'imageUrl': imageUrl,
+        'ownerId': ownerId,
+        'ownerName': ownerName,
         'quantity': 1,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),

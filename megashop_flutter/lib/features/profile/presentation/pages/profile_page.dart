@@ -10,7 +10,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import '../../../home/domain/entities/product.dart';
+import '../../../home/data/mappers/product_mapper.dart';
 
 /// Profile page matching the mockup.
 ///
@@ -90,6 +90,14 @@ class _ProfilePageState extends State<ProfilePage>
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
+      await _syncProfileReferences(
+        userId: user.uid,
+        nextUsername: username.isNotEmpty
+            ? username
+            : user.email?.split('@')[0] ?? 'Seller',
+        nextAvatar: url,
+      );
+
       if (mounted) {
         setState(() => profileImageUrl = url);
 
@@ -133,6 +141,129 @@ class _ProfilePageState extends State<ProfilePage>
         bio = data['bio'] ?? '';
         profileImageUrl = data['profileImageUrl'] ?? '';
       });
+    }
+  }
+
+  Future<void> _syncProfileReferences({
+    required String userId,
+    required String nextUsername,
+    required String nextAvatar,
+  }) async {
+    final firestore = FirebaseFirestore.instance;
+
+    final productDocs = await firestore
+        .collection('products')
+        .where('ownerId', isEqualTo: userId)
+        .get();
+    for (final doc in productDocs.docs) {
+      await doc.reference.update({
+        'ownerUsername': nextUsername,
+        'ownerAvatar': nextAvatar,
+      });
+    }
+
+    final reelDocs = await firestore
+        .collection('reels')
+        .where('ownerId', isEqualTo: userId)
+        .get();
+    for (final doc in reelDocs.docs) {
+      await doc.reference.update({
+        'username': nextUsername,
+        'userAvatar': nextAvatar,
+      });
+    }
+
+    final storyDocs = await firestore
+        .collection('stories')
+        .where('ownerId', isEqualTo: userId)
+        .get();
+    for (final doc in storyDocs.docs) {
+      await doc.reference.update({
+        'username': nextUsername,
+        'userAvatar': nextAvatar,
+      });
+    }
+
+    final chatDocs = await firestore
+        .collection('chats')
+        .where('members', arrayContains: userId)
+        .get();
+    for (final doc in chatDocs.docs) {
+      final data = doc.data();
+      final isBuyer = data['buyerId'] == userId;
+      await doc.reference.update({
+        if (isBuyer) 'buyerName': nextUsername else 'sellerName': nextUsername,
+        if (isBuyer) 'buyerAvatar': nextAvatar else 'sellerAvatar': nextAvatar,
+      });
+    }
+  }
+
+  Future<void> _openEditProfileSheet() async {
+    final result = await showModalBottomSheet<_ProfileEditResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _EditProfileSheet(
+        initialUsername: username,
+        initialBio: bio,
+        profileImageUrl: profileImageUrl,
+      ),
+    );
+
+    if (result == null) return;
+    if (!mounted) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final nextUsername = result.username.isEmpty
+        ? user.email?.split('@')[0] ?? 'Seller'
+        : result.username;
+    final nextBio = result.bio;
+
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saving profile...'),
+          duration: Duration(milliseconds: 900),
+        ),
+      );
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'username': nextUsername,
+        'bio': nextBio,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      await _syncProfileReferences(
+        userId: user.uid,
+        nextUsername: nextUsername,
+        nextAvatar: profileImageUrl,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        username = nextUsername;
+        bio = nextBio;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile updated successfully!'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Profile update failed: $e'),
+          backgroundColor: AppColors.badgeSale,
+        ),
+      );
     }
   }
 
@@ -382,77 +513,7 @@ class _ProfilePageState extends State<ProfilePage>
 
           // Edit Profile button
           OutlinedButton.icon(
-            onPressed: () {
-              final usernameController = TextEditingController();
-              final bioController = TextEditingController();
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Edit Profile'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: usernameController,
-                        decoration:
-                            const InputDecoration(labelText: 'Username'),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: bioController,
-                        decoration: const InputDecoration(labelText: 'Bio'),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel')),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user != null) {
-                          await FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(user.uid)
-                              .update({
-                            'username': usernameController.text.trim(),
-                            'bio': bioController.text.trim(),
-                            'updatedAt': FieldValue.serverTimestamp(),
-                          });
-                          final productDocs = await FirebaseFirestore.instance
-                              .collection('products')
-                              .where('ownerId', isEqualTo: user.uid)
-                              .get();
-
-                          for (final doc in productDocs.docs) {
-                            await doc.reference.update({
-                              'ownerUsername': usernameController.text.trim(),
-                            });
-                          }
-
-                          if (mounted) {
-                            setState(() {
-                              username = usernameController.text.trim();
-                              bio = bioController.text.trim();
-                            });
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Profile updated successfully!'),
-                                backgroundColor: AppColors.primary,
-                              ),
-                            );
-                          }
-                        }
-                        if (context.mounted) Navigator.pop(context);
-                      },
-                      child: const Text('Save'),
-                    ),
-                  ],
-                ),
-              );
-            },
+            onPressed: _openEditProfileSheet,
             icon: const Icon(CupertinoIcons.pencil, size: 15),
             label: Text('Edit Profile',
                 style: AppTextStyles.productName.copyWith(fontSize: 13)),
@@ -501,6 +562,221 @@ class _StatItem extends StatelessWidget {
         Text(value, style: AppTextStyles.sectionTitle.copyWith(fontSize: 18)),
         Text(label, style: AppTextStyles.brandName),
       ],
+    );
+  }
+}
+
+class _ProfileEditResult {
+  final String username;
+  final String bio;
+
+  const _ProfileEditResult({
+    required this.username,
+    required this.bio,
+  });
+}
+
+class _EditProfileSheet extends StatefulWidget {
+  final String initialUsername;
+  final String initialBio;
+  final String profileImageUrl;
+
+  const _EditProfileSheet({
+    required this.initialUsername,
+    required this.initialBio,
+    required this.profileImageUrl,
+  });
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late final TextEditingController _usernameController;
+  late final TextEditingController _bioController;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameController = TextEditingController(text: widget.initialUsername);
+    _bioController = TextEditingController(text: widget.initialBio);
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    Navigator.pop(
+      context,
+      _ProfileEditResult(
+        username: _usernameController.text.trim(),
+        bio: _bioController.text.trim(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppColors.primarySurface,
+                    backgroundImage: widget.profileImageUrl.isNotEmpty
+                        ? CachedNetworkImageProvider(widget.profileImageUrl)
+                        : null,
+                    child: widget.profileImageUrl.isEmpty
+                        ? const Icon(Icons.person_rounded,
+                            color: AppColors.primary)
+                        : null,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Edit Profile',
+                          style:
+                              AppTextStyles.sectionTitle.copyWith(fontSize: 20),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Update your public seller identity.',
+                          style: AppTextStyles.brandName.copyWith(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded,
+                        color: AppColors.iconMuted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _EditProfileField(
+                controller: _usernameController,
+                label: 'Username',
+                hint: 'Your display name',
+                icon: Icons.alternate_email_rounded,
+              ),
+              const SizedBox(height: 14),
+              _EditProfileField(
+                controller: _bioController,
+                label: 'Bio',
+                hint: 'Tell buyers about you',
+                icon: Icons.notes_rounded,
+                maxLines: 3,
+                maxLength: 120,
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Save Changes',
+                    style: AppTextStyles.buttonFilled.copyWith(fontSize: 15),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditProfileField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+  final IconData icon;
+  final int maxLines;
+  final int? maxLength;
+
+  const _EditProfileField({
+    required this.controller,
+    required this.label,
+    required this.hint,
+    required this.icon,
+    this.maxLines = 1,
+    this.maxLength,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      maxLength: maxLength,
+      style: AppTextStyles.productName.copyWith(fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        counterStyle: AppTextStyles.brandName.copyWith(fontSize: 10),
+        labelStyle: AppTextStyles.brandName.copyWith(fontSize: 13),
+        hintStyle: AppTextStyles.brandName,
+        prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+        filled: true,
+        fillColor: AppColors.background,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+      ),
     );
   }
 }
@@ -569,16 +845,7 @@ class _MyProductsGrid extends StatelessWidget {
           itemBuilder: (context, i) {
             final data = docs[i].data() as Map<String, dynamic>;
             final imageUrl = data['imageUrl'] ?? '';
-            final product = Product(
-              id: docs[i].id,
-              ownerId: data['ownerId'] ?? '',
-              name: data['name'] ?? '',
-              brand: data['ownerUsername'] ?? data['ownerEmail'] ?? 'Seller',
-              description: data['description'] ?? '',
-              price: (data['price'] ?? 0).toDouble(),
-              imageUrl: imageUrl,
-              badge: data['mediaType'] == 'Photo' ? 'NEW' : null,
-            );
+            final product = productFromFirestore(docs[i]);
 
             return GestureDetector(
               onTap: () {

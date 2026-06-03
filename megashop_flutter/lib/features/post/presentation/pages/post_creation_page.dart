@@ -130,6 +130,7 @@ class _PostCreationPageState extends State<PostCreationPage> {
           'ownerId': user.uid,
           'ownerEmail': user.email,
           'ownerUsername': ownerUsername,
+          'ownerAvatar': userAvatar,
           'name': productName,
           'price': price,
           'description': description,

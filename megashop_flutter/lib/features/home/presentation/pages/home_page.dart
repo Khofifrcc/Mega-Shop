@@ -5,6 +5,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/state/cart_state.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
 import '../../data/datasources/home_local_data_source.dart';
+import '../../data/mappers/product_mapper.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/story.dart';
 import '../widgets/app_bar_widget.dart';
@@ -61,6 +62,8 @@ class _HomePageState extends State<HomePage> {
       variant: 'Default',
       price: product.price,
       imageUrl: product.imageUrl,
+      ownerId: product.ownerId,
+      ownerName: product.brand,
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -113,6 +116,8 @@ class _HomePageState extends State<HomePage> {
       variant: 'Default',
       price: product.price,
       imageUrl: product.imageUrl,
+      ownerId: product.ownerId,
+      ownerName: product.brand,
     );
 
     if (!mounted) return;
@@ -162,7 +167,7 @@ class _HomePageState extends State<HomePage> {
               onTap: () async {
                 Navigator.pop(context);
                 final file = await picker.pickImage(
-                  source: ImageSource.gallery,
+                  source: ImageSource.camera,
                   imageQuality: 85,
                 );
 
@@ -188,7 +193,7 @@ class _HomePageState extends State<HomePage> {
               onTap: () async {
                 Navigator.pop(context);
                 final file = await picker.pickImage(
-                  source: ImageSource.camera,
+                  source: ImageSource.gallery,
                   imageQuality: 85,
                 );
 
@@ -278,12 +283,12 @@ class _HomePageState extends State<HomePage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AddressBottomSheet(
+      builder: (sheetContext) => _AddressBottomSheet(
         addresses: _addresses,
         selectedIndex: _selectedAddressIndex,
         onSelect: (i) {
           setState(() => _selectedAddressIndex = i);
-          Navigator.pop(context);
+          Navigator.pop(sheetContext);
         },
         onAdd: (address) async {
           final user = FirebaseAuth.instance.currentUser;
@@ -299,8 +304,8 @@ class _HomePageState extends State<HomePage> {
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-          if (!context.mounted) return;
-          Navigator.pop(context);
+          if (!sheetContext.mounted) return;
+          Navigator.pop(sheetContext);
         },
         onDelete: (i) async {
           final user = FirebaseAuth.instance.currentUser;
@@ -334,7 +339,8 @@ class _HomePageState extends State<HomePage> {
           appBar: MegaShopAppBar(
             onSearchTap: () => Navigator.pushNamed(context, '/search'),
             onChatTap: () => Navigator.pushNamed(context, '/chat'),
-            onLocationTap: _openAddressSheet,
+            onNotificationTap: () =>
+                Navigator.pushNamed(context, '/notifications'),
           ),
           body: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -342,34 +348,35 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Current address bar ──────────────────────────────────
-                if (_addresses.isNotEmpty)
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: _openAddressSheet,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.location_on_rounded,
-                                size: 14, color: AppColors.primary),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                '${_addresses[_selectedAddressIndex].label} · ${_addresses[_selectedAddressIndex].detail}',
-                                style: AppTextStyles.brandName
-                                    .copyWith(fontSize: 12),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: _openAddressSheet,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded,
+                              size: 14, color: AppColors.primary),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _addresses.isEmpty
+                                  ? 'Add delivery address'
+                                  : '${_addresses[_selectedAddressIndex].label} · ${_addresses[_selectedAddressIndex].detail}',
+                              style: AppTextStyles.brandName
+                                  .copyWith(fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const Icon(Icons.keyboard_arrow_down_rounded,
-                                size: 16, color: AppColors.iconMuted),
-                          ],
-                        ),
+                          ),
+                          const Icon(Icons.keyboard_arrow_down_rounded,
+                              size: 16, color: AppColors.iconMuted),
+                        ],
                       ),
                     ),
                   ),
+                ),
                 const SizedBox(height: 12),
                 CategoryFilterBar(
                   categories: _categories,
@@ -398,11 +405,16 @@ class _HomePageState extends State<HomePage> {
                         }).toList() ??
                         [];
 
-                    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+                    final currentUserId =
+                        FirebaseAuth.instance.currentUser?.uid;
 
                     // Sort so user's own uploaded stories are on the far left, right after the "Your Story" add button
-                    final ownStories = firebaseStories.where((s) => s.ownerId == currentUserId).toList();
-                    final otherStories = firebaseStories.where((s) => s.ownerId != currentUserId).toList();
+                    final ownStories = firebaseStories
+                        .where((s) => s.ownerId == currentUserId)
+                        .toList();
+                    final otherStories = firebaseStories
+                        .where((s) => s.ownerId != currentUserId)
+                        .toList();
 
                     final viewableStories = [...ownStories, ...otherStories];
 
@@ -471,24 +483,8 @@ class _HomePageState extends State<HomePage> {
                       );
                     }
 
-                    final firebaseProducts = snapshot.data!.docs.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-
-                      return Product(
-                        id: doc.id,
-                        description: data['description'] ?? '',
-                        ownerId: data['ownerId'] ?? '',
-                        name: data['name'] ?? '',
-                        brand: data['ownerUsername'] ??
-                            data['ownerEmail'] ??
-                            'Seller',
-                        price: (data['price'] ?? 0).toDouble(),
-                        originalPrice: null,
-                        imageUrl: data['imageUrl'] ?? '',
-                        badge: data['mediaType'] == 'Photo' ? 'NEW' : null,
-                        isFavorite: false,
-                      );
-                    }).toList();
+                    final firebaseProducts =
+                        snapshot.data!.docs.map(productFromFirestore).toList();
                     final filteredProducts = _selectedCategory == 'All'
                         ? firebaseProducts
                         : firebaseProducts.where((product) {

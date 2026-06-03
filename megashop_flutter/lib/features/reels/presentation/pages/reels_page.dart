@@ -31,13 +31,14 @@ class ReelsPage extends StatefulWidget {
   State<ReelsPage> createState() => _ReelsPageState();
 }
 
-class _ReelsPageState extends State<ReelsPage> {
+class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   // Local fallback reels used only when Firestore has no reel data
   final _fallbackReels = _mockReels;
   final _likedIds = <String>{};
 
   int _currentIndex = 0;
   final String _searchQuery = '';
+  bool _isRouteVisible = true;
 
   // Track comments per reel ID so they persist during the session and update the count
   final Map<String, List<_Comment>> _reelComments = {};
@@ -48,6 +49,7 @@ class _ReelsPageState extends State<ReelsPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController(initialPage: _currentIndex);
     _reelsStream = FirebaseFirestore.instance
         .collection('reels')
@@ -81,8 +83,23 @@ class _ReelsPageState extends State<ReelsPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isVisible = state == AppLifecycleState.resumed;
+    if (_isRouteVisible == isVisible) return;
+    setState(() => _isRouteVisible = isVisible);
+  }
+
+  Future<T?> _pauseWhileAway<T>(Future<T?> Function() action) async {
+    if (mounted) setState(() => _isRouteVisible = false);
+    final result = await action();
+    if (mounted) setState(() => _isRouteVisible = true);
+    return result;
   }
 
   void _handlePageChange(int index) {
@@ -106,7 +123,8 @@ class _ReelsPageState extends State<ReelsPage> {
             stream: _reelsStream,
             builder: (context, snapshot) {
               // Show loading while fetching reels if we don't have error or data
-              if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasError) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasError) {
                 return const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 );
@@ -137,7 +155,8 @@ class _ReelsPageState extends State<ReelsPage> {
                   : <Reel>[];
 
               // Fallback to local mock reels if Firestore has no reels uploaded or has error/is empty
-              final displayReels = firestoreReels.isEmpty ? _fallbackReels : firestoreReels;
+              final displayReels =
+                  firestoreReels.isEmpty ? _fallbackReels : firestoreReels;
 
               final reels = displayReels.where((reel) {
                 final q = _searchQuery.toLowerCase();
@@ -175,7 +194,7 @@ class _ReelsPageState extends State<ReelsPage> {
 
                     return _ReelItem(
                       reel: reel,
-                      isActive: index == _currentIndex,
+                      isActive: index == _currentIndex && _isRouteVisible,
                       isLiked: _likedIds.contains(reel.id),
                       commentCount: currentCommentCount,
                       onLike: () => setState(() {
@@ -188,12 +207,25 @@ class _ReelsPageState extends State<ReelsPage> {
                       onComment: () => _showComments(context, reel),
                       onShare: () => _showShare(context, reel),
                       onAddToCart: () {
+                        final userId = FirebaseAuth.instance.currentUser?.uid;
+                        if (reel.ownerId == userId) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('You cannot buy your own reel.'),
+                              backgroundColor: AppColors.primary,
+                            ),
+                          );
+                          return;
+                        }
+
                         CartStateProvider.of(context).addItem(
                           productId: reel.id,
                           name: reel.productName,
                           variant: 'Default',
                           price: reel.price,
                           imageUrl: reel.imageUrl,
+                          ownerId: reel.ownerId,
+                          ownerName: reel.username,
                         );
                       },
                     );
@@ -229,7 +261,8 @@ class _ReelsPageState extends State<ReelsPage> {
                       onTap: () {
                         SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
                             overlays: SystemUiOverlay.values);
-                        Navigator.pushNamed(context, '/search');
+                        _pauseWhileAway(
+                            () => Navigator.pushNamed(context, '/search'));
                       },
                       child: Container(
                         width: 40,
@@ -280,27 +313,29 @@ class _ReelsPageState extends State<ReelsPage> {
   // ── Comment bottom sheet ────────────────────────────────────────────────────
 
   void _showComments(BuildContext context, Reel reel) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CommentsSheet(
-        reel: reel,
-        comments: _reelComments[reel.id] ?? [],
-        onCommentAdded: (text) {
-          setState(() {
-            _reelComments[reel.id] = [
-              _Comment(
-                author: 'you',
-                avatar:
-                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&q=80',
-                text: text,
-                time: 'now',
-              ),
-              ...(_reelComments[reel.id] ?? []),
-            ];
-          });
-        },
+    _pauseWhileAway(
+      () => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _CommentsSheet(
+          reel: reel,
+          comments: _reelComments[reel.id] ?? [],
+          onCommentAdded: (text) {
+            setState(() {
+              _reelComments[reel.id] = [
+                _Comment(
+                  author: 'you',
+                  avatar:
+                      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&q=80',
+                  text: text,
+                  time: 'now',
+                ),
+                ...(_reelComments[reel.id] ?? []),
+              ];
+            });
+          },
+        ),
       ),
     );
   }
@@ -308,10 +343,12 @@ class _ReelsPageState extends State<ReelsPage> {
   // ── Share bottom sheet ──────────────────────────────────────────────────────
 
   void _showShare(BuildContext context, Reel reel) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _ShareSheet(reel: reel),
+    _pauseWhileAway(
+      () => showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _ShareSheet(reel: reel),
+      ),
     );
   }
 }
@@ -348,6 +385,7 @@ class _ReelItemState extends State<_ReelItem>
   late VideoPlayerController _controller;
   bool _initialized = false;
   bool _isPaused = false;
+  bool _userPaused = false;
   bool _isFollowing = false;
 
   // Double-tap and skip gesture variables
@@ -394,9 +432,11 @@ class _ReelItemState extends State<_ReelItem>
       if (_controller.value.isPlaying) {
         _controller.pause();
         _isPaused = true;
+        _userPaused = true;
       } else {
         _controller.play();
         _isPaused = false;
+        _userPaused = false;
       }
     });
   }
@@ -419,8 +459,11 @@ class _ReelItemState extends State<_ReelItem>
           ..initialize().then((_) {
             if (mounted) {
               setState(() => _initialized = true);
-              if (widget.isActive) _controller.play();
               _controller.setLooping(true);
+              if (widget.isActive && !_userPaused) {
+                _controller.play();
+                _isPaused = false;
+              }
             }
           });
   }
@@ -430,10 +473,16 @@ class _ReelItemState extends State<_ReelItem>
     super.didUpdateWidget(old);
     if (widget.isActive != old.isActive) {
       if (widget.isActive) {
-        _controller.play();
-        setState(() => _isPaused = false);
+        if (!_userPaused) {
+          _controller.play();
+          setState(() => _isPaused = false);
+        }
       } else {
         _controller.pause();
+        if (old.reel.id != widget.reel.id) {
+          _userPaused = false;
+          _isPaused = false;
+        }
       }
     }
   }
@@ -453,6 +502,7 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _goToDetail() {
+    _controller.pause();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
         overlays: SystemUiOverlay.values);
     Navigator.pushNamed(
@@ -472,6 +522,7 @@ class _ReelItemState extends State<_ReelItem>
   }
 
   void _goToSellerProfile() {
+    _controller.pause();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
         overlays: SystemUiOverlay.values);
     Navigator.pushNamed(
@@ -622,9 +673,14 @@ class _ReelItemState extends State<_ReelItem>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.fast_rewind_rounded, color: Colors.white, size: 36),
+                      Icon(Icons.fast_rewind_rounded,
+                          color: Colors.white, size: 36),
                       SizedBox(height: 4),
-                      Text('-5s', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text('-5s',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -649,9 +705,14 @@ class _ReelItemState extends State<_ReelItem>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.fast_forward_rounded, color: Colors.white, size: 36),
+                      Icon(Icons.fast_forward_rounded,
+                          color: Colors.white, size: 36),
                       SizedBox(height: 4),
-                      Text('+5s', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text('+5s',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -788,23 +849,43 @@ class _ReelItemState extends State<_ReelItem>
                                       MouseRegion(
                                         cursor: SystemMouseCursors.click,
                                         child: GestureDetector(
-                                          onTap: () {
-                                            CartStateProvider.of(context)
+                                          onTap: () async {
+                                            final userId = FirebaseAuth
+                                                .instance.currentUser?.uid;
+                                            if (widget.reel.ownerId == userId) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                      'You cannot buy your own reel.'),
+                                                  backgroundColor:
+                                                      AppColors.primary,
+                                                ),
+                                              );
+                                              return;
+                                            }
+
+                                            await CartStateProvider.of(context)
                                                 .addItem(
                                               productId: widget.reel.id,
                                               name: widget.reel.productName,
                                               variant: 'Default',
                                               price: widget.reel.price,
                                               imageUrl: widget.reel.imageUrl,
+                                              ownerId: widget.reel.ownerId,
+                                              ownerName: widget.reel.username,
                                             );
 
+                                            _controller.pause();
                                             SystemChrome.setEnabledSystemUIMode(
                                               SystemUiMode.manual,
                                               overlays: SystemUiOverlay.values,
                                             );
 
-                                            Navigator.pushNamed(
-                                                context, '/checkout');
+                                            if (context.mounted) {
+                                              Navigator.pushNamed(
+                                                  context, '/checkout');
+                                            }
                                           },
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(

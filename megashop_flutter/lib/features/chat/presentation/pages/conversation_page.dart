@@ -19,6 +19,7 @@ class ConversationPage extends StatefulWidget {
 class _ConversationPageState extends State<ConversationPage> {
   final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  String? _lastReadChatId;
 
   @override
   void dispose() {
@@ -34,21 +35,39 @@ class _ConversationPageState extends State<ConversationPage> {
     if (text.isEmpty || user == null) return;
 
     _msgCtrl.clear();
+    final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
+    final chatDoc = await chatRef.get();
+    final chatData = chatDoc.data() ?? {};
+    final members = List<String>.from(chatData['members'] ?? []);
+    final recipients = members.where((id) => id != user.uid).toList();
 
-    await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .add({
+    await chatRef.collection('messages').add({
       'senderId': user.uid,
       'text': text,
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    await FirebaseFirestore.instance.collection('chats').doc(chatId).update({
+    final updates = <String, dynamic>{
       'lastMessage': text,
+      'lastSenderId': user.uid,
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+    for (final recipient in recipients) {
+      updates['unreadBy.$recipient'] = FieldValue.increment(1);
+    }
+    updates['unreadBy.${user.uid}'] = 0;
+
+    await chatRef.update(updates);
+  }
+
+  Future<void> _markAsRead(String chatId) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null || _lastReadChatId == chatId) return;
+    _lastReadChatId = chatId;
+
+    await FirebaseFirestore.instance.collection('chats').doc(chatId).set({
+      'unreadBy': {userId: 0},
+    }, SetOptions(merge: true));
   }
 
   @override
@@ -76,6 +95,10 @@ class _ConversationPageState extends State<ConversationPage> {
       debugPrint('CHAT OPENED: $chatId');
     }
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _markAsRead(chatId);
+    });
+
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
@@ -93,7 +116,16 @@ class _ConversationPageState extends State<ConversationPage> {
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundImage: CachedNetworkImageProvider(avatar),
+              backgroundColor: AppColors.primarySurface,
+              backgroundImage:
+                  avatar.isNotEmpty ? CachedNetworkImageProvider(avatar) : null,
+              child: avatar.isEmpty
+                  ? Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      style: AppTextStyles.productName
+                          .copyWith(color: AppColors.primary),
+                    )
+                  : null,
             ),
             const SizedBox(width: 10),
             Column(

@@ -281,36 +281,58 @@ class _ProfilePageState extends State<ProfilePage>
         title: Text('MegaShop', style: AppTextStyles.appLogo),
         centerTitle: true,
         actions: [
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: IconButton(
-              onPressed: () {
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.menu_rounded, color: AppColors.primary),
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            position: PopupMenuPosition.under,
+            onSelected: (value) async {
+              if (value == 'store-orders') {
+                Navigator.pushNamed(context, '/store-orders');
+              } else if (value == 'order-history') {
                 Navigator.pushNamed(context, '/order-history');
-              },
-              icon: const Icon(
-                CupertinoIcons.doc_text,
-                color: AppColors.primary,
-              ),
-              tooltip: 'My Orders',
-            ),
-          ),
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: IconButton(
-              onPressed: () async {
+              } else if (value == 'logout') {
                 await FirebaseAuth.instance.signOut();
                 if (context.mounted) {
-                  Navigator.pushNamedAndRemoveUntil(
-                      context, '/login', (route) => false);
+                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
                 }
-              },
-              icon: const Icon(
-                CupertinoIcons.square_arrow_right,
-                color: AppColors.primary,
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'store-orders',
+                child: Row(
+                  children: [
+                    const Icon(Icons.storefront_rounded, color: AppColors.textPrimary, size: 20),
+                    const SizedBox(width: 12),
+                    Text('Store Orders', style: AppTextStyles.productName),
+                  ],
+                ),
               ),
-              tooltip: 'Sign out',
-            ),
+              PopupMenuItem(
+                value: 'order-history',
+                child: Row(
+                  children: [
+                    const Icon(CupertinoIcons.doc_text, color: AppColors.textPrimary, size: 20),
+                    const SizedBox(width: 12),
+                    Text('My Orders', style: AppTextStyles.productName),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    const Icon(CupertinoIcons.square_arrow_right, color: AppColors.badgeSale, size: 20),
+                    const SizedBox(width: 12),
+                    Text('Sign out', style: AppTextStyles.productName.copyWith(color: AppColors.badgeSale)),
+                  ],
+                ),
+              ),
+            ],
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: NestedScrollView(

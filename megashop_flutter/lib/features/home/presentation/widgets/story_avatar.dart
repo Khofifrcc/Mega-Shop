@@ -76,6 +76,7 @@ class StoryAvatar extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: story.imageUrl!,
                 fit: BoxFit.cover,
+                memCacheWidth: 200, // Optimize memory for 64x64 avatar
                 placeholder: (ctx, url) => Container(
                   color: AppColors.primarySurface,
                 ),

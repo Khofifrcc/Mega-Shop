@@ -15,8 +15,11 @@ class Product {
   /// Original price before discount; null if no sale
   final double? originalPrice;
 
-  /// URL to the product's hero image
+  /// URL to the product's hero image (typically the first image)
   final String imageUrl;
+
+  /// Array of all image URLs for the product
+  final List<String> imageUrls;
 
   /// Optional badge label: 'NEW', 'SALE', or null
   final String? badge;
@@ -35,6 +38,7 @@ class Product {
     required this.price,
     this.originalPrice,
     required this.imageUrl,
+    this.imageUrls = const [],
     this.badge,
     this.isFavorite = false,
   });
@@ -52,6 +56,7 @@ class Product {
     double? price,
     double? originalPrice,
     String? imageUrl,
+    List<String>? imageUrls,
     String? badge,
     bool? isFavorite,
     String? category,
@@ -67,6 +72,7 @@ class Product {
       price: price ?? this.price,
       originalPrice: originalPrice ?? this.originalPrice,
       imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
       badge: badge ?? this.badge,
       isFavorite: isFavorite ?? this.isFavorite,
     );

@@ -429,6 +429,7 @@ class _CartItemCard extends StatelessWidget {
               width: 80,
               height: 80,
               fit: BoxFit.cover,
+              memCacheWidth: 200, // Optimize memory for cart thumbnail
               placeholder: (ctx, url) =>
                   Container(color: AppColors.primarySurface),
               errorWidget: (ctx, url, err) =>

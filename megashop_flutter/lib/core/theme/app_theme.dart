@@ -80,5 +80,11 @@ abstract class AppTheme {
         dividerColor: AppColors.divider,
         splashColor: AppColors.primarySurface,
         highlightColor: Colors.transparent,
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
       );
 }

@@ -27,11 +27,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   bool _isFavorite = false;
   bool _isFollowing = false;
 
-  final List<String> _extraImages = [
-    'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?w=600&q=80',
-    'https://images.unsplash.com/photo-1434056886845-dac89ffe9b56?w=600&q=80',
-  ];
-
   // ── Navigate to seller profile ────────────────────────────────────────────
 
   void _openSeller(Product product) {
@@ -152,7 +147,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final isMyProduct =
         product.ownerId == FirebaseAuth.instance.currentUser?.uid;
 
-    final images = [product.imageUrl, ..._extraImages];
+    final images = product.imageUrls.isNotEmpty 
+        ? product.imageUrls 
+        : [product.imageUrl];
     final desc = product.description.isNotEmpty
         ? product.description
         : 'No description provided.';
@@ -491,6 +488,7 @@ class _HeroImageSection extends StatelessWidget {
               imageUrl: images[i],
               fit: BoxFit.cover,
               width: double.infinity,
+              memCacheWidth: 800, // Optimize memory for hero image
               placeholder: (_, __) =>
                   Container(color: AppColors.primarySurface),
               errorWidget: (_, __, ___) =>

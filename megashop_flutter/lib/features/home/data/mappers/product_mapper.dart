@@ -19,6 +19,7 @@ Product productFromFirestore(DocumentSnapshot doc) {
     price: (data['price'] ?? 0).toDouble(),
     originalPrice: (data['originalPrice'] as num?)?.toDouble(),
     imageUrl: data['imageUrl'] ?? '',
+    imageUrls: data['imageUrls'] != null ? List<String>.from(data['imageUrls']) : [(data['imageUrl'] ?? '')],
     badge: data['mediaType'] == 'Photo' ? 'NEW' : data['badge'],
     isFavorite: data['isFavorite'] ?? false,
   );

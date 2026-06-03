@@ -504,20 +504,7 @@ class _HomePageState extends State<HomePage> {
                     final filteredProducts = _selectedCategory == 'All'
                         ? firebaseProducts
                         : firebaseProducts.where((product) {
-                            final brand = product.brand.toLowerCase();
-
-                            switch (_selectedCategory) {
-                              case 'Fashion':
-                                return true; // sementara semua masuk fashion
-                              case 'Tech':
-                                return brand.contains('tech');
-                              case 'Home':
-                                return brand.contains('home');
-                              case 'Beauty':
-                                return brand.contains('beauty');
-                              default:
-                                return true;
-                            }
+                            return product.category == _selectedCategory;
                           }).toList();
                     return TrendingGrid(
                       products: filteredProducts,

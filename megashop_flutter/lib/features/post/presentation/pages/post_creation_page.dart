@@ -23,11 +23,14 @@ class _PostCreationPageState extends State<PostCreationPage> {
   final _productNameCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
 
-  bool _hasMedia = false;
   bool _isUploading = false;
 
+  String _selectedCategory = 'Fashion';
+  final List<String> _categories = ['Fashion', 'Tech', 'Home', 'Beauty'];
+
   // Selected media can be product image or reels video
-  XFile? _selectedMedia;
+  List<XFile> _selectedImages = [];
+  XFile? _selectedVideo;
 
   @override
   void dispose() {
@@ -41,21 +44,25 @@ class _PostCreationPageState extends State<PostCreationPage> {
   Future<void> _pickMedia() async {
     final picker = ImagePicker();
 
-    final media = _mediaType == 'Photo'
-        ? await picker.pickImage(
-            source: ImageSource.gallery,
-            imageQuality: 80,
-          )
-        : await picker.pickVideo(
-            source: ImageSource.gallery,
-          );
-
-    if (media == null) return;
-
-    setState(() {
-      _selectedMedia = media;
-      _hasMedia = true;
-    });
+    if (_mediaType == 'Photo') {
+      final List<XFile> images = await picker.pickMultiImage(
+        imageQuality: 80,
+      );
+      if (images.isNotEmpty) {
+        setState(() {
+          _selectedImages.addAll(images);
+        });
+      }
+    } else {
+      final video = await picker.pickVideo(
+        source: ImageSource.gallery,
+      );
+      if (video != null) {
+        setState(() {
+          _selectedVideo = video;
+        });
+      }
+    }
   }
 
   // Share product photo or reels video
@@ -77,7 +84,8 @@ class _PostCreationPageState extends State<PostCreationPage> {
     if (productName.isEmpty ||
         priceText.isEmpty ||
         description.isEmpty ||
-        _selectedMedia == null) {
+        (_mediaType == 'Photo' && _selectedImages.isEmpty) ||
+        (_mediaType == 'Video' && _selectedVideo == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Please fill all fields and select media.')),
@@ -97,21 +105,42 @@ class _PostCreationPageState extends State<PostCreationPage> {
 
       // Upload selected file to Firebase Storage
       final folder = _mediaType == 'Photo' ? 'products' : 'reels';
-      final extension = _mediaType == 'Photo' ? 'jpg' : 'mp4';
 
-      final fileName =
-          '$folder/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.$extension';
+      String heroImageUrl = '';
+      List<String> allImageUrls = [];
+      String mediaUrl = ''; // For video if used later
 
-      final ref = FirebaseStorage.instance.ref().child(fileName);
+      if (_mediaType == 'Photo') {
+        for (var image in _selectedImages) {
+          final fileName = '$folder/${user.uid}/${DateTime.now().millisecondsSinceEpoch}_${image.name}';
+          final ref = FirebaseStorage.instance.ref().child(fileName);
 
-      if (kIsWeb) {
-        final bytes = await _selectedMedia!.readAsBytes();
-        await ref.putData(bytes);
+          if (kIsWeb) {
+            final bytes = await image.readAsBytes();
+            await ref.putData(bytes);
+          } else {
+            await ref.putFile(File(image.path));
+          }
+
+          final url = await ref.getDownloadURL();
+          allImageUrls.add(url);
+        }
+        if (allImageUrls.isNotEmpty) {
+          heroImageUrl = allImageUrls.first;
+        }
       } else {
-        await ref.putFile(File(_selectedMedia!.path));
-      }
+        final fileName = '$folder/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.mp4';
+        final ref = FirebaseStorage.instance.ref().child(fileName);
 
-      final mediaUrl = await ref.getDownloadURL();
+        if (kIsWeb) {
+          final bytes = await _selectedVideo!.readAsBytes();
+          await ref.putData(bytes);
+        } else {
+          await ref.putFile(File(_selectedVideo!.path));
+        }
+
+        mediaUrl = await ref.getDownloadURL();
+      }
 
       // Get latest user profile data
       final userDoc = await FirebaseFirestore.instance
@@ -134,8 +163,10 @@ class _PostCreationPageState extends State<PostCreationPage> {
           'name': productName,
           'price': price,
           'description': description,
+          'category': _selectedCategory,
           'mediaType': 'Photo',
-          'imageUrl': mediaUrl,
+          'imageUrl': heroImageUrl,
+          'imageUrls': allImageUrls,
           'videoUrl': '',
           'likes': 0,
           'createdAt': FieldValue.serverTimestamp(),
@@ -241,8 +272,8 @@ class _PostCreationPageState extends State<PostCreationPage> {
                   onTap: () {
                     setState(() {
                       _mediaType = 'Photo';
-                      _selectedMedia = null;
-                      _hasMedia = false;
+                      _selectedImages.clear();
+                      _selectedVideo = null;
                     });
                   },
                 ),
@@ -254,8 +285,8 @@ class _PostCreationPageState extends State<PostCreationPage> {
                   onTap: () {
                     setState(() {
                       _mediaType = 'Video';
-                      _selectedMedia = null;
-                      _hasMedia = false;
+                      _selectedImages.clear();
+                      _selectedVideo = null;
                     });
                   },
                 ),
@@ -265,78 +296,120 @@ class _PostCreationPageState extends State<PostCreationPage> {
             const SizedBox(height: 20),
 
             // Upload area
-            GestureDetector(
-              onTap: _pickMedia,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
+            if (_mediaType == 'Photo' && _selectedImages.isNotEmpty)
+              SizedBox(
+                height: 140,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _selectedImages.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == _selectedImages.length) {
+                      return GestureDetector(
+                        onTap: _pickMedia,
+                        child: Container(
+                          width: 100,
+                          margin: const EdgeInsets.only(left: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySurface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.primary, width: 1.5),
+                          ),
+                          child: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary, size: 32),
+                        ),
+                      );
+                    }
+                    final image = _selectedImages[index];
+                    return Stack(
+                      children: [
+                        Container(
+                          width: 140,
+                          margin: EdgeInsets.only(right: index == _selectedImages.length - 1 ? 0 : 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: kIsWeb
+                                ? Image.network(image.path, fit: BoxFit.cover, height: 140, width: 140)
+                                : Image.file(File(image.path), fit: BoxFit.cover, height: 140, width: 140),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: index == _selectedImages.length - 1 ? 4 : 12,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedImages.removeAt(index);
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close, color: Colors.white, size: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              )
+            else if (_mediaType == 'Video' && _selectedVideo != null)
+              Container(
                 height: 220,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: _hasMedia
-                      ? AppColors.primary.withAlpha(20)
-                      : AppColors.primarySurface,
+                  color: AppColors.primary.withAlpha(20),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: _hasMedia ? AppColors.primary : AppColors.divider,
-                    width: _hasMedia ? 2 : 1.5,
+                  border: Border.all(color: AppColors.primary, width: 2),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.video_file_rounded, color: AppColors.primary, size: 54),
+                    const SizedBox(height: 12),
+                    Text('Video selected', style: AppTextStyles.sectionTitle.copyWith(fontSize: 17)),
+                  ],
+                ),
+              )
+            else
+              GestureDetector(
+                onTap: _pickMedia,
+                child: Container(
+                  height: 220,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.divider, width: 1.5),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _mediaType == 'Photo' ? Icons.add_photo_alternate_outlined : Icons.video_call_outlined,
+                        color: AppColors.primary,
+                        size: 42,
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        _mediaType == 'Photo' ? 'Upload Product Photos' : 'Upload Reels Video',
+                        style: AppTextStyles.sectionTitle.copyWith(fontSize: 17),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _mediaType == 'Photo' ? 'Tap to select images from gallery' : 'Tap to select an MP4 video clip',
+                        style: AppTextStyles.brandName,
+                      ),
+                    ],
                   ),
                 ),
-                child: _selectedMedia != null
-                    ? _mediaType == 'Photo'
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: kIsWeb
-                                ? Image.network(
-                                    _selectedMedia!.path,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  )
-                                : Image.file(
-                                    File(_selectedMedia!.path),
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.video_file_rounded,
-                                  color: AppColors.primary, size: 54),
-                              const SizedBox(height: 12),
-                              Text('Video selected',
-                                  style: AppTextStyles.sectionTitle
-                                      .copyWith(fontSize: 17)),
-                            ],
-                          )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _mediaType == 'Photo'
-                                ? Icons.add_photo_alternate_outlined
-                                : Icons.video_call_outlined,
-                            color: AppColors.primary,
-                            size: 42,
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            _mediaType == 'Photo'
-                                ? 'Upload Product Photo'
-                                : 'Upload Reels Video',
-                            style: AppTextStyles.sectionTitle
-                                .copyWith(fontSize: 17),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _mediaType == 'Photo'
-                                ? 'Tap to select an image from gallery'
-                                : 'Tap to select an MP4 video clip',
-                            style: AppTextStyles.brandName,
-                          ),
-                        ],
-                      ),
               ),
-            ),
 
             const SizedBox(height: 24),
 
@@ -359,7 +432,48 @@ class _PostCreationPageState extends State<PostCreationPage> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
+
+            if (_mediaType == 'Photo') ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.category_outlined, color: AppColors.iconMuted, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedCategory,
+                          isExpanded: true,
+                          dropdownColor: AppColors.surface,
+                          style: AppTextStyles.brandName.copyWith(fontSize: 14),
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.iconMuted),
+                          items: _categories.map((cat) {
+                            return DropdownMenuItem<String>(
+                              value: cat,
+                              child: Text(cat),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _selectedCategory = val;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
 
             Text('Product Description',
                 style: AppTextStyles.productName

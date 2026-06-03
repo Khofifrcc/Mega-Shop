@@ -186,7 +186,9 @@ class _ConversationPageState extends State<ConversationPage> {
                       productImage: data['productImage'] ?? '',
                     );
 
-                    return _BubbleItem(message: message);
+                    return _BubbleItem(
+                      message: message,
+                    );
                   },
                 );
               },
@@ -282,20 +284,25 @@ class _BubbleItem extends StatelessWidget {
       crossAxisAlignment:
           message.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
-        Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.72),
-          decoration: BoxDecoration(
-            color: message.isMe ? AppColors.primary : AppColors.primarySurface,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(16),
-              topRight: const Radius.circular(16),
-              bottomLeft: Radius.circular(message.isMe ? 16 : 4),
-              bottomRight: Radius.circular(message.isMe ? 4 : 16),
-            ),
-          ),
-          padding: const EdgeInsets.all(12),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            mainAxisAlignment: message.isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Material(
+                color: message.isMe ? AppColors.primary : AppColors.primarySurface,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: Radius.circular(message.isMe ? 16 : 4),
+                  bottomRight: Radius.circular(message.isMe ? 4 : 16),
+                ),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 0),
+                  constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.72),
+                  padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -359,6 +366,10 @@ class _BubbleItem extends StatelessWidget {
             ],
           ),
         ),
+      ),
+      ],
+      ),
+      ),
       ],
     );
   }

@@ -36,6 +36,105 @@ class _ChatListPageState extends State<ChatListPage> {
     Navigator.pushNamed(context, '/conversation', arguments: conv);
   }
 
+  void _showNewChatSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _NewChatBottomSheet(
+        onUserSelected: (userMap) async {
+          Navigator.pop(context); // close sheet
+          await _startNewChat(userMap);
+        },
+      ),
+    );
+  }
+
+  Future<void> _startNewChat(Map<String, dynamic> selectedUser) async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    final selectedUserId = selectedUser['uid'] as String?;
+    if (selectedUserId == null) return;
+
+    // 1. Check if chat already exists
+    final snapshot = await FirebaseFirestore.instance
+        .collection('chats')
+        .where('members', arrayContains: currentUserId)
+        .get();
+
+    QueryDocumentSnapshot? existingChat;
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final members = List<String>.from(data['members'] ?? []);
+      if (members.contains(selectedUserId)) {
+        existingChat = doc;
+        break;
+      }
+    }
+
+    if (existingChat != null) {
+      // Open existing chat
+      final data = existingChat.data() as Map<String, dynamic>;
+      final otherName = data['buyerId'] == currentUserId
+          ? data['sellerName']
+          : data['buyerName'];
+
+      final otherAvatar = data['buyerId'] == currentUserId
+          ? data['sellerAvatar']
+          : data['buyerAvatar'];
+
+      final unreadBy = (data['unreadBy'] as Map<String, dynamic>?) ?? {};
+      final updatedAt = data['updatedAt'];
+
+      final conv = _Conversation(
+        id: existingChat.id,
+        name: otherName ?? 'User',
+        avatarUrl: otherAvatar ?? '',
+        lastMessage: data['lastMessage'] ?? '',
+        time: updatedAt is Timestamp ? _formatTime(updatedAt) : '',
+        unreadCount: unreadBy[currentUserId] ?? data['unreadCount'] ?? 0,
+        isTyping: data['isTyping'] ?? false,
+        isMegaShop: data['isMegaShop'] ?? false,
+      );
+      _openConversation(conv);
+      return;
+    }
+
+    // 2. Create new chat
+    final currentUserDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .get();
+    final currentUserData = currentUserDoc.data() ?? {};
+
+    final docRef = await FirebaseFirestore.instance.collection('chats').add({
+      'members': [currentUserId, selectedUserId],
+      'buyerId': currentUserId,
+      'buyerName': currentUserData['username'] ?? 'Me',
+      'buyerAvatar': currentUserData['profilePhoto'] ?? '',
+      'sellerId': selectedUserId,
+      'sellerName': selectedUser['username'] ?? 'User',
+      'sellerAvatar': selectedUser['profilePhoto'] ?? '',
+      'lastMessage': '',
+      'updatedAt': FieldValue.serverTimestamp(),
+      'unreadCount': 0,
+      'unreadBy': {},
+      'isTyping': false,
+      'isMegaShop': false,
+    });
+
+    final conv = _Conversation(
+      id: docRef.id,
+      name: selectedUser['username'] ?? 'User',
+      avatarUrl: selectedUser['profilePhoto'] ?? '',
+      lastMessage: '',
+      time: '',
+      unreadCount: 0,
+    );
+    _openConversation(conv);
+  }
+
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -64,8 +163,8 @@ class _ChatListPageState extends State<ChatListPage> {
             alignment: Alignment.center,
             children: [
               IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.edit_rounded,
+                onPressed: _showNewChatSheet,
+                icon: const Icon(Icons.add_comment_rounded,
                     color: AppColors.textPrimary),
               ),
               Positioned(
@@ -238,10 +337,53 @@ class _ConversationTile extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(conv.name, style: AppTextStyles.productName),
-          Text(conv.time,
-              style: conv.unreadCount > 0
-                  ? AppTextStyles.brandName.copyWith(color: AppColors.primary)
-                  : AppTextStyles.brandName),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(conv.time,
+                  style: conv.unreadCount > 0
+                      ? AppTextStyles.brandName.copyWith(color: AppColors.primary)
+                      : AppTextStyles.brandName),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: AppColors.surface,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (ctx) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 8, bottom: 8),
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: AppColors.divider,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.delete_outline_rounded, color: AppColors.badgeSale),
+                            title: Text('Delete Conversation', style: AppTextStyles.productName.copyWith(color: AppColors.badgeSale)),
+                            onTap: () async {
+                              Navigator.pop(ctx);
+                              await FirebaseFirestore.instance.collection('chats').doc(conv.id).delete();
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.more_vert_rounded, size: 18, color: AppColors.iconMuted),
+              ),
+            ],
+          ),
         ],
       ),
       subtitle: Padding(
@@ -301,4 +443,124 @@ class _Conversation {
     this.isTyping = false,
     this.isMegaShop = false,
   });
+}
+
+// ── New Chat Bottom Sheet ───────────────────────────────────────────────────
+
+class _NewChatBottomSheet extends StatefulWidget {
+  final Function(Map<String, dynamic> user) onUserSelected;
+
+  const _NewChatBottomSheet({required this.onUserSelected});
+
+  @override
+  State<_NewChatBottomSheet> createState() => _NewChatBottomSheetState();
+}
+
+class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
+  String _searchQuery = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.divider,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('New Message', style: AppTextStyles.sectionTitle.copyWith(fontSize: 18)),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+              decoration: InputDecoration(
+                hintText: 'Search users...',
+                hintStyle: AppTextStyles.brandName,
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.iconMuted, size: 20),
+                filled: true,
+                fillColor: AppColors.primarySurface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('users').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading users', style: AppTextStyles.brandName));
+                }
+
+                final docs = snapshot.data?.docs ?? [];
+                final filteredDocs = docs.where((doc) {
+                  if (doc.id == currentUserId) return false;
+                  final data = doc.data() as Map<String, dynamic>;
+                  final username = (data['username'] ?? '').toString().toLowerCase();
+                  return username.contains(_searchQuery);
+                }).toList();
+
+                if (filteredDocs.isEmpty) {
+                  return Center(child: Text('No users found.', style: AppTextStyles.brandName));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: filteredDocs.length,
+                  itemBuilder: (context, index) {
+                    final doc = filteredDocs[index];
+                    final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
+                    data['uid'] = doc.id; // Guarantee uid is present
+                    
+                    final avatarUrl = data['profilePhoto'] ?? '';
+                    final username = data['username'] ?? 'User';
+
+                    return ListTile(
+                      onTap: () => widget.onUserSelected(data),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      leading: CircleAvatar(
+                        radius: 24,
+                        backgroundColor: AppColors.primarySurface,
+                        backgroundImage: avatarUrl.toString().isNotEmpty
+                            ? CachedNetworkImageProvider(avatarUrl)
+                            : null,
+                        child: avatarUrl.toString().isEmpty
+                            ? Text(
+                                username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                              )
+                            : null,
+                      ),
+                      title: Text(username, style: AppTextStyles.productName),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

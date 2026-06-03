@@ -92,9 +92,19 @@ class MegaShopApp extends StatelessWidget {
       cart: CartState(),
       child: MaterialApp(
         navigatorKey: NotificationService.navigatorKey,
-        title: 'MegaShop',
+        title: 'Mega Shop',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        builder: (context, child) {
+          return ScrollConfiguration(
+            behavior: const ScrollBehavior().copyWith(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+            ),
+            child: child!,
+          );
+        },
         initialRoute: _initialRoute,
         routes: {
           '/edit-product': (_) => const EditProductPage(),

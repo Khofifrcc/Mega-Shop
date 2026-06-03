@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/product.dart';
@@ -180,12 +181,16 @@ class _ProductImage extends StatelessWidget {
                     color: AppColors.iconMuted,
                   ),
                 )
-              : Image.network(
-                  product.imageUrl,
+              : CachedNetworkImage(
+                  imageUrl: product.imageUrl,
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
-                  errorBuilder: (context, error, stackTrace) {
+                  memCacheWidth: 400, // Optimize memory decode for grid thumbnails
+                  placeholder: (context, url) => Container(
+                    color: AppColors.primarySurface,
+                  ),
+                  errorWidget: (context, url, error) {
                     debugPrint('IMAGE ERROR: $error');
                     debugPrint('IMAGE URL: ${product.imageUrl}');
                     return Container(
@@ -303,12 +308,13 @@ class _BrandRow extends StatelessWidget {
                     ),
                   ),
                 )
-              : Image.network(
-                  product.ownerAvatar,
+              : CachedNetworkImage(
+                  imageUrl: product.ownerAvatar,
                   width: 18,
                   height: 18,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  memCacheWidth: 100, // Optimize memory for tiny avatar
+                  errorWidget: (_, __, ___) => Container(
                     width: 18,
                     height: 18,
                     decoration: const BoxDecoration(

@@ -25,7 +25,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// - Like / Live comment system / Share action buttons
 /// - Pointer cursor on hover for every button
 class ReelsPage extends StatefulWidget {
-  const ReelsPage({super.key});
+  final String? initialUserId;
+  final int initialIndex;
+  final bool showBottomNav;
+
+  const ReelsPage({
+    super.key,
+    this.initialUserId,
+    this.initialIndex = 0,
+    this.showBottomNav = true,
+  });
 
   @override
   State<ReelsPage> createState() => _ReelsPageState();
@@ -36,7 +45,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   final _fallbackReels = _mockReels;
   final _likedIds = <String>{};
 
-  int _currentIndex = 0;
+  late int _currentIndex;
   final String _searchQuery = '';
   bool _isRouteVisible = true;
 
@@ -50,11 +59,18 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
-    _reelsStream = FirebaseFirestore.instance
-        .collection('reels')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    
+    var query = FirebaseFirestore.instance.collection('reels').orderBy('createdAt', descending: true);
+    
+    if (widget.initialUserId != null) {
+      query = FirebaseFirestore.instance
+          .collection('reels')
+          .where('ownerId', isEqualTo: widget.initialUserId);
+    }
+    
+    _reelsStream = query.snapshots();
 
     // Initialize mock comments for each reel
     for (var reel in _fallbackReels) {
@@ -130,9 +146,25 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                 );
               }
 
+              final docs = (snapshot.hasData && snapshot.data != null)
+                  ? snapshot.data!.docs
+                  : <QueryDocumentSnapshot>[];
+
+              if (widget.initialUserId != null) {
+                docs.sort((a, b) {
+                  final aData = a.data() as Map<String, dynamic>;
+                  final bData = b.data() as Map<String, dynamic>;
+                  final aTime = aData['createdAt'] as Timestamp?;
+                  final bTime = bData['createdAt'] as Timestamp?;
+                  if (aTime == null && bTime == null) return 0;
+                  if (aTime == null) return 1;
+                  if (bTime == null) return -1;
+                  return bTime.compareTo(aTime);
+                });
+              }
+
               // Convert Firestore documents to Reel objects
-              final firestoreReels = (snapshot.hasData && snapshot.data != null)
-                  ? snapshot.data!.docs.map((doc) {
+              final firestoreReels = docs.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
 
                       return Reel(
@@ -151,8 +183,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                         likeCount: data['likeCount'] ?? 0,
                         commentCount: data['commentCount'] ?? 0,
                       );
-                    }).toList()
-                  : <Reel>[];
+                    }).toList();
 
               // Fallback to local mock reels if Firestore has no reels uploaded or has error/is empty
               final displayReels =
@@ -242,19 +273,29 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Reels',
-                    style: AppTextStyles.sectionTitle.copyWith(
-                      color: Colors.white,
-                      fontSize: 24,
-                      shadows: const [
-                        Shadow(
-                            color: Colors.black54,
-                            blurRadius: 8,
-                            offset: Offset(0, 2))
-                      ],
+                  if (!widget.showBottomNav)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                      onPressed: () => Navigator.pop(context),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black26,
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    )
+                  else
+                    Text(
+                      'Reels',
+                      style: AppTextStyles.sectionTitle.copyWith(
+                        color: Colors.white,
+                        fontSize: 24,
+                        shadows: const [
+                          Shadow(
+                              color: Colors.black54,
+                              blurRadius: 8,
+                              offset: Offset(0, 2))
+                        ],
+                      ),
                     ),
-                  ),
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
@@ -283,30 +324,33 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
           ),
         ],
       ),
-      bottomNavigationBar: MegaBottomNav(
-        currentIndex: 1,
-        onTap: (i) {
-          SystemChrome.setEnabledSystemUIMode(
-            SystemUiMode.manual,
-            overlays: SystemUiOverlay.values,
-          );
-
-          switch (i) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/home');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/post');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/cart');
-              break;
-            case 4:
-              Navigator.pushReplacementNamed(context, '/profile');
-              break;
-          }
-        },
-      ),
+      bottomNavigationBar: widget.showBottomNav
+        ? MegaBottomNav(
+            currentIndex: 1,
+            onTap: (i) {
+              SystemChrome.setEnabledSystemUIMode(
+                SystemUiMode.manual,
+                overlays: SystemUiOverlay.values,
+              );
+              switch (i) {
+                case 0:
+                  Navigator.pushReplacementNamed(context, '/home');
+                  break;
+                case 1:
+                  break;
+                case 2:
+                  Navigator.pushReplacementNamed(context, '/post');
+                  break;
+                case 3:
+                  Navigator.pushReplacementNamed(context, '/cart');
+                  break;
+                case 4:
+                  Navigator.pushReplacementNamed(context, '/profile');
+                  break;
+              }
+            },
+          )
+        : null,
     );
   }
 
@@ -354,6 +398,8 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
 }
 
 // ── Single Reel Item ──────────────────────────────────────────────────────────
+
+
 
 class _ReelItem extends StatefulWidget {
   final Reel reel;
@@ -762,15 +808,21 @@ class _ReelItemState extends State<_ReelItem>
                                 // Product thumbnail
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: CachedNetworkImage(
-                                    imageUrl: widget.reel.imageUrl,
+                                  child: SizedBox(
                                     width: 48,
                                     height: 48,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) =>
-                                        Container(color: Colors.white24),
-                                    errorWidget: (_, __, ___) =>
-                                        Container(color: Colors.white24),
+                                    child: widget.reel.imageUrl.isNotEmpty
+                                        ? CachedNetworkImage(
+                                            imageUrl: widget.reel.imageUrl,
+                                            fit: BoxFit.cover,
+                                            placeholder: (_, __) => Container(
+                                                color: Colors.white24),
+                                            errorWidget: (_, __, ___) =>
+                                                Container(
+                                                    color: Colors.white24),
+                                          )
+                                        : _MiniVideoPlayer(
+                                            url: widget.reel.videoUrl),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -1030,6 +1082,88 @@ class _ReelItemState extends State<_ReelItem>
                       onTap: widget.onShare,
                     ),
                     const SizedBox(height: 18),
+
+                    if (isMyReel) ...[
+                      _ActionBtn(
+                        icon: Icons.edit_rounded,
+                        label: 'Edit',
+                        onTap: () {
+                          _controller.pause();
+                          Navigator.pushNamed(context, '/edit-reel',
+                                  arguments: widget.reel)
+                              .then((_) {
+                            if (widget.isActive && mounted && !_userPaused) {
+                              _controller.play();
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                      _ActionBtn(
+                        icon: Icons.delete_outline_rounded,
+                        iconColor: Colors.redAccent,
+                        label: 'Delete',
+                        onTap: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              backgroundColor: const Color(0xFF1A1A1A),
+                              title: Text('Delete Reel',
+                                  style: AppTextStyles.sectionTitle
+                                      .copyWith(color: Colors.white)),
+                              content: Text(
+                                  'Are you sure you want to delete this reel?',
+                                  style: AppTextStyles.brandName
+                                      .copyWith(color: Colors.white70)),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: Text('Cancel',
+                                      style: AppTextStyles.buttonFilled
+                                          .copyWith(
+                                              color: Colors.white70,
+                                              fontSize: 14)),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: Text('Delete',
+                                      style: AppTextStyles.buttonFilled
+                                          .copyWith(
+                                              color: Colors.redAccent,
+                                              fontSize: 14)),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            try {
+                              await FirebaseFirestore.instance
+                                  .collection('reels')
+                                  .doc(widget.reel.id)
+                                  .delete();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Reel deleted successfully!'),
+                                    backgroundColor: AppColors.primary,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text('Failed to delete: $e')),
+                                );
+                              }
+                            }
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                    ],
 
                     // Video progress ring (mini)
                     if (_initialized) _VideoProgress(controller: _controller),
@@ -1683,4 +1817,46 @@ class _ReelsScrollBehavior extends MaterialScrollBehavior {
         PointerDeviceKind.stylus,
         PointerDeviceKind.trackpad,
       };
+}
+
+class _MiniVideoPlayer extends StatefulWidget {
+  final String url;
+  const _MiniVideoPlayer({required this.url});
+
+  @override
+  State<_MiniVideoPlayer> createState() => _MiniVideoPlayerState();
+}
+
+class _MiniVideoPlayerState extends State<_MiniVideoPlayer> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+      ..initialize().then((_) {
+        if (mounted) setState(() => _initialized = true);
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized) return Container(color: Colors.black12);
+    return FittedBox(
+      fit: BoxFit.cover,
+      clipBehavior: Clip.hardEdge,
+      child: SizedBox(
+        width: _controller.value.size.width,
+        height: _controller.value.size.height,
+        child: VideoPlayer(_controller),
+      ),
+    );
+  }
 }

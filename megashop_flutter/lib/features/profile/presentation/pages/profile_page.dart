@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:video_player/video_player.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/mega_bottom_nav.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../../home/data/mappers/product_mapper.dart';
+import '../../../reels/presentation/pages/reels_page.dart';
 
 /// Profile page matching the mockup.
 ///
@@ -279,6 +281,19 @@ class _ProfilePageState extends State<ProfilePage>
         title: Text('MegaShop', style: AppTextStyles.appLogo),
         centerTitle: true,
         actions: [
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: IconButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/order-history');
+              },
+              icon: const Icon(
+                CupertinoIcons.doc_text,
+                color: AppColors.primary,
+              ),
+              tooltip: 'My Orders',
+            ),
+          ),
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: IconButton(
@@ -942,21 +957,35 @@ class _MyReelsGrid extends StatelessWidget {
 
               return GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(
+                  Navigator.push(
                     context,
-                    '/reels',
+                    MaterialPageRoute(
+                      builder: (context) => ReelsPage(
+                        initialUserId: user.uid,
+                        initialIndex: index,
+                        showBottomNav: false,
+                      ),
+                    ),
                   );
                 },
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    CachedNetworkImage(
-                      imageUrl: data['userAvatar'] ?? '',
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(color: Colors.black12),
-                      errorWidget: (_, __, ___) =>
-                          Container(color: Colors.black12),
-                    ),
+                    if (data['imageUrl'] != null &&
+                        data['imageUrl'].toString().isNotEmpty)
+                      CachedNetworkImage(
+                        imageUrl: data['imageUrl'],
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) =>
+                            Container(color: Colors.black12),
+                        errorWidget: (_, __, ___) =>
+                            Container(color: Colors.black12),
+                      )
+                    else if (data['videoUrl'] != null &&
+                        data['videoUrl'].toString().isNotEmpty)
+                      _MiniVideoPlayer(url: data['videoUrl'])
+                    else
+                      Container(color: Colors.black12),
                     Container(
                       color: Colors.black26,
                     ),
@@ -972,6 +1001,48 @@ class _MyReelsGrid extends StatelessWidget {
               );
             });
       },
+    );
+  }
+}
+
+class _MiniVideoPlayer extends StatefulWidget {
+  final String url;
+  const _MiniVideoPlayer({required this.url});
+
+  @override
+  State<_MiniVideoPlayer> createState() => _MiniVideoPlayerState();
+}
+
+class _MiniVideoPlayerState extends State<_MiniVideoPlayer> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+      ..initialize().then((_) {
+        if (mounted) setState(() => _initialized = true);
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized) return Container(color: Colors.black12);
+    return FittedBox(
+      fit: BoxFit.cover,
+      clipBehavior: Clip.hardEdge,
+      child: SizedBox(
+        width: _controller.value.size.width,
+        height: _controller.value.size.height,
+        child: VideoPlayer(_controller),
+      ),
     );
   }
 }

@@ -156,7 +156,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           .toSet()
           .toList();
 
-      await FirebaseFirestore.instance.collection('orders').add({
+      final docRef = await FirebaseFirestore.instance.collection('orders').add({
         'buyerId': user.uid,
         'buyerEmail': user.email,
         'sellerIds': sellerIds,
@@ -185,7 +185,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       Navigator.pushReplacementNamed(
         context,
         '/order-status',
-        arguments: true,
+        arguments: docRef.id,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

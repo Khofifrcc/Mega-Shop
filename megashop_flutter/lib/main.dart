@@ -20,6 +20,7 @@ import 'features/onboarding/presentation/pages/introduction_page.dart';
 
 // Reels
 import 'features/reels/presentation/pages/reels_page.dart';
+import 'features/reels/presentation/pages/edit_reel_page.dart';
 
 // Product
 import 'features/product/presentation/pages/product_detail_page.dart';
@@ -31,6 +32,7 @@ import 'features/cart/presentation/pages/cart_page.dart';
 // Checkout
 import 'features/checkout/presentation/pages/checkout_page.dart';
 import 'features/checkout/presentation/pages/order_status_page.dart';
+import 'features/checkout/presentation/pages/order_detail_page.dart';
 
 // Search
 import 'features/search/presentation/pages/search_page.dart';
@@ -47,6 +49,9 @@ import 'features/chat/presentation/pages/conversation_page.dart';
 
 // Profile
 import 'features/profile/presentation/pages/profile_page.dart';
+import 'features/profile/presentation/pages/order_history_page.dart';
+import 'features/profile/presentation/pages/store_orders_page.dart';
+import 'features/profile/presentation/pages/store_order_detail_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,6 +98,7 @@ class MegaShopApp extends StatelessWidget {
         initialRoute: _initialRoute,
         routes: {
           '/edit-product': (_) => const EditProductPage(),
+          '/edit-reel': (_) => const EditReelPage(),
           '/introduction': (_) => const IntroductionPage(),
           '/login': (_) => const LoginRegisterPage(),
           '/otp': (_) => const OtpPage(),
@@ -103,12 +109,16 @@ class MegaShopApp extends StatelessWidget {
           '/cart': (_) => const CartPage(),
           '/checkout': (_) => const CheckoutPage(),
           '/order-status': (_) => const OrderStatusPage(),
+          '/order-detail': (_) => const OrderDetailPage(),
           '/search': (_) => const SearchPage(),
           '/post': (_) => const PostCreationPage(),
           '/notifications': (_) => const NotificationsPage(),
           '/chat': (_) => const ChatListPage(),
           '/conversation': (_) => const ConversationPage(),
           '/profile': (_) => const ProfilePage(),
+          '/order-history': (_) => const OrderHistoryPage(),
+          '/store-orders': (_) => const StoreOrdersPage(),
+          '/store-order-detail': (_) => const StoreOrderDetailPage(),
         },
       ),
     );

@@ -66,7 +66,11 @@ class _StoryViewerState extends State<StoryViewer>
   void _notifyViewed() {
     if (_currentIndex >= 0 && _currentIndex < _viewerStories.length) {
       final story = _viewerStories[_currentIndex];
-      widget.onStoryViewed?.call(story.id);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          widget.onStoryViewed?.call(story.id);
+        }
+      });
     }
   }
 

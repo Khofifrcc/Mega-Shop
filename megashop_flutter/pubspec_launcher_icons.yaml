@@ -1,0 +1,9 @@
+flutter_launcher_icons:
+  image_path: "Assets/images/MegaShop.jpeg"
+  image_path_android: "Assets/images/MegaShop.jpeg"
+  image_path_ios: "Assets/images/MegaShop.jpeg"
+  android: true
+  ios: true
+  windows: true
+  macos: true
+  linux: true

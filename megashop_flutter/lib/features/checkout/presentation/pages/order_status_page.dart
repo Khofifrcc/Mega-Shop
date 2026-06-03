@@ -22,8 +22,8 @@ class _OrderStatusPageState extends State<OrderStatusPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    final isSuccess =
-        (ModalRoute.of(context)?.settings.arguments as bool?) ?? true;
+    final orderId = ModalRoute.of(context)?.settings.arguments as String?;
+    final isSuccess = orderId != null;
     if (isSuccess && !_hasShownSuccessPopup) {
       _hasShownSuccessPopup = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,8 +44,8 @@ class _OrderStatusPageState extends State<OrderStatusPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isSuccess =
-        (ModalRoute.of(context)?.settings.arguments as bool?) ?? true;
+    final orderId = ModalRoute.of(context)?.settings.arguments as String?;
+    final isSuccess = orderId != null;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -53,7 +53,8 @@ class _OrderStatusPageState extends State<OrderStatusPage> {
           padding: const EdgeInsets.all(24),
           child: isSuccess
               ? _SuccessContent(
-                  onViewOrder: () => _showOrderDetailComingSoon(context),
+                  orderId: orderId,
+                  onViewOrder: () => Navigator.pushNamed(context, '/order-detail', arguments: orderId),
                   onGoHome: () {
                     CartStateProvider.of(context).clear();
                     _replaceWithSmoothRoute(context, '/home');
@@ -101,14 +102,7 @@ class _OrderStatusPageState extends State<OrderStatusPage> {
     );
   }
 
-  void _showOrderDetailComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Order detail page will be added soon.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  // (Removed _showOrderDetailComingSoon)
 }
 
 class _OrderSuccessPopup extends StatefulWidget {
@@ -204,10 +198,11 @@ class _OrderSuccessPopupState extends State<_OrderSuccessPopup>
 }
 
 class _SuccessContent extends StatelessWidget {
+  final String orderId;
   final VoidCallback onViewOrder;
   final VoidCallback onGoHome;
 
-  const _SuccessContent({required this.onViewOrder, required this.onGoHome});
+  const _SuccessContent({required this.orderId, required this.onViewOrder, required this.onGoHome});
 
   @override
   Widget build(BuildContext context) {
@@ -284,7 +279,7 @@ class _SuccessContent extends StatelessWidget {
                   children: [
                     Text('Order Number',
                         style: AppTextStyles.brandName.copyWith(fontSize: 13)),
-                    Text('#ORD-9824XQ', style: AppTextStyles.productName),
+                    Text('#${orderId.substring(0, 8).toUpperCase()}', style: AppTextStyles.productName),
                   ],
                 ),
               ),

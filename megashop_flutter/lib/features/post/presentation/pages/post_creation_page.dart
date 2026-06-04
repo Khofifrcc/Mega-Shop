@@ -29,7 +29,7 @@ class _PostCreationPageState extends State<PostCreationPage> {
   final List<String> _categories = ['Fashion', 'Tech', 'Home', 'Beauty'];
 
   // Selected media can be product image or reels video
-  List<XFile> _selectedImages = [];
+  final List<XFile> _selectedImages = [];
   XFile? _selectedVideo;
 
   @override
